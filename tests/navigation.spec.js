@@ -1,0 +1,21 @@
+import { expect, test } from '@playwright/test';
+
+test.describe('기본 앱 셸', () => {
+  test('기본 경로는 통합 재고 관제로 이동한다', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/inventory$/);
+    await expect(page.getByRole('heading', { name: '통합 재고 관제' })).toBeVisible();
+    await expect(page.locator('.nav-item.active')).toContainText('통합 재고 관제');
+  });
+
+  test('사이드바 메뉴가 각 기본 페이지로 이동한다', async ({ page }) => {
+    await page.goto('/inventory');
+    await page.getByRole('link', { name: 'AI 전략 수립' }).click();
+    await expect(page).toHaveURL(/\/ai-strategy$/);
+    await expect(page.getByRole('heading', { name: 'AI 전략 수립' })).toBeVisible();
+
+    await page.getByRole('link', { name: '통계' }).click();
+    await expect(page).toHaveURL(/\/statistics$/);
+    await expect(page.locator('.nav-item.active')).toContainText('통계');
+  });
+});
