@@ -13,3 +13,8 @@ test-results/
 
 *storybook.log
 storybook-static
+
+# 팀 공유 문서는 커밋하지만, 개인 작업 계획·미확정 선택지·보관용 초안은 로컬에만 둡니다.
+docs/plans/*.md
+!docs/plans/2026-08-07-003-http-client-and-fsd-boundaries.md
+!docs/plans/2026-08-07-006-design-direction-decision.md

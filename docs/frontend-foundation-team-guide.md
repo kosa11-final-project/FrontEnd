@@ -4,7 +4,7 @@
 > 대상: 현대그린푸드 다중 판매채널 재고 운영 플랫폼 프론트엔드 팀
 > 범위: 실제 업무 기능 개발 전, 모든 팀원이 공유할 프론트엔드 기반과 사용 규칙
 
-이 문서는 현재 저장소의 실제 구현을 기준으로 작성한 상세 기준입니다. 처음 참여한 팀원은 먼저 `docs/team-onboarding.md`의 필수 설치·실행·PR 절차를 끝내고, 구조나 기술 선택의 이유가 필요할 때 이 문서를 확인합니다. 과거 디자인 탐색과 의사결정 과정은 `docs/plans`에 보관하지만, 기능 개발을 시작할 때에는 이 문서와 실제 코드를 우선합니다.
+이 문서는 현재 저장소의 실제 구현을 기준으로 작성한 상세 기준입니다. 처음 참여한 팀원은 먼저 `docs/team-onboarding.md`의 필수 설치·실행·PR 절차를 끝내고, 구조나 기술 선택의 이유가 필요할 때 이 문서를 확인합니다. 팀에 공유할 가치가 있는 기술·디자인 결정만 `docs/plans`에 남기며, 개인 작업 계획과 미확정 초안은 커밋하지 않습니다. 기능 개발을 시작할 때에는 이 문서와 실제 코드를 우선합니다.
 
 ## 1. 한눈에 보는 현재 상태
 
@@ -759,5 +759,5 @@ Spring Boot 계약이 정해지기 전에는 다음을 임의로 구현하지 �
 - Query Provider: `src/app/providers/AppProviders.jsx`
 - 라우터: `src/app/router/router.jsx`
 - 디자인 레퍼런스: `docs/design-references/ui8-dashboard-style-reference.md`
-- 초기 계획 기록: `docs/plans/2026-08-07-001-frontend-initial-setup-plan.md`
 - Axios·FSD 결정 기록: `docs/plans/2026-08-07-003-http-client-and-fsd-boundaries.md`
+- 디자인 방향 결정: `docs/plans/2026-08-07-006-design-direction-decision.md`

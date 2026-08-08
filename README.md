@@ -393,6 +393,5 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 - [API·Query·mapper 전체 흐름 예시](./src/_template/example-flow/README.md)
 - [GitHub PR 템플릿](./.github/pull_request_template.md)
 - [디자인 레퍼런스와 구현 규칙](./docs/design-references/ui8-dashboard-style-reference.md)
-- [초기 세팅 계획](./docs/plans/2026-08-07-001-frontend-initial-setup-plan.md)
 - [HTTP와 FSD 경계 결정](./docs/plans/2026-08-07-003-http-client-and-fsd-boundaries.md)
 - [디자인 방향 결정](./docs/plans/2026-08-07-006-design-direction-decision.md)
