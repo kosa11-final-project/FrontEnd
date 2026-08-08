@@ -2,6 +2,7 @@ import { ArrowRight, CheckCircle, Layers } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { Badge, Button, Icon } from '@/shared/ui';
 
+// DESIGN / PAGE: 모든 초기 route가 공유하는 페이지 골격입니다. 실제 업무 위젯은 각 page에서 교체합니다.
 export default function OperationsPlaceholderPage({ eyebrow, title, description }) {
   return (
     <main className="page-shell" aria-labelledby="page-title">
@@ -16,9 +17,9 @@ export default function OperationsPlaceholderPage({ eyebrow, title, description 
 
       <section className="mesh-hero" aria-label="페이지 준비 상태">
         <div>
-          <span className="section-kicker">MESH FORECAST · OLIVE GREEN</span>
-          <h2>공통 화면 구조를 기준으로 기능을 연결합니다.</h2>
-          <p>이 페이지는 라우팅과 디자인 시스템을 확인하기 위한 기본 셸입니다. 실제 데이터와 업무 기능은 도메인 기능 개발 단계에서 추가합니다.</p>
+          <span className="section-kicker">DASHBOARD FILTER · FOUNDATIONS</span>
+          <h2>필터 Primitive와 Semantic 토큰을 기준으로 기능을 연결합니다.</h2>
+          <p>main, sub-mint, sub-cyan, sub-orange와 gray scale을 공통 기준으로 사용합니다. 실제 데이터와 업무 기능은 도메인 기능 개발 단계에서 추가합니다.</p>
         </div>
         <div className="mesh-hero-mark"><Icon icon={Layers} size={34} /></div>
       </section>

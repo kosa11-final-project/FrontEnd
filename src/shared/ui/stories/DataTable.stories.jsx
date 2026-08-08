@@ -63,7 +63,7 @@ const strategyMatrixColumns = [
   {
     accessorKey: 'rank',
     header: '순위',
-    meta: { align: 'center', width: '5.5rem', cellClassName: 'bg-[var(--surface-subtle)] align-top' },
+    meta: { align: 'center', width: '6.5rem', cellClassName: 'bg-[var(--surface-subtle)] align-top' },
     cell: ({ getValue }) => (
       <div className="flex flex-col items-center gap-2 pt-1">
         <strong className="text-[var(--font-size-subtitle2)] text-[var(--text-heading)]">{getValue()}</strong>

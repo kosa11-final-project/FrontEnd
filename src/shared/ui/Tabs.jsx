@@ -1,7 +1,43 @@
 import { useId, useState } from 'react';
+import { cva } from 'class-variance-authority';
 import { cn } from '@/shared/lib/cn';
 
-export function Tabs({ value, defaultValue, onValueChange, children, className }) {
+const tabsVariants = cva('flex flex-col', {
+  variants: {
+    orientation: {
+      horizontal: '',
+      vertical: 'flex-row',
+    },
+  },
+  defaultVariants: { orientation: 'horizontal' },
+});
+
+const tabsListVariants = cva('flex items-center gap-1', {
+  variants: {
+    size: {
+      sm: 'h-8',
+      md: 'h-9',
+      lg: 'h-10',
+    },
+  },
+  defaultVariants: { size: 'md' },
+});
+
+const tabsTriggerVariants = cva(
+  'relative border-b-2 border-transparent px-2 font-semibold text-[var(--muted-foreground)] transition-colors hover:text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+  {
+    variants: {
+      size: {
+        sm: 'h-8 text-[var(--font-size-meta)]',
+        md: 'h-9 text-[var(--font-size-body-sm)]',
+        lg: 'h-10 text-[var(--font-size-body)]',
+      },
+    },
+    defaultVariants: { size: 'md' },
+  },
+);
+
+export function Tabs({ value, defaultValue, onValueChange, children, className, orientation }) {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const activeValue = value ?? internalValue;
   const setValue = (nextValue) => {
@@ -10,17 +46,17 @@ export function Tabs({ value, defaultValue, onValueChange, children, className }
   };
 
   return (
-    <div className={cn('flex flex-col', className)} data-tabs-value={activeValue}>
+    <div className={cn(tabsVariants({ orientation }), className)} data-tabs-value={activeValue}>
       {typeof children === 'function' ? children({ value: activeValue, setValue }) : children}
     </div>
   );
 }
 
-export function TabsList({ children, className, ...props }) {
-  return <div role="tablist" className={cn('flex items-center gap-1', className)} {...props}>{children}</div>;
+export function TabsList({ children, className, size, ...props }) {
+  return <div role="tablist" className={cn(tabsListVariants({ size }), className)} {...props}>{children}</div>;
 }
 
-export function TabsTrigger({ value, activeValue, onSelect, children, className, ...props }) {
+export function TabsTrigger({ value, activeValue, onSelect, children, className, size, ...props }) {
   const id = useId();
   const active = activeValue === value;
   return (
@@ -30,7 +66,7 @@ export function TabsTrigger({ value, activeValue, onSelect, children, className,
       role="tab"
       aria-selected={active}
       className={cn(
-        'relative h-9 border-b-2 border-transparent px-2 text-xs font-bold text-[var(--muted-foreground)] transition-colors hover:text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+        tabsTriggerVariants({ size }),
         active && 'border-[var(--primary)] text-[var(--primary)]',
         className,
       )}
@@ -41,3 +77,5 @@ export function TabsTrigger({ value, activeValue, onSelect, children, className,
     </button>
   );
 }
+
+export { tabsListVariants, tabsTriggerVariants, tabsVariants };

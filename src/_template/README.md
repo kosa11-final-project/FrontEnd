@@ -14,6 +14,29 @@ entities  도메인 데이터와 표현 규칙
 shared    도메인을 모르는 공통 UI, API, 설정, 유틸리티
 ```
 
+앱 전체에 고정되는 사이드바와 헤더도 `app/layouts`에 모든 JSX를 넣지 않습니다.
+라우터를 모르는 재사용 primitive는 `shared/ui/sidebar`에 두고, 실제 메뉴·사용자 정보·현재 경로 연결을 조합하는 앱 셸 widget은 `widgets/app-shell`에 둡니다. `app/layouts/AppLayout.jsx`는 이 widget과 `Outlet`만 배치합니다.
+
+```text
+app/layouts/AppLayout.jsx
+  → widgets/app-shell/ui/AppSidebar.jsx
+      → shared/ui/sidebar/Sidebar.jsx
+      → widgets/app-shell/model/navigation.js
+  → widgets/app-shell/ui/AppHeader.jsx
+      → shared/ui/IconButton.jsx
+```
+
+이렇게 나누면 메뉴 항목 변경은 `widgets/app-shell/model/navigation.js`, 공통 사이드바 모양과 variant 변경은 `shared/ui/sidebar`, 실제 업무 셸 조합 변경은 `widgets/app-shell`에서 처리할 수 있습니다. `shared/ui`는 React Router나 특정 업무 도메인을 import하지 않습니다.
+
+## 디자인 컴포넌트 사용 순서
+
+1. 먼저 `shared/ui`에 이미 있는 `Button`, `IconButton`, `Avatar`, `StatusDot`, `Input`, `Select`, `Badge`, `Table`, `Tabs`, `Drawer`, `Tooltip`, `Sidebar`를 확인합니다.
+2. 기존 컴포넌트로 표현할 수 있으면 `variant`, `size`, `tone`, `className` 조합만 사용합니다. 화면마다 같은 버튼 HTML과 CSS를 다시 만들지 않습니다.
+3. 공통성이 확인된 새 primitive만 `shared/ui`에 추가합니다. 특정 재고·전략 의미가 들어가면 `entities`, 사용자 행동이 들어가면 `features`, 여러 조각을 조합하면 `widgets`에 둡니다.
+4. 한 페이지에서만 필요한 배치는 `pages`에 두고, 전역 토큰과 reset은 `src/styles.css`의 `GLOBAL` 영역, 앱 셸은 `APP SHELL`, 페이지 골격은 `PAGE`, 업무 블록은 `WIDGET` 영역에 추가합니다.
+
+렌더링 최적화는 무조건 `memo`를 붙이는 방식으로 하지 않습니다. `AppSidebar`처럼 props가 없고 라우터 context가 필요한 큰 조합 경계에만 memo를 사용하고, `NavLink`·입력·상태 컴포넌트는 실제 상태 변화가 있을 때만 갱신되도록 구성합니다. 상태와 데이터가 바뀌는 단위를 작게 유지하는 것이 우선입니다.
+
 ## 새 기능을 시작할 때
 
 ```text

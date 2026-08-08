@@ -111,10 +111,10 @@ export const Typography = {
     docs: {
       source: {
         code: `<p className="text-[var(--font-size-headline1)]">Headline1 · 22px</p>
-<p className="text-[var(--font-size-headline2)]">Headline2 · 20px</p>
-<p className="text-[var(--font-size-subtitle1)]">Subtitle1 · 16px</p>
-<p className="text-[var(--font-size-body1)]">Body1 · 14px</p>
-<p className="text-[var(--font-size-description)]">Description · 12px</p>`,
+<p className="text-[var(--font-size-headline2)]">Headline2</p>
+<p className="text-[var(--font-size-subtitle1)]">Subtitle1</p>
+<p className="text-[var(--font-size-body1)]">Body1</p>
+<p className="text-[var(--font-size-description)]">Description</p>`,
       },
     },
   },
@@ -122,9 +122,9 @@ export const Typography = {
 
 export const InteractiveTheme = {
   args: {
-    mainColor: '#27B06E',
-    infoColor: '#00B0D7',
-    warningColor: '#FDA643',
+    mainColor: readToken('--color-main') || '#27B06E',
+    infoColor: readToken('--color-sub-cyan') || '#00B0D7',
+    warningColor: readToken('--color-sub-orange') || '#FDA643',
   },
   argTypes: {
     mainColor: { control: 'color', description: 'main과 primary/good 역할에 적용합니다.' },

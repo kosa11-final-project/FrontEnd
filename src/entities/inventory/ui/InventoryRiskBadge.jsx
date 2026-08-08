@@ -1,7 +1,6 @@
-import { Badge } from '@/shared/ui';
+import { InventoryStatusBadge } from './InventoryStatusBadge.jsx';
 
-// shared/ui/Badge는 시각 표현만 알고, 재고 위험등급의 의미는 이 도메인 컴포넌트가 소유합니다.
-export function InventoryRiskBadge({ level = '양호' }) {
-  const variant = level === '위험' ? 'danger' : level === '주의' ? 'warning' : 'good';
-  return <Badge variant={variant}>{level}</Badge>;
+// DESIGN / ENTITY: 위험등급의 의미와 shared/ui Badge variant 매핑은 inventory 도메인이 소유합니다.
+export function InventoryRiskBadge({ level = '양호', ...props }) {
+  return <InventoryStatusBadge status={level} {...props} />;
 }

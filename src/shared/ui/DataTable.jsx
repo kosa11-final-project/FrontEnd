@@ -96,6 +96,7 @@ export function DataTable({
     onSortingChange: handleSortingChange,
     getRowId,
     enableSorting,
+    sortDescFirst: false,
     manualSorting,
     getCoreRowModel: getCoreRowModel(),
     ...(manualSorting ? {} : { getSortedRowModel: getSortedRowModel() }),
@@ -124,6 +125,7 @@ export function DataTable({
                     className={cn(headerCellClass, align, meta.headerClassName)}
                     style={meta.width ? { width: meta.width } : undefined}
                     colSpan={header.colSpan}
+                    aria-sort={header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : 'none'}
                   >
                     {header.isPlaceholder ? null : header.column.getCanSort() ? (
                       <SortButton column={header.column}>

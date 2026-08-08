@@ -1,9 +1,21 @@
 import { useEffect } from 'react';
+import { cva } from 'class-variance-authority';
 import { CloseCircle } from 'reicon-react';
 import { cn } from '@/shared/lib/cn';
 import { Icon } from './Icon.jsx';
 
-export function Drawer({ open, onClose, title, description, children, className }) {
+const drawerVariants = cva('flex h-full w-full flex-col border-l border-[var(--border-strong)] bg-[var(--card)] shadow-2xl', {
+  variants: {
+    size: {
+      sm: 'max-w-[360px]',
+      md: 'max-w-[440px]',
+      lg: 'max-w-[640px]',
+    },
+  },
+  defaultVariants: { size: 'md' },
+});
+
+export function Drawer({ open, onClose, title, description, children, className, size }) {
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (event) => {
@@ -17,7 +29,7 @@ export function Drawer({ open, onClose, title, description, children, className 
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/20" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}>
-      <aside className={cn('flex h-full w-full max-w-[440px] flex-col border-l border-[var(--border-strong)] bg-[var(--card)] shadow-2xl', className)} role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <aside className={cn(drawerVariants({ size }), className)} role="dialog" aria-modal="true" aria-labelledby="drawer-title">
         <header className="flex items-start justify-between border-b border-[var(--border)] px-6 py-5">
           <div>
             <h2 id="drawer-title" className="text-lg font-bold text-[var(--foreground)]">{title}</h2>
@@ -30,3 +42,5 @@ export function Drawer({ open, onClose, title, description, children, className 
     </div>
   );
 }
+
+export { drawerVariants };

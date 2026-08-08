@@ -4,3 +4,6 @@ dist/
 *.local
 playwright-report/
 test-results/
+
+*storybook.log
+storybook-static

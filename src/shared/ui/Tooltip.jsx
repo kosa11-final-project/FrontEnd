@@ -1,4 +1,5 @@
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+import { cva } from 'class-variance-authority';
 import { cn } from '@/shared/lib/cn';
 
 export function TooltipProvider({ children }) {
@@ -13,15 +14,22 @@ export function TooltipTrigger({ children, asChild = true }) {
   return <TooltipPrimitive.Trigger asChild={asChild}>{children}</TooltipPrimitive.Trigger>;
 }
 
-export function TooltipContent({ className, sideOffset = 6, children, ...props }) {
+const tooltipContentVariants = cva('z-50 max-w-xs rounded-md px-3 py-2 text-[var(--font-size-meta)] leading-4 shadow-lg outline-none animate-in fade-in-0 zoom-in-95', {
+  variants: {
+    tone: {
+      dark: 'bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)]',
+      light: 'border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]',
+    },
+  },
+  defaultVariants: { tone: 'dark' },
+});
+
+export function TooltipContent({ className, sideOffset = 6, children, tone, ...props }) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
         sideOffset={sideOffset}
-        className={cn(
-          'z-50 max-w-xs rounded-md bg-[var(--tooltip-bg)] px-3 py-2 text-[11px] leading-4 text-[var(--tooltip-fg)] shadow-lg outline-none animate-in fade-in-0 zoom-in-95',
-          className,
-        )}
+        className={cn(tooltipContentVariants({ tone }), className)}
         {...props}
       >
         {children}
@@ -30,3 +38,5 @@ export function TooltipContent({ className, sideOffset = 6, children, ...props }
     </TooltipPrimitive.Portal>
   );
 }
+
+export { tooltipContentVariants };
