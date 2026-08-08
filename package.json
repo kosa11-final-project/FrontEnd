@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -36,7 +38,11 @@
     "@vitejs/plugin-react": "^4.7.0",
     "tailwindcss": "^4.1.11",
     "vite": "^7.0.6",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "storybook": "^10.5.7",
+    "@storybook/react-vite": "^10.5.7",
+    "@storybook/addon-a11y": "^10.5.7",
+    "@storybook/addon-docs": "^10.5.7"
   },
   "packageManager": "pnpm@11.18.0+sha512.33d83c77da82f49fba836925c6f1b841181ec3132b670639bd012f7075f5c7cf634c5f870147c19aae7478fac01df09d8892e880454896edd23ee9b33757563c"
 }
