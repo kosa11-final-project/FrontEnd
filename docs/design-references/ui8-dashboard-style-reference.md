@@ -37,16 +37,20 @@
 | Main | `--color-main` | `#27B06E` | primary action, selected, focus, good |
 | Sub mint | `--color-sub-mint` | `#11C6AB` | secondary emphasis |
 | Sub cyan | `--color-sub-cyan` | `#00B0D7` | info, sync, online |
-| Sub orange | `--color-sub-orange` | `#FDA643` | warning, risk |
+| Sub orange | `--color-sub-orange` | `#FDA643` | warning |
+| Danger | `--color-danger` | `#D92D20` | risk, destructive/error emphasis |
 | Soft mint | `--color-sub-mint-soft` | `#DAF7E9` | selected surface, good background |
 | Soft cyan | `--color-sub-cyan-soft` | `#CFF4FC` | info background |
 | Soft orange | `--color-sub-orange-soft` | `#FFEC2C` | warning background |
+| Soft danger | `--color-danger-soft` | `#FEE4E2` | risk and error background |
 | Gray 900 | `--color-gray-900` | `#282828` | heading, tooltip, high-emphasis text |
 | Gray 700 | `--color-gray-700` | `#747474` | body text |
 | Gray 500 | `--color-gray-500` | `#8E8E8E` | muted text, placeholder |
 | Gray 300 | `--color-gray-300` | `#C1C1C1` | input border, strong divider |
 | Gray 200 | `--color-gray-200` | `#DADADA` | default border |
 | Gray 50 | `--color-gray-50` | `#F4F4F4` | page and subtle surface |
+
+Drawer와 modal의 dimmer는 검정색을 직접 사용하지 않고 `--overlay` semantic token을 사용한다. `--overlay`는 gray-900을 20% 투명도로 합성해 같은 중성 계열을 유지한다.
 
 ## Typography and Spacing
 

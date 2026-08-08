@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout.jsx';
 import AiStrategyPage from '@/pages/ai-strategy/AiStrategyPage.jsx';
@@ -5,6 +6,13 @@ import DashboardPage from '@/pages/dashboard/DashboardPage.jsx';
 import ExecutionPage from '@/pages/execution/ExecutionPage.jsx';
 import InventoryPage from '@/pages/inventory/InventoryPage.jsx';
 import StatisticsPage from '@/pages/statistics/StatisticsPage.jsx';
+import { StateView } from '@/shared/ui';
+
+const HeendiLoaderPage = lazy(() => import('@/pages/heendi-loader/HeendiLoaderPage.jsx'));
+
+function LazyRoute({ children }) {
+  return <Suspense fallback={<StateView state="loading" />}>{children}</Suspense>;
+}
 
 function NotFoundPage() {
   return (
@@ -12,13 +20,23 @@ function NotFoundPage() {
       <div>
         <p className="text-xs font-bold uppercase tracking-[.16em] text-[color:var(--primary)]">404</p>
         <h1 className="mt-2 text-2xl font-bold">페이지를 찾을 수 없습니다</h1>
-        <p className="mt-2 text-sm text-[color:var(--muted-foreground)]">주소를 확인하거나 통합 재고 관제로 이동해 주세요.</p>
+        <p className="mt-2 text-sm text-[color:var(--muted-foreground)]">
+          주소를 확인하거나 통합 재고 조회로 이동해 주세요.
+        </p>
       </div>
     </main>
   );
 }
 
 export const router = createBrowserRouter([
+  {
+    path: 'heendi-loader',
+    element: (
+      <LazyRoute>
+        <HeendiLoaderPage />
+      </LazyRoute>
+    ),
+  },
   {
     element: <AppLayout />,
     children: [

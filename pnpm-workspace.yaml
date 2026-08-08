@@ -1,2 +1,6 @@
 allowBuilds:
   esbuild: true
+
+# @hookform/resolvers의 optional peer가 취약한 1.4.1 이하로 해석되지 않도록 고정합니다.
+overrides:
+  valibot: 1.4.2

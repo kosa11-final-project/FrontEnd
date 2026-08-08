@@ -31,21 +31,29 @@ export const ActiveMenu = {
           </div>
         </SidebarHeader>
         <SidebarContent>
-          <div className="workspace-label">WORKSPACE</div>
           <SidebarMenu aria-label="스토리 메뉴">
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <button type="button"><Icon icon={Grid} size={18} /><span>대시보드</span></button>
+                <button type="button">
+                  <Icon icon={Grid} size={18} />
+                  <span>대시보드</span>
+                </button>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <button type="button" aria-current="page"><Icon icon={Database} size={18} /><span>통합 재고 관제</span><span className="nav-live">CORE</span></button>
+                <button type="button" aria-current="page">
+                  <Icon icon={Database} size={18} />
+                  <span>통합 재고 조회</span>
+                </button>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <button type="button"><Icon icon={ChartBar} size={18} /><span>통계</span></button>
+                <button type="button">
+                  <Icon icon={ChartBar} size={18} />
+                  <span>통계</span>
+                </button>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -53,7 +61,10 @@ export const ActiveMenu = {
         <SidebarFooter>
           <button className="sidebar-account" type="button">
             <span className="brand-mark">김</span>
-            <span className="account-copy"><strong>김명만 수석 MD</strong><small>현대그린푸드 재고운영</small></span>
+            <span className="account-copy">
+              <strong>김명만 수석 MD</strong>
+              <small>현대그린푸드 재고운영</small>
+            </span>
           </button>
         </SidebarFooter>
       </Sidebar>

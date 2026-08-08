@@ -1,6 +1,6 @@
 # 디자인 초안과 운영 UI 디자인 시스템 (보관 문서)
 
-> 보관 문서입니다. Mesh Forecast + Olive Green 확정 후 `/design-drafts`, `/design-system`, `/reference-drafts`와 과거 테마는 운영 코드에서 제거했습니다. 현재 기준은 `README.md`, `src/styles.css`, `src/_template/README.md`, `docs/plans/2026-08-07-006-design-direction-decision.md`입니다.
+> 보관 문서입니다. Mesh Forecast + Dashboard Filter Foundations 확정 후 `/design-drafts`, `/design-system`, `/reference-drafts`와 과거 테마는 운영 코드에서 제거했습니다. 현재 기준은 `README.md`, `src/styles.css`, `src/_template/README.md`, `docs/plans/2026-08-07-006-design-direction-decision.md`입니다.
 
 ## 목적
 

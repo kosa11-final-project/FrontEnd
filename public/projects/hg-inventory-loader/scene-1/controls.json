@@ -1,0 +1,8 @@
+{
+  "controls": [
+    { "sid": "accentColor", "label": "Main green" },
+    { "sid": "secondaryColor", "label": "Sub cyan" },
+    { "sid": "highlightColor", "label": "Sub orange" },
+    { "sid": "ringColor", "label": "Soft cyan" }
+  ]
+}

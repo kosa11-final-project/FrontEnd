@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { BellAlert, ChevronDown, Menu } from 'reicon-react';
 import { getNavigationItem } from '../model/navigation.js';
-import { Avatar, Icon, IconButton, StatusDot } from '@/shared/ui';
+import { Avatar, Icon, IconButton } from '@/shared/ui';
 
 // DESIGN / WIDGET: 전역 헤더 조합입니다. 경로 변경 때 breadcrumb만 갱신합니다.
 export function AppHeader() {
@@ -19,9 +19,6 @@ export function AppHeader() {
         <strong>{currentPage.label}</strong>
       </div>
       <div className="topbar-actions">
-        <span className="sync-status">
-          <StatusDot /> 초기 세팅 단계
-        </span>
         <IconButton label="알림">
           <Icon icon={BellAlert} size={18} />
         </IconButton>

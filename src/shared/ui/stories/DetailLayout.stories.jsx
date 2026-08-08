@@ -23,12 +23,12 @@ export const ProductDetailShell = {
   render: () => (
     <div className="min-h-[520px] w-full bg-[var(--background)] p-6">
       <DetailLayout
-        asideContent={(
+        asideContent={
           <div className="grid gap-3">
             <div className="h-48 rounded-[var(--radius-panel)] bg-[var(--primary-soft)]" />
             <div className="h-32 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)]" />
           </div>
-        )}
+        }
       >
         <div className="h-96 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)]" />
       </DetailLayout>

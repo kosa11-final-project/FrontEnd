@@ -28,11 +28,7 @@ export const Select = forwardRef(function Select(
 ) {
   return (
     <div className={cn('relative w-full', containerClassName)}>
-      <select
-        ref={ref}
-        className={cn(selectVariants({ size, tone }), className)}
-        {...props}
-      >
+      <select ref={ref} className={cn(selectVariants({ size, tone }), className)} {...props}>
         {children}
       </select>
       <Icon

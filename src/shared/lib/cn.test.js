@@ -3,6 +3,6 @@ import { cn } from './cn.js';
 
 describe('cn', () => {
   it('조건부 class와 Tailwind 충돌을 정리한다', () => {
-    expect(cn('px-2 text-sm', false && 'hidden', 'px-4')).toBe('text-sm px-4');
+    expect(cn('px-2 text-sm', { hidden: false }, 'px-4')).toBe('text-sm px-4');
   });
 });

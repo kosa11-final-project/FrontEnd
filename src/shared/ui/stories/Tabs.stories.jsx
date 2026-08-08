@@ -13,9 +13,15 @@ export const InventoryViews = {
     <Tabs defaultValue="summary" className="w-[480px]">
       {({ value, setValue }) => (
         <TabsList aria-label="재고 보기">
-          <TabsTrigger value="summary" activeValue={value} onSelect={setValue}>요약</TabsTrigger>
-          <TabsTrigger value="lots" activeValue={value} onSelect={setValue}>LOT 재고</TabsTrigger>
-          <TabsTrigger value="history" activeValue={value} onSelect={setValue}>전략 이력</TabsTrigger>
+          <TabsTrigger value="summary" activeValue={value} onSelect={setValue}>
+            요약
+          </TabsTrigger>
+          <TabsTrigger value="lots" activeValue={value} onSelect={setValue}>
+            LOT 재고
+          </TabsTrigger>
+          <TabsTrigger value="history" activeValue={value} onSelect={setValue}>
+            전략 이력
+          </TabsTrigger>
         </TabsList>
       )}
     </Tabs>

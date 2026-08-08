@@ -1,21 +1,14 @@
 import { useState } from 'react';
-import {
-  ArrowDown2,
-  ArrowUp2,
-  CircleSortV,
-} from 'reicon-react';
-import {
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
+import { ArrowDown2, ArrowUp2, CircleSortV } from 'reicon-react';
+import { flexRender, getCoreRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
 import { cn } from '@/shared/lib/cn';
 import { Icon } from './Icon.jsx';
 import { Table, TableElement } from './Table.jsx';
 
-const headerCellClass = 'border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-left align-middle text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--text-muted)]';
-const bodyCellClass = 'border-b border-[var(--border)] px-4 py-3 align-middle text-[length:var(--font-size-body-sm)] text-[color:var(--text-body)]';
+const headerCellClass =
+  'border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-left align-middle text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--text-muted)]';
+const bodyCellClass =
+  'border-b border-[var(--border)] px-4 py-3 align-middle text-[length:var(--font-size-body-sm)] text-[color:var(--text-body)]';
 
 const alignClasses = {
   left: 'text-left',
@@ -38,7 +31,8 @@ function SortIcon({ direction }) {
 
 function SortButton({ column, children }) {
   const direction = column.getIsSorted();
-  const label = direction === 'asc' ? '오름차순 정렬 해제' : direction === 'desc' ? '내림차순 정렬 해제' : '오름차순 정렬';
+  const label =
+    direction === 'asc' ? '오름차순 정렬 해제' : direction === 'desc' ? '내림차순 정렬 해제' : '오름차순 정렬';
 
   return (
     <button
@@ -105,7 +99,13 @@ export function DataTable({
   const headerGroups = table.getHeaderGroups();
   const rows = table.getRowModel().rows;
   const columnCount = Math.max(headerGroups[0]?.headers.length ?? columns.length, 1);
-  const stateMessage = error ? (typeof error === 'string' ? error : errorMessage) : loading ? loadingMessage : emptyMessage;
+  const stateMessage = error
+    ? typeof error === 'string'
+      ? error
+      : errorMessage
+    : loading
+      ? loadingMessage
+      : emptyMessage;
   const isEmpty = !loading && !error && rows.length === 0;
 
   return (
@@ -125,7 +125,13 @@ export function DataTable({
                     className={cn(headerCellClass, align, meta.headerClassName)}
                     style={meta.width ? { width: meta.width } : undefined}
                     colSpan={header.colSpan}
-                    aria-sort={header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : 'none'}
+                    aria-sort={
+                      header.column.getIsSorted() === 'asc'
+                        ? 'ascending'
+                        : header.column.getIsSorted() === 'desc'
+                          ? 'descending'
+                          : 'none'
+                    }
                   >
                     {header.isPlaceholder ? null : header.column.getCanSort() ? (
                       <SortButton column={header.column}>
@@ -143,7 +149,11 @@ export function DataTable({
         <tbody>
           {loading || error || isEmpty ? (
             <tr>
-              <td colSpan={columnCount} className="px-4 py-12 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]" aria-live="polite">
+              <td
+                colSpan={columnCount}
+                className="px-4 py-12 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]"
+                aria-live="polite"
+              >
                 {stateMessage}
               </td>
             </tr>
@@ -155,17 +165,22 @@ export function DataTable({
                   key={row.id}
                   className={cn(
                     'transition-colors last:[&>td]:border-b-0',
-                    clickable && 'cursor-pointer hover:bg-[var(--primary-faint)] focus-within:bg-[var(--primary-faint)]',
+                    clickable &&
+                      'cursor-pointer hover:bg-[var(--primary-faint)] focus-within:bg-[var(--primary-faint)]',
                     rowClassName?.(row, rowIndex),
                   )}
                   tabIndex={clickable ? 0 : undefined}
                   onClick={clickable ? () => onRowClick(row.original, row) : undefined}
-                  onKeyDown={clickable ? (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      onRowClick(row.original, row);
-                    }
-                  } : undefined}
+                  onKeyDown={
+                    clickable
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            onRowClick(row.original, row);
+                          }
+                        }
+                      : undefined
+                  }
                 >
                   {row.getVisibleCells().map((cell) => {
                     const meta = getColumnMeta(cell.column);

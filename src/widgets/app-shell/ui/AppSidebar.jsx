@@ -11,7 +11,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  StatusDot,
 } from '@/shared/ui';
 import { navigationItems } from '../model/navigation.js';
 
@@ -28,7 +27,6 @@ function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <div className="workspace-label">WORKSPACE</div>
         <SidebarMenu aria-label="업무 메뉴">
           {navigationItems.map(({ path, label, icon: NavIcon }) => (
             <SidebarMenuItem key={path}>
@@ -36,7 +34,6 @@ function AppSidebar() {
                 <NavLink end to={path}>
                   <Icon icon={NavIcon} size={18} />
                   <span>{label}</span>
-                  {path === '/inventory' && <span className="nav-live">CORE</span>}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -47,13 +44,6 @@ function AppSidebar() {
       <div className="sidebar-spacer" />
 
       <SidebarFooter>
-        <div className="sidebar-footnote">
-          <StatusDot className="mt-[3px]" />
-          <div>
-            <strong>초기 세팅 모드</strong>
-            <span className="sidebar-footnote-detail">공통 기반을 준비하고 있습니다.</span>
-          </div>
-        </div>
         <button className="sidebar-account" type="button">
           <Avatar>김</Avatar>
           <span className="account-copy">

@@ -1,7 +1,13 @@
 node_modules/
 dist/
+coverage/
 .DS_Store
-*.local
+
+# 로컬 환경변수와 Sentry build plugin 설정은 절대 commit하지 않습니다.
+.env
+.env.*
+!.env.example
+
 playwright-report/
 test-results/
 
