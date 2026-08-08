@@ -7,9 +7,9 @@ const iconButtonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:border-[var(--border-strong)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]',
-        primary: 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary-strong)]',
-        ghost: 'border-transparent bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--primary-soft)] hover:text-[var(--primary)]',
+        default: 'border-[var(--border)] bg-[var(--card)] text-[color:var(--color-gray-900)] hover:border-[var(--border-strong)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary)]',
+        primary: 'border-[var(--primary)] bg-[var(--primary)] text-[color:var(--color-white)] hover:bg-[var(--primary-strong)]',
+        ghost: 'border-transparent bg-transparent text-[color:var(--muted-foreground)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary)]',
       },
       size: {
         sm: 'size-8',

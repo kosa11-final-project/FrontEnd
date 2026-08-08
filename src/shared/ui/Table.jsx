@@ -4,9 +4,9 @@ import { cn } from '@/shared/lib/cn';
 const tableVariants = cva('w-full overflow-x-auto', {
   variants: {
     density: {
-      compact: 'text-[var(--font-size-meta)]',
-      default: 'text-[var(--font-size-body-sm)]',
-      comfortable: 'text-[var(--font-size-body)]',
+      compact: 'text-[length:var(--font-size-meta)]',
+      default: 'text-[length:var(--font-size-body-sm)]',
+      comfortable: 'text-[length:var(--font-size-body)]',
     },
     surface: {
       plain: '',

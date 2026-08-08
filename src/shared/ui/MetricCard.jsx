@@ -9,11 +9,11 @@ const metricIconVariants = cva(
   {
     variants: {
       tone: {
-        neutral: 'bg-[var(--surface-subtle)] text-[var(--text-body)]',
-        good: 'bg-[var(--good-soft)] text-[var(--good)]',
-        info: 'bg-[var(--info-soft)] text-[var(--info)]',
-        warning: 'bg-[var(--warning-soft)] text-[var(--warning)]',
-        danger: 'bg-[var(--danger-soft)] text-[var(--danger)]',
+        neutral: 'bg-[var(--surface-subtle)] text-[color:var(--text-body)]',
+        good: 'bg-[var(--good-soft)] text-[color:var(--good)]',
+        info: 'bg-[var(--info-soft)] text-[color:var(--info)]',
+        warning: 'bg-[var(--warning-soft)] text-[color:var(--warning)]',
+        danger: 'bg-[var(--danger-soft)] text-[color:var(--danger)]',
       },
     },
     defaultVariants: { tone: 'neutral' },
@@ -21,15 +21,15 @@ const metricIconVariants = cva(
 );
 
 const metricValueVariants = cva(
-  'mt-4 block tabular-nums text-[var(--font-size-display)] font-[var(--font-weight-bold)] leading-none text-[var(--text-heading)]',
+  'mt-4 block tabular-nums text-[length:var(--font-size-display)] font-[var(--font-weight-bold)] leading-none text-[color:var(--text-heading)]',
   {
     variants: {
       tone: {
         neutral: '',
-        good: 'text-[var(--good)]',
-        info: 'text-[var(--info)]',
-        warning: 'text-[var(--warning)]',
-        danger: 'text-[var(--danger)]',
+        good: 'text-[color:var(--good)]',
+        info: 'text-[color:var(--info)]',
+        warning: 'text-[color:var(--warning)]',
+        danger: 'text-[color:var(--danger)]',
       },
     },
     defaultVariants: { tone: 'neutral' },
@@ -44,10 +44,10 @@ export const MetricCard = forwardRef(function MetricCard(
     <>
       <div className="flex items-center gap-2">
         {icon && <span className={metricIconVariants({ tone })}><Icon icon={icon} size={16} /></span>}
-        <span className="text-[var(--font-size-body-sm)] font-[var(--font-weight-medium)] text-[var(--text-muted)]">{label}</span>
+        <span className="text-[length:var(--font-size-body-sm)] font-[var(--font-weight-medium)] text-[color:var(--text-muted)]">{label}</span>
       </div>
       <strong className={metricValueVariants({ tone })}>{value}</strong>
-      {helper && <span className="mt-2 block text-[var(--font-size-meta)] text-[var(--text-muted)]">{helper}</span>}
+      {helper && <span className="mt-2 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">{helper}</span>}
     </>
   );
 

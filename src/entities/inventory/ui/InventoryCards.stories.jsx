@@ -211,9 +211,9 @@ export const ProductDetailPreview = {
     <div className="w-full max-w-[1160px] bg-[var(--background)] p-6">
       <header className="mb-5 flex items-start justify-between border-b border-[var(--border)] pb-5">
         <div>
-          <p className="text-[var(--font-size-meta)] font-bold uppercase tracking-[0.12em] text-[var(--text-label)]">GF-LUNCH-BEEF-350 · 최근 동기화 2026.08.02 09:00</p>
-          <h1 className="mt-2 text-[var(--font-size-page-title)] font-bold text-[var(--text-heading)]">소불고기 도시락 · 350g</h1>
-          <p className="mt-1 text-[var(--font-size-body)] text-[var(--text-muted)]">그리팅 영양균형 도시락 · 그리팅 · 케어푸드/도시락</p>
+          <p className="text-[length:var(--font-size-meta)] font-bold uppercase tracking-[0.12em] text-[color:var(--text-label)]">GF-LUNCH-BEEF-350 · 최근 동기화 2026.08.02 09:00</p>
+          <h1 className="mt-2 text-[length:var(--font-size-page-title)] font-bold text-[color:var(--text-heading)]">소불고기 도시락 · 350g</h1>
+          <p className="mt-1 text-[length:var(--font-size-body)] text-[color:var(--text-muted)]">그리팅 영양균형 도시락 · 그리팅 · 케어푸드/도시락</p>
         </div>
       </header>
       <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -225,7 +225,7 @@ export const ProductDetailPreview = {
       <DetailLayout
         asideContent={(
           <div className="grid gap-3">
-            <Card padding="none" className="overflow-hidden"><div className="h-44 bg-[var(--primary-soft)]" /><CardContent className="p-4"><CardTitle>옵션·가격</CardTitle><p className="mt-4 text-[var(--font-size-body)] font-bold">판매가 ₩8,900</p></CardContent></Card>
+            <Card padding="none" className="overflow-hidden"><div className="h-44 bg-[var(--primary-soft)]" /><CardContent className="p-4"><CardTitle>옵션·가격</CardTitle><p className="mt-4 text-[length:var(--font-size-body)] font-bold">판매가 ₩8,900</p></CardContent></Card>
             <Card><CardHeader><CardTitle>상품 설명</CardTitle><CardDescription>영양 균형을 고려한 냉동 도시락 제품군입니다.</CardDescription></CardHeader></Card>
           </div>
         )}

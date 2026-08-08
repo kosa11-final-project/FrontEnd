@@ -24,13 +24,13 @@ const tabsListVariants = cva('flex items-center gap-1', {
 });
 
 const tabsTriggerVariants = cva(
-  'relative border-b-2 border-transparent px-2 font-semibold text-[var(--muted-foreground)] transition-colors hover:text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+  'relative border-b-2 border-transparent px-2 font-semibold text-[color:var(--muted-foreground)] transition-colors hover:text-[color:var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
   {
     variants: {
       size: {
-        sm: 'h-8 text-[var(--font-size-meta)]',
-        md: 'h-9 text-[var(--font-size-body-sm)]',
-        lg: 'h-10 text-[var(--font-size-body)]',
+        sm: 'h-8 text-[length:var(--font-size-meta)]',
+        md: 'h-9 text-[length:var(--font-size-body-sm)]',
+        lg: 'h-10 text-[length:var(--font-size-body)]',
       },
     },
     defaultVariants: { size: 'md' },
@@ -67,7 +67,7 @@ export function TabsTrigger({ value, activeValue, onSelect, children, className,
       aria-selected={active}
       className={cn(
         tabsTriggerVariants({ size }),
-        active && 'border-[var(--primary)] text-[var(--primary)]',
+        active && 'border-[var(--primary)] text-[color:var(--primary)]',
         className,
       )}
       onClick={() => onSelect?.(value)}

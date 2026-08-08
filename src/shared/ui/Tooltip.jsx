@@ -14,11 +14,11 @@ export function TooltipTrigger({ children, asChild = true }) {
   return <TooltipPrimitive.Trigger asChild={asChild}>{children}</TooltipPrimitive.Trigger>;
 }
 
-const tooltipContentVariants = cva('z-50 max-w-xs rounded-md px-3 py-2 text-[var(--font-size-meta)] leading-4 shadow-lg outline-none animate-in fade-in-0 zoom-in-95', {
+const tooltipContentVariants = cva('z-50 max-w-xs rounded-[var(--radius-control)] px-3 py-2 text-[length:var(--font-size-meta)] leading-[var(--line-height-meta)] shadow-[var(--shadow-soft)] outline-none animate-in fade-in-0 zoom-in-95', {
   variants: {
     tone: {
-      dark: 'bg-[var(--tooltip-bg)] text-[var(--tooltip-fg)]',
-      light: 'border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]',
+      dark: 'bg-[var(--tooltip-bg)] text-[color:var(--tooltip-fg)]',
+      light: 'border border-[var(--border)] bg-[var(--card)] text-[color:var(--foreground)]',
     },
   },
   defaultVariants: { tone: 'dark' },

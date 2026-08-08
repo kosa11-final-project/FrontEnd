@@ -5,13 +5,13 @@ import { cn } from '@/shared/lib/cn';
 import { Icon } from './Icon.jsx';
 
 const selectVariants = cva(
-  'w-full appearance-none rounded-[var(--radius-control)] border bg-[var(--surface-subtle)] text-[var(--foreground)] leading-[var(--line-height-filter)] outline-none transition-[background-color,border-color,box-shadow,color] duration-[var(--motion-fast)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring-soft)] disabled:cursor-not-allowed disabled:opacity-50',
+  'w-full appearance-none rounded-[var(--radius-control)] border bg-[var(--surface-subtle)] text-[color:var(--foreground)] leading-[var(--line-height-filter)] outline-none transition-[background-color,border-color,box-shadow,color] duration-[var(--motion-fast)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring-soft)] disabled:cursor-not-allowed disabled:opacity-50',
   {
     variants: {
       size: {
-        sm: 'h-8 pl-2.5 pr-8 text-[var(--font-size-meta)]',
-        md: 'h-9 pl-3 pr-9 text-[var(--font-size-filter)]',
-        lg: 'h-10 pl-3.5 pr-10 text-[var(--font-size-body)]',
+        sm: 'h-8 pl-2.5 pr-8 text-[length:var(--font-size-meta)]',
+        md: 'h-9 pl-3 pr-9 text-[length:var(--font-size-filter)]',
+        lg: 'h-10 pl-3.5 pr-10 text-[length:var(--font-size-body)]',
       },
       tone: {
         default: 'border-[var(--input)]',
@@ -38,8 +38,8 @@ export const Select = forwardRef(function Select(
       <Icon
         aria-hidden="true"
         className={cn(
-          'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]',
-          tone === 'error' && 'text-[var(--danger)]',
+          'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)]',
+          tone === 'error' && 'text-[color:var(--danger)]',
           props.disabled && 'opacity-50',
         )}
         icon={ChevronDown}

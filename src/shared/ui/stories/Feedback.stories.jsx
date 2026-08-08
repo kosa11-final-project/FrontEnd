@@ -22,7 +22,7 @@ export const Statuses = {
 
 export const StatusDots = {
   render: () => (
-    <div className="flex items-center gap-5 text-[var(--font-size-body-sm)] text-[var(--text-body)]">
+    <div className="flex items-center gap-5 text-[length:var(--font-size-body-sm)] text-[color:var(--text-body)]">
       <span className="flex items-center gap-2"><StatusDot tone="ready" /> 준비됨</span>
       <span className="flex items-center gap-2"><StatusDot tone="warning" /> 확인 필요</span>
       <span className="flex items-center gap-2"><StatusDot tone="danger" /> 오류</span>

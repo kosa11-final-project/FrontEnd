@@ -59,3 +59,22 @@ export const Danger = {
 export const Disabled = {
   args: { disabled: true },
 };
+
+export const ContrastMatrix = {
+  render: () => (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button variant="primary">main · 흰색 글자</Button>
+      <Button variant="secondary">white · 검정 글자</Button>
+      <Button variant="danger">danger · 흰색 글자</Button>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      source: {
+        code: `<Button variant="primary">main · 흰색 글자</Button>
+<Button variant="secondary">white · 검정 글자</Button>
+<Button variant="danger">danger · 흰색 글자</Button>`,
+      },
+    },
+  },
+};

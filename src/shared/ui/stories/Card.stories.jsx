@@ -34,11 +34,11 @@ export const SurfaceVariants = {
     <div className="grid w-full max-w-[760px] gap-3 md:grid-cols-2">
       <Card>
         <CardHeader><CardTitle>기본 작업 표면</CardTitle><CardDescription>표와 필터를 담는 기본 카드입니다.</CardDescription></CardHeader>
-        <CardContent className="mt-4 text-[var(--font-size-body-sm)]">border와 흰색 surface를 사용합니다.</CardContent>
+        <CardContent className="mt-4 text-[length:var(--font-size-body-sm)]">border와 흰색 surface를 사용합니다.</CardContent>
       </Card>
       <Card variant="subtle">
         <CardHeader><CardTitle>보조 표면</CardTitle><CardDescription>설명과 보조 정보를 묶습니다.</CardDescription></CardHeader>
-        <CardFooter className="mt-4 text-[var(--font-size-meta)] text-[var(--text-muted)]">gray-50 surface</CardFooter>
+        <CardFooter className="mt-4 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">gray-50 surface</CardFooter>
       </Card>
       <Card variant="selected">
         <CardHeader><CardTitle>선택된 표면</CardTitle><CardDescription>현재 범위나 필터가 선택된 상태입니다.</CardDescription></CardHeader>
@@ -69,10 +69,10 @@ export const CompoundStructure = {
         <CardTitle>상품 설명</CardTitle>
         <CardDescription>도메인에 맞는 콘텐츠는 호출부에서 조합합니다.</CardDescription>
       </CardHeader>
-      <CardContent className="mt-4 text-[var(--font-size-body-sm)] text-[var(--text-body)]">
+      <CardContent className="mt-4 text-[length:var(--font-size-body-sm)] text-[color:var(--text-body)]">
         카드 primitive는 제목, 설명, 본문, 하단 영역의 책임을 나눠 재사용합니다.
       </CardContent>
-      <CardFooter className="mt-5 border-t border-[var(--border)] pt-4 text-[var(--font-size-meta)] text-[var(--text-muted)]">
+      <CardFooter className="mt-5 border-t border-[var(--border)] pt-4 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
         shared/ui/Card
       </CardFooter>
     </Card>

@@ -11,7 +11,7 @@ export default meta;
 export const SearchInput = {
   render: () => (
     <div style={{ width: '360px' }}>
-      <label htmlFor="storybook-search" className="mb-2 block text-[var(--font-size-meta)] font-semibold text-[var(--text-heading)]">
+      <label htmlFor="storybook-search" className="mb-2 block text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-heading)]">
         상품 검색
       </label>
       <Input id="storybook-search" placeholder="상품명, SKU, 판매처 검색" />
@@ -31,7 +31,7 @@ export const ValidationStates = {
 export const FilterSelect = {
   render: () => (
     <div style={{ width: '240px' }}>
-      <label htmlFor="storybook-channel" className="mb-2 block text-[var(--font-size-meta)] font-semibold text-[var(--text-heading)]">
+      <label htmlFor="storybook-channel" className="mb-2 block text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-heading)]">
         판매채널
       </label>
       <Select id="storybook-channel" defaultValue="all">

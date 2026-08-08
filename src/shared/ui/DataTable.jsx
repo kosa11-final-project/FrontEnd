@@ -14,8 +14,8 @@ import { cn } from '@/shared/lib/cn';
 import { Icon } from './Icon.jsx';
 import { Table, TableElement } from './Table.jsx';
 
-const headerCellClass = 'border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-left align-middle text-[var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[var(--text-muted)]';
-const bodyCellClass = 'border-b border-[var(--border)] px-4 py-3 align-middle text-[var(--font-size-body-sm)] text-[var(--text-body)]';
+const headerCellClass = 'border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-left align-middle text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--text-muted)]';
+const bodyCellClass = 'border-b border-[var(--border)] px-4 py-3 align-middle text-[length:var(--font-size-body-sm)] text-[color:var(--text-body)]';
 
 const alignClasses = {
   left: 'text-left',
@@ -43,7 +43,7 @@ function SortButton({ column, children }) {
   return (
     <button
       type="button"
-      className="inline-flex min-h-7 items-center gap-1 rounded-[var(--radius-control)] px-1.5 -mx-1.5 text-left transition-colors hover:bg-[var(--primary-soft)] hover:text-[var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      className="inline-flex min-h-7 items-center gap-1 rounded-[var(--radius-control)] px-1.5 -mx-1.5 text-left transition-colors hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
       onClick={column.getToggleSortingHandler()}
       aria-label={`${column.columnDef.header ?? column.id} ${label}`}
     >
@@ -143,7 +143,7 @@ export function DataTable({
         <tbody>
           {loading || error || isEmpty ? (
             <tr>
-              <td colSpan={columnCount} className="px-4 py-12 text-center text-[var(--font-size-body-sm)] text-[var(--text-muted)]" aria-live="polite">
+              <td colSpan={columnCount} className="px-4 py-12 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]" aria-live="polite">
                 {stateMessage}
               </td>
             </tr>

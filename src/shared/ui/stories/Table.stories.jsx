@@ -19,7 +19,7 @@ export const InventoryTable = {
     <Table surface="bordered" density="default">
       <TableElement>
         <thead>
-          <tr className="border-b border-[var(--border)] text-left text-[var(--font-size-meta)] text-[var(--text-muted)]">
+          <tr className="border-b border-[var(--border)] text-left text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
             <th className="px-4 py-3 font-semibold">판매처</th>
             <th className="px-4 py-3 font-semibold">상품명</th>
             <th className="px-4 py-3 font-semibold">현재고</th>
@@ -29,10 +29,10 @@ export const InventoryTable = {
         <tbody>
           {rows.map(([channel, product, stock, risk]) => (
             <tr key={product} className="border-b border-[var(--border)] last:border-b-0">
-              <td className="px-4 py-3 text-[var(--text-body)]">{channel}</td>
-              <td className="px-4 py-3 font-semibold text-[var(--text-heading)]">{product}</td>
-              <td className="px-4 py-3 tabular-nums text-[var(--text-heading)]">{stock}</td>
-              <td className="px-4 py-3 text-[var(--warning)]">{risk}</td>
+              <td className="px-4 py-3 text-[color:var(--text-body)]">{channel}</td>
+              <td className="px-4 py-3 font-semibold text-[color:var(--text-heading)]">{product}</td>
+              <td className="px-4 py-3 tabular-nums text-[color:var(--text-heading)]">{stock}</td>
+              <td className="px-4 py-3 text-[color:var(--warning)]">{risk}</td>
             </tr>
           ))}
         </tbody>

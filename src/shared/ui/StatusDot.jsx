@@ -5,8 +5,8 @@ import { cn } from '@/shared/lib/cn';
 const statusDotVariants = cva('block size-1.5 shrink-0 rounded-full', {
   variants: {
     tone: {
-      ready: 'bg-[var(--color-main)] shadow-[0_0_0_3px_rgba(39,176,110,0.15)]',
-      good: 'bg-[var(--color-main)]',
+      ready: 'bg-[var(--good)] shadow-[0_0_0_3px_var(--good-soft)]',
+      good: 'bg-[var(--good)]',
       warning: 'bg-[var(--warning)]',
       danger: 'bg-[var(--danger)]',
     },

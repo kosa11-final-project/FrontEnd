@@ -77,6 +77,7 @@
   --info-soft: var(--color-sub-cyan-soft);
   --tooltip-bg: var(--color-gray-900);
   --tooltip-fg: var(--color-white);
+  --overlay: color-mix(in srgb, var(--color-gray-900) 20%, transparent);
   --radius-control: 0.375rem;
   --radius-panel: 0.5rem;
   --spacing-field-gap: 0.5rem;
