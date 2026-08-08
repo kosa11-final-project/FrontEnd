@@ -122,9 +122,9 @@ export const Typography = {
 
 export const InteractiveTheme = {
   args: {
-    mainColor: readToken('--color-main') || '#27B06E',
-    infoColor: readToken('--color-sub-cyan') || '#00B0D7',
-    warningColor: readToken('--color-sub-orange') || '#FDA643',
+    mainColor: '#27B06E',
+    infoColor: '#00B0D7',
+    warningColor: '#FDA643',
   },
   argTypes: {
     mainColor: { control: 'color', description: 'main과 primary/good 역할에 적용합니다.' },

@@ -29,16 +29,16 @@
 ### 현재 저장소 상태
 
 - Vite + React 기반의 앱 셸과 사이드바 기준 기본 라우트가 있다.
-- 확정 디자인은 Mesh Forecast 스타일과 Olive Green 전역 토큰을 사용한다.
+- 확정 디자인은 Mesh Forecast 스타일과 Dashboard Filter Foundations 전역 토큰을 사용한다.
 - Reicon 아이콘을 사용한다.
-- 실제 서버 API, TanStack Table, React Hook Form은 아직 화면에 연결하지 않았다. React Router v7과 TanStack Query Provider는 초기 라우트와 앱 셸에 연결했다.
+- 실제 서버 API와 React Hook Form은 아직 화면에 연결하지 않았다. TanStack Table은 도메인 API와 분리된 재사용 `DataTable`과 전략·성과·재고 Storybook 예시까지 준비했다. React Router v7과 TanStack Query Provider는 초기 라우트와 앱 셸에 연결했다.
 - `/dashboard`, `/inventory`, `/ai-strategy`, `/execution`, `/statistics`는 라우팅과 공통 페이지 셸만 연결한다.
 - Playwright에는 루트 리다이렉트와 사이드바 이동을 확인하는 기본 테스트가 있다.
-- Storybook과 별도 디자인 갤러리는 사용하지 않는다. 공통 UI는 `src/shared/ui`와 코드 문서로 확인한다.
+- Storybook은 `src/shared/ui`의 공통 컴포넌트 상태 문서에만 사용한다. 별도 디자인 갤러리나 전체 페이지 story는 만들지 않는다.
 
 ### 디자인 방향 운영 규칙
 
-- 운영 코드에는 Mesh Forecast와 Olive Green만 유지한다.
+- 운영 코드에는 Mesh Forecast와 Dashboard Filter Foundations 컬러 토큰만 유지한다.
 - 메시는 배경과 요약 표면에 제한적으로 적용하고 데이터 표면은 불투명하게 유지한다.
 - 위험·주의·양호 색상은 상태 의미를 위해 별도 semantic token으로 유지한다.
 - 디자인 초안 비교용 페이지와 과거 테마는 운영 라우트와 CSS에서 제거한다.
@@ -47,20 +47,22 @@
 
 ### 3.1 색상
 
-기본 팔레트는 한 가지 포인트 색상과 중성 표면을 중심으로 한다.
+기본 팔레트는 Dashboard Filter Foundations의 main/sub/soft 컬러와 중성 gray scale을 중심으로 한다.
 
 ```text
-page:             밝은 중성 회색
-surface:          #FFFFFF 계열 작업 표면
-surface-subtle:   필터·헤더·보조 영역용 옅은 중성색
-accent:           현대그린푸드를 연상시키는 짙은 녹색
-accent-soft:      선택·포커스·보조 배경용 연한 녹색
-text-primary:     순수 검정이 아닌 짙은 중성색
-text-secondary:   보조 설명용 중간 회색
-danger:           위험 재고
-warning:          주의 재고
-success:          양호 재고
-info:             안내·동기화 상태
+main:             #27B06E
+sub-mint:         #11C6AB
+sub-cyan:         #00B0D7
+sub-orange:       #FDA643
+sub-mint-soft:    #DAF7E9
+sub-cyan-soft:    #CFF4FC
+sub-orange-soft:  #FFEC2C
+gray-900:         #282828
+gray-700:         #747474
+gray-500:         #8E8E8E
+gray-300:         #C1C1C1
+gray-200:         #DADADA
+gray-50:          #F4F4F4
 ```
 
 - 색상은 장식보다 의미와 상호작용에 사용한다.
@@ -71,7 +73,7 @@ info:             안내·동기화 상태
 
 ### 3.2 폰트
 
-- 한국어 우선 폰트 스택은 `Pretendard, Noto Sans KR, system-ui, sans-serif`로 한다.
+- 한국어 우선 폰트는 프로젝트에 포함한 로컬 `Pretendard`를 사용하고, 로드 실패 시에만 `sans-serif`로 대체한다.
 - 외부 폰트 CDN은 초기세팅에서 사용하지 않는다.
 - 일반 본문과 표는 한 가지 산세리프 계열을 사용한다.
 - 폰트 굵기는 일반과 강조를 우선 사용하고, 100·200·300 같은 얇은 굵기는 사용하지 않는다.
@@ -148,6 +150,7 @@ info:             안내·동기화 상태
 - 아이콘: `reicon-react`만 사용
 - E2E: Playwright
 - 단위 테스트: Vitest
+- 공통 UI 문서: Storybook + React Vite
 - 네트워크 모킹: MSW 추가 검토 후 채택
 - 오류 추적: `@sentry/react`를 초기 앱 셸 단계에서 최소 설정
 
@@ -448,7 +451,7 @@ Zustand에는 다음 UI 상태만 저장한다.
 
 ### 0단계: 기준 확정
 
-- Mesh Forecast + Olive Green 방향 확정
+- Mesh Forecast + Dashboard Filter Foundations 컬러 방향 확정
 - 백엔드와 세션 쿠키·CSRF·CORS 계약 확정
 - API base URL과 환경 변수 이름 확정
 - 이 문서를 기준으로 팀 작업 방식 공유
@@ -471,7 +474,7 @@ Zustand에는 다음 UI 상태만 저장한다.
 - Reicon wrapper 구현
 - 기본·hover·focus·disabled·loading 상태 검증
 - 최종 선택 초안의 색상·폰트·간격·모서리·그림자 토큰 적용
-- Mesh Forecast와 Olive Green을 전역 기본 토큰으로 유지
+- Mesh Forecast와 Dashboard Filter Foundations를 전역 기본 토큰으로 유지
 
 ### 3단계: API와 세션
 
