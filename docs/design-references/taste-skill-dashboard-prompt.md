@@ -29,6 +29,7 @@
 - 흰색 고정 사이드바와 밝은 gray-50 작업 캔버스, 현재 메뉴는 main 초록으로 활성화
 - Dashboard Filter Foundations 색상만 사용
 - main #27B06E, sub-mint #11C6AB, sub-cyan #00B0D7, sub-orange #FDA643
+- semantic danger #D92D20, danger-soft #FEE4E2
 - soft mint #DAF7E9, soft cyan #CFF4FC, soft orange #FFEC2C
 - gray-900 #282828, gray-700 #747474, gray-500 #8E8E8E
 - gray-300 #C1C1C1, gray-200 #DADADA, gray-50 #F4F4F4

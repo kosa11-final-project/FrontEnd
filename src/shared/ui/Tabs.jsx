@@ -53,7 +53,11 @@ export function Tabs({ value, defaultValue, onValueChange, children, className, 
 }
 
 export function TabsList({ children, className, size, ...props }) {
-  return <div role="tablist" className={cn(tabsListVariants({ size }), className)} {...props}>{children}</div>;
+  return (
+    <div role="tablist" className={cn(tabsListVariants({ size }), className)} {...props}>
+      {children}
+    </div>
+  );
 }
 
 export function TabsTrigger({ value, activeValue, onSelect, children, className, size, ...props }) {

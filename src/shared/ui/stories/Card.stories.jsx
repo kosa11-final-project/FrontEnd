@@ -1,11 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/shared/ui';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/shared/ui';
 
 const meta = {
   title: 'Shared UI/Card',
@@ -33,18 +26,34 @@ export const SurfaceVariants = {
   render: () => (
     <div className="grid w-full max-w-[760px] gap-3 md:grid-cols-2">
       <Card>
-        <CardHeader><CardTitle>기본 작업 표면</CardTitle><CardDescription>표와 필터를 담는 기본 카드입니다.</CardDescription></CardHeader>
-        <CardContent className="mt-4 text-[length:var(--font-size-body-sm)]">border와 흰색 surface를 사용합니다.</CardContent>
+        <CardHeader>
+          <CardTitle>기본 작업 표면</CardTitle>
+          <CardDescription>표와 필터를 담는 기본 카드입니다.</CardDescription>
+        </CardHeader>
+        <CardContent className="mt-4 text-[length:var(--font-size-body-sm)]">
+          border와 흰색 surface를 사용합니다.
+        </CardContent>
       </Card>
       <Card variant="subtle">
-        <CardHeader><CardTitle>보조 표면</CardTitle><CardDescription>설명과 보조 정보를 묶습니다.</CardDescription></CardHeader>
-        <CardFooter className="mt-4 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">gray-50 surface</CardFooter>
+        <CardHeader>
+          <CardTitle>보조 표면</CardTitle>
+          <CardDescription>설명과 보조 정보를 묶습니다.</CardDescription>
+        </CardHeader>
+        <CardFooter className="mt-4 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+          gray-50 surface
+        </CardFooter>
       </Card>
       <Card variant="selected">
-        <CardHeader><CardTitle>선택된 표면</CardTitle><CardDescription>현재 범위나 필터가 선택된 상태입니다.</CardDescription></CardHeader>
+        <CardHeader>
+          <CardTitle>선택된 표면</CardTitle>
+          <CardDescription>현재 범위나 필터가 선택된 상태입니다.</CardDescription>
+        </CardHeader>
       </Card>
       <Card variant="flat">
-        <CardHeader><CardTitle>무경계 표면</CardTitle><CardDescription>레이아웃 그룹을 위한 얇은 껍데기입니다.</CardDescription></CardHeader>
+        <CardHeader>
+          <CardTitle>무경계 표면</CardTitle>
+          <CardDescription>레이아웃 그룹을 위한 얇은 껍데기입니다.</CardDescription>
+        </CardHeader>
       </Card>
     </div>
   ),

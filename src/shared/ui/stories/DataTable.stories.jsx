@@ -31,9 +31,17 @@ const meta = {
 export default meta;
 
 const strategyResultColumns = [
-  { accessorKey: 'item', header: '결과 항목', meta: { cellClassName: 'font-semibold text-[color:var(--text-heading)]' } },
+  {
+    accessorKey: 'item',
+    header: '결과 항목',
+    meta: { cellClassName: 'font-semibold text-[color:var(--text-heading)]' },
+  },
   { accessorKey: 'recommended', header: 'AI 추천값', meta: { align: 'right' } },
-  { accessorKey: 'adjusted', header: '현재 조정값', meta: { align: 'right', cellClassName: 'font-semibold text-[color:var(--text-heading)]' } },
+  {
+    accessorKey: 'adjusted',
+    header: '현재 조정값',
+    meta: { align: 'right', cellClassName: 'font-semibold text-[color:var(--text-heading)]' },
+  },
 ];
 
 const strategyResultRows = [
@@ -48,12 +56,18 @@ const strategyResultRows = [
 function StrategyCell({ type, title, detail, sales, sellThrough, revenue, profit }) {
   return (
     <div className="min-w-0 space-y-2 py-1">
-      <Badge variant="neutral" className="bg-[var(--color-gray-200)] text-[color:var(--text-heading)]">{type}</Badge>
+      <Badge variant="neutral" className="bg-[var(--color-gray-200)] text-[color:var(--text-heading)]">
+        {type}
+      </Badge>
       <p className="break-words font-semibold text-[color:var(--text-heading)]">{title}</p>
       <p className="break-words text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">{detail}</p>
       <div className="grid grid-cols-2 gap-2 rounded-[var(--radius-control)] bg-[var(--surface-subtle)] p-2 text-[length:var(--font-size-meta)]">
-        <span><strong className="block text-[color:var(--text-heading)]">예상 판매 {sales}</strong>매출 {revenue}</span>
-        <span><strong className="block text-[color:var(--text-heading)]">소진율 {sellThrough}</strong>이익 {profit}</span>
+        <span>
+          <strong className="block text-[color:var(--text-heading)]">예상 판매 {sales}</strong>매출 {revenue}
+        </span>
+        <span>
+          <strong className="block text-[color:var(--text-heading)]">소진율 {sellThrough}</strong>이익 {profit}
+        </span>
       </div>
     </div>
   );
@@ -66,7 +80,9 @@ const strategyMatrixColumns = [
     meta: { align: 'center', width: '6.5rem', cellClassName: 'bg-[var(--surface-subtle)] align-top' },
     cell: ({ getValue }) => (
       <div className="flex flex-col items-center gap-2 pt-1">
-        <strong className="text-[length:var(--font-size-subtitle2)] text-[color:var(--text-heading)]">{getValue()}</strong>
+        <strong className="text-[length:var(--font-size-subtitle2)] text-[color:var(--text-heading)]">
+          {getValue()}
+        </strong>
         {getValue() === '1안' ? <Badge variant="info">AI 추천</Badge> : null}
       </div>
     ),
@@ -91,21 +107,93 @@ const strategyMatrixColumns = [
 const strategyMatrixRows = [
   {
     rank: '1안',
-    fastSell: { type: '복합 전략', title: '미아점 → 판교점 이동 후 10% 할인', detail: '이동 80개 · 행사 10일 · 냉동차량 1회', sales: '196개', sellThrough: '98.0%', revenue: '₩1,420만원', profit: '₩1,060만원' },
-    marginMax: { type: '재고 이동', title: '판교 · 더현대서울 무할인 물량 집중', detail: '2개 점포 · 이동 120개 · 할인 없음', sales: '169개', sellThrough: '84.5%', revenue: '₩1,610만원', profit: '₩1,320만원' },
-    maxRevenue: { type: '다채널 판촉', title: '3개 채널 동시 프로모션', detail: '백화점 · 그리팅몰 · 모두의 맛집 · 12일', sales: '214개', sellThrough: '93.0%', revenue: '₩1,890만원', profit: '₩1,280만원' },
+    fastSell: {
+      type: '복합 전략',
+      title: '미아점 → 판교점 이동 후 10% 할인',
+      detail: '이동 80개 · 행사 10일 · 냉동차량 1회',
+      sales: '196개',
+      sellThrough: '98.0%',
+      revenue: '₩1,420만원',
+      profit: '₩1,060만원',
+    },
+    marginMax: {
+      type: '재고 이동',
+      title: '판교 · 더현대서울 무할인 물량 집중',
+      detail: '2개 점포 · 이동 120개 · 할인 없음',
+      sales: '169개',
+      sellThrough: '84.5%',
+      revenue: '₩1,610만원',
+      profit: '₩1,320만원',
+    },
+    maxRevenue: {
+      type: '다채널 판촉',
+      title: '3개 채널 동시 프로모션',
+      detail: '백화점 · 그리팅몰 · 모두의 맛집 · 12일',
+      sales: '214개',
+      sellThrough: '93.0%',
+      revenue: '₩1,890만원',
+      profit: '₩1,280만원',
+    },
   },
   {
     rank: '2안',
-    fastSell: { type: '온라인 프로모션', title: '모두의 맛집 15% 타임딜', detail: '7일 · 쿠폰 5% · 무료배송', sales: '187개', sellThrough: '93.5%', revenue: '₩1,360만원', profit: '₩930만원' },
-    marginMax: { type: '저할인 판매', title: '그리팅몰 저할인 장기 판매', detail: '할인 5% · 21일 · 배너 미사용', sales: '153개', sellThrough: '76.5%', revenue: '₩1,540만원', profit: '₩1,250만원' },
-    maxRevenue: { type: '번들 전략', title: '프리미엄 국·탕 번들 구성', detail: '3종 세트 · 객단가 23% 상승 · 14일', sales: '181개', sellThrough: '90.5%', revenue: '₩1,760만원', profit: '₩1,210만원' },
+    fastSell: {
+      type: '온라인 프로모션',
+      title: '모두의 맛집 15% 타임딜',
+      detail: '7일 · 쿠폰 5% · 무료배송',
+      sales: '187개',
+      sellThrough: '93.5%',
+      revenue: '₩1,360만원',
+      profit: '₩930만원',
+    },
+    marginMax: {
+      type: '저할인 판매',
+      title: '그리팅몰 저할인 장기 판매',
+      detail: '할인 5% · 21일 · 배너 미사용',
+      sales: '153개',
+      sellThrough: '76.5%',
+      revenue: '₩1,540만원',
+      profit: '₩1,250만원',
+    },
+    maxRevenue: {
+      type: '번들 전략',
+      title: '프리미엄 국·탕 번들 구성',
+      detail: '3종 세트 · 객단가 23% 상승 · 14일',
+      sales: '181개',
+      sellThrough: '90.5%',
+      revenue: '₩1,760만원',
+      profit: '₩1,210만원',
+    },
   },
   {
     rank: '3안',
-    fastSell: { type: '오프라인 집약', title: '저판매 점포 재고 집약 후 특설 행사', detail: '5개 점포 → 1개 행사점 · 할인 20% · 5일', sales: '176개', sellThrough: '88.0%', revenue: '₩1,240만원', profit: '₩840만원' },
-    marginMax: { type: '교차판매', title: '연관상품 교차판매 쿠폰', detail: '국·탕 구매 시 8% 쿠폰 · 18일', sales: '148개', sellThrough: '74.0%', revenue: '₩1,480만원', profit: '₩1,170만원' },
-    maxRevenue: { type: '오프라인 판촉', title: '주말 백화점 집중 타임딜', detail: '상위 4개점 · 할인 18% · 주말 2회', sales: '192개', sellThrough: '96.0%', revenue: '₩1,720만원', profit: '₩1,090만원' },
+    fastSell: {
+      type: '오프라인 집약',
+      title: '저판매 점포 재고 집약 후 특설 행사',
+      detail: '5개 점포 → 1개 행사점 · 할인 20% · 5일',
+      sales: '176개',
+      sellThrough: '88.0%',
+      revenue: '₩1,240만원',
+      profit: '₩840만원',
+    },
+    marginMax: {
+      type: '교차판매',
+      title: '연관상품 교차판매 쿠폰',
+      detail: '국·탕 구매 시 8% 쿠폰 · 18일',
+      sales: '148개',
+      sellThrough: '74.0%',
+      revenue: '₩1,480만원',
+      profit: '₩1,170만원',
+    },
+    maxRevenue: {
+      type: '오프라인 판촉',
+      title: '주말 백화점 집중 타임딜',
+      detail: '상위 4개점 · 할인 18% · 주말 2회',
+      sales: '192개',
+      sellThrough: '96.0%',
+      revenue: '₩1,720만원',
+      profit: '₩1,090만원',
+    },
   },
 ];
 
@@ -113,10 +201,19 @@ export const StrategyResults = {
   render: () => (
     <div className="w-full max-w-[980px] space-y-3">
       <div>
-        <h2 className="text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">현재 전략 예상 결과 · 25% 기간 한정 할인</h2>
-        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">AI 추천 원본과 현재 조정값을 비교합니다.</p>
+        <h2 className="text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
+          현재 전략 예상 결과 · 25% 기간 한정 할인
+        </h2>
+        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
+          AI 추천 원본과 현재 조정값을 비교합니다.
+        </p>
       </div>
-      <DataTable caption="현재 전략 예상 결과" columns={strategyResultColumns} data={strategyResultRows} density="comfortable" />
+      <DataTable
+        caption="현재 전략 예상 결과"
+        columns={strategyResultColumns}
+        data={strategyResultRows}
+        density="comfortable"
+      />
     </div>
   ),
   parameters: {
@@ -138,10 +235,19 @@ export const StrategyMatrix = {
   render: () => (
     <div className="w-full max-w-[1200px] space-y-3">
       <div>
-        <h2 className="text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">AI 추천 전략</h2>
-        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">목표별 추천 전략을 비교하고 실행할 항목을 선택합니다.</p>
+        <h2 className="text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
+          AI 추천 전략
+        </h2>
+        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
+          목표별 추천 전략을 비교하고 실행할 항목을 선택합니다.
+        </p>
       </div>
-      <DataTable caption="AI 추천 전략" columns={strategyMatrixColumns} data={strategyMatrixRows} density="comfortable" />
+      <DataTable
+        caption="AI 추천 전략"
+        columns={strategyMatrixColumns}
+        data={strategyMatrixRows}
+        density="comfortable"
+      />
     </div>
   ),
   parameters: {
@@ -175,14 +281,24 @@ const performanceToneClasses = {
 };
 
 const performanceColumns = [
-  { accessorKey: 'metric', header: '지표 구분', meta: { cellClassName: 'font-semibold text-[color:var(--text-heading)]' } },
+  {
+    accessorKey: 'metric',
+    header: '지표 구분',
+    meta: { cellClassName: 'font-semibold text-[color:var(--text-heading)]' },
+  },
   { accessorKey: 'target', header: '예상 전략 목표', meta: { align: 'right' } },
-  { accessorKey: 'actual', header: '실제 전략 결과', meta: { align: 'right', cellClassName: 'font-semibold text-[color:var(--text-heading)]' } },
+  {
+    accessorKey: 'actual',
+    header: '실제 전략 결과',
+    meta: { align: 'right', cellClassName: 'font-semibold text-[color:var(--text-heading)]' },
+  },
   {
     accessorKey: 'variance',
     header: '목표 대비 오차',
     meta: { align: 'right' },
-    cell: ({ getValue, row }) => <span className={cn('font-semibold tabular-nums', performanceToneClasses[row.original.tone])}>{getValue()}</span>,
+    cell: ({ getValue, row }) => (
+      <span className={cn('font-semibold tabular-nums', performanceToneClasses[row.original.tone])}>{getValue()}</span>
+    ),
   },
 ];
 
@@ -190,8 +306,12 @@ export const PerformanceComparison = {
   render: () => (
     <div className="w-full max-w-[1100px] space-y-3">
       <div>
-        <h2 className="text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">전략 성과 비교</h2>
-        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">목표와 실제 결과의 차이를 의미 기반 색상으로 표시합니다.</p>
+        <h2 className="text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
+          전략 성과 비교
+        </h2>
+        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
+          목표와 실제 결과의 차이를 의미 기반 색상으로 표시합니다.
+        </p>
       </div>
       <DataTable caption="전략 성과 비교" columns={performanceColumns} data={performanceRows} density="comfortable" />
     </div>
@@ -218,20 +338,47 @@ const inventoryRows = [
 
 const inventoryColumns = [
   { accessorKey: 'channel', header: '판매처' },
-  { accessorKey: 'product', header: '상품명', meta: { cellClassName: 'font-semibold text-[color:var(--text-heading)]' } },
+  {
+    accessorKey: 'product',
+    header: '상품명',
+    meta: { cellClassName: 'font-semibold text-[color:var(--text-heading)]' },
+  },
   { accessorKey: 'stock', header: '현재고', meta: { align: 'right' }, cell: ({ getValue }) => `${getValue()}개` },
-  { accessorKey: 'available', header: '가용수량', meta: { align: 'right' }, cell: ({ getValue }) => <span className="font-semibold text-[color:var(--good)]">{getValue()}개</span> },
-  { accessorKey: 'risk', header: '위험등급', meta: { align: 'center' }, cell: ({ getValue }) => <Badge variant={getValue() === '위험' ? 'danger' : getValue() === '주의' ? 'warning' : 'good'}>{getValue()}</Badge> },
+  {
+    accessorKey: 'available',
+    header: '가용수량',
+    meta: { align: 'right' },
+    cell: ({ getValue }) => <span className="font-semibold text-[color:var(--good)]">{getValue()}개</span>,
+  },
+  {
+    accessorKey: 'risk',
+    header: '위험등급',
+    meta: { align: 'center' },
+    cell: ({ getValue }) => (
+      <Badge variant={getValue() === '위험' ? 'danger' : getValue() === '주의' ? 'warning' : 'good'}>
+        {getValue()}
+      </Badge>
+    ),
+  },
 ];
 
 export const InventorySortable = {
   render: () => (
     <div className="w-full max-w-[980px] space-y-3">
       <div>
-        <h2 className="text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">통합 재고 관제</h2>
-        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">헤더를 눌러 숫자 컬럼을 정렬할 수 있는 재고 표 예시입니다.</p>
+        <h2 className="text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
+          통합 재고 조회
+        </h2>
+        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
+          헤더를 눌러 숫자 컬럼을 정렬할 수 있는 재고 표 예시입니다.
+        </p>
       </div>
-      <DataTable caption="통합 재고 관제" columns={inventoryColumns} data={inventoryRows} onRowClick={(row) => console.info('row selected', row)} />
+      <DataTable
+        caption="통합 재고 조회"
+        columns={inventoryColumns}
+        data={inventoryRows}
+        onRowClick={(row) => console.info('row selected', row)}
+      />
     </div>
   ),
   parameters: {

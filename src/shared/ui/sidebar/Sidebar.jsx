@@ -7,21 +7,18 @@ import { cn } from '@/shared/lib/cn';
  * Router와 도메인을 모르는 shadcn 스타일의 Sidebar primitive입니다.
  * 실제 메뉴 구성과 NavLink 연결은 widgets/app-shell에서 담당합니다.
  */
-export const sidebarMenuButtonVariants = cva(
-  'sidebar-menu-button nav-item group',
-  {
-    variants: {
-      size: {
-        default: '',
-        sm: 'min-h-9',
-        lg: 'min-h-12',
-      },
-    },
-    defaultVariants: {
-      size: 'default',
+export const sidebarMenuButtonVariants = cva('sidebar-menu-button nav-item group', {
+  variants: {
+    size: {
+      default: '',
+      sm: 'min-h-9',
+      lg: 'min-h-12',
     },
   },
-);
+  defaultVariants: {
+    size: 'default',
+  },
+});
 
 export const Sidebar = forwardRef(function Sidebar({ className, ...props }, ref) {
   return <aside ref={ref} data-slot="sidebar" className={cn('sidebar', className)} {...props} />;

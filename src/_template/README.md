@@ -3,6 +3,8 @@
 이 폴더는 실제 기능 코드가 아니라 팀원이 구조를 빠르게 이해하기 위한 예시입니다.
 현재 `entities`, `features`, `widgets`, `pages`에 작은 placeholder를 만들어 흐름만 보여주고 있습니다. placeholder 안에는 실제 API·서버 상태·페이지네이션 로직을 넣지 않습니다.
 
+API, Query, mapper, URL 필터, widget과 page까지 이어지는 전체 복사 예시는 [`example-flow/README.md`](./example-flow/README.md)를 확인합니다.
+
 ## 레이어 기준
 
 ```text

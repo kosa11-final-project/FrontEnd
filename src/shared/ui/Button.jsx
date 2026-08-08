@@ -9,7 +9,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: 'bg-[var(--primary)] text-[color:var(--color-white)] hover:bg-[var(--primary-strong)]',
-        secondary: 'border border-[var(--border-strong)] bg-[var(--card)] text-[color:var(--color-gray-900)] hover:border-[var(--primary)] hover:bg-[var(--primary-soft)]',
+        secondary:
+          'border border-[var(--border-strong)] bg-[var(--card)] text-[color:var(--color-gray-900)] hover:border-[var(--primary)] hover:bg-[var(--primary-soft)]',
         ghost: 'text-[color:var(--muted-foreground)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary)]',
         danger: 'bg-[var(--danger)] text-[color:var(--color-white)] hover:brightness-95',
       },
@@ -24,10 +25,7 @@ const buttonVariants = cva(
   },
 );
 
-export const Button = forwardRef(function Button(
-  { className, variant, size, asChild = false, ...props },
-  ref,
-) {
+export const Button = forwardRef(function Button({ className, variant, size, asChild = false, ...props }, ref) {
   const Comp = asChild ? Slot : 'button';
   return <Comp ref={ref} className={cn(buttonVariants({ variant, size, className }))} {...props} />;
 });

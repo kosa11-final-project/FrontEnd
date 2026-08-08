@@ -22,14 +22,7 @@ const inputVariants = cva(
 );
 
 export const Input = forwardRef(function Input({ className, type = 'text', size, tone, ...props }, ref) {
-  return (
-    <input
-      ref={ref}
-      type={type}
-      className={cn(inputVariants({ size, tone }), className)}
-      {...props}
-    />
-  );
+  return <input ref={ref} type={type} className={cn(inputVariants({ size, tone }), className)} {...props} />;
 });
 
 export { inputVariants };

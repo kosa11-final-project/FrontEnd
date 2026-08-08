@@ -12,7 +12,9 @@ export function getCsrfToken() {
   const token = document.cookie
     .split('; ')
     .find((cookie) => cookie.startsWith(`${env.csrfCookieName}=`))
-    ?.split('=').slice(1).join('=');
+    ?.split('=')
+    .slice(1)
+    .join('=');
 
   return token ? decodeURIComponent(token) : null;
 }

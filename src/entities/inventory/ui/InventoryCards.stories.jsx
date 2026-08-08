@@ -18,15 +18,39 @@ const scopeMeta = {
   tags: ['autodocs'],
 };
 
+function InteractiveScopeCardStory() {
+  const [selectedScope, setSelectedScope] = useState('online');
+  const cards = [
+    { id: 'all', title: '전체 판매처', icon: Database, accent: 'main' },
+    { id: 'online', title: '그리팅몰 온라인', icon: Store, accent: 'cyan' },
+    { id: 'offline', title: '백화점 점포', icon: Building, accent: 'orange', status: 'caution' },
+    { id: 'center', title: '경기 광주 냉동센터', icon: Box, accent: 'mint', status: 'normal' },
+  ];
+
+  return (
+    <div className="grid w-full max-w-[1040px] grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {cards.map((card) => (
+        <InventoryScopeCard
+          key={card.id}
+          {...card}
+          selected={selectedScope === card.id}
+          metrics={scopeMetrics}
+          onClick={() => setSelectedScope(card.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default scopeMeta;
 
 export const ScopeCards = {
   render: () => (
     <div className="grid w-full max-w-[1040px] grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <InventoryScopeCard title="전체 계열사" eyebrow="ALL AFFILIATES" icon={Database} selected metrics={scopeMetrics} />
-      <InventoryScopeCard title="현대그린푸드" eyebrow="GREEN FOOD" icon={Building} accent="mint" metrics={scopeMetrics} />
-      <InventoryScopeCard title="현대웰니스" eyebrow="WELLNESS" icon={Store} accent="cyan" status="normal" metrics={scopeMetrics} />
-      <InventoryScopeCard title="현대리바트" eyebrow="LIVART" icon={Box} accent="orange" status="caution" metrics={scopeMetrics} />
+      <InventoryScopeCard title="전체 계열사" icon={Database} selected metrics={scopeMetrics} />
+      <InventoryScopeCard title="현대그린푸드" icon={Building} accent="mint" metrics={scopeMetrics} />
+      <InventoryScopeCard title="현대웰니스" icon={Store} accent="cyan" status="normal" metrics={scopeMetrics} />
+      <InventoryScopeCard title="현대리바트" icon={Box} accent="orange" status="caution" metrics={scopeMetrics} />
     </div>
   ),
   parameters: {
@@ -34,7 +58,6 @@ export const ScopeCards = {
       source: {
         code: `<InventoryScopeCard
   title="현대그린푸드"
-  eyebrow="GREEN FOOD"
   icon={Building}
   accent="mint"
   metrics={metrics}
@@ -48,48 +71,26 @@ export const ScopeCards = {
 export const ChannelScopes = {
   render: () => (
     <div className="grid w-full max-w-[1040px] grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <InventoryScopeCard title="전체 판매처" eyebrow="ALL CHANNELS" icon={Database} selected metrics={scopeMetrics} />
-      <InventoryScopeCard title="그리팅몰 온라인" eyebrow="ONLINE" icon={Store} accent="cyan" metrics={scopeMetrics} />
-      <InventoryScopeCard title="백화점 점포" eyebrow="OFFLINE STORES" icon={Building} accent="orange" status="caution" metrics={scopeMetrics} />
-      <InventoryScopeCard title="경기 광주 냉동센터" eyebrow="LOGISTICS CENTER" icon={Box} accent="mint" status="normal" metrics={scopeMetrics} />
+      <InventoryScopeCard title="전체 판매처" icon={Database} selected metrics={scopeMetrics} />
+      <InventoryScopeCard title="그리팅몰 온라인" icon={Store} accent="cyan" metrics={scopeMetrics} />
+      <InventoryScopeCard title="백화점 점포" icon={Building} accent="orange" status="caution" metrics={scopeMetrics} />
+      <InventoryScopeCard title="경기 광주 냉동센터" icon={Box} accent="mint" status="normal" metrics={scopeMetrics} />
     </div>
   ),
   parameters: {
     docs: {
       source: {
-        code: `<InventoryScopeCard title="전체 판매처" eyebrow="ALL CHANNELS" selected metrics={metrics} />
-<InventoryScopeCard title="그리팅몰 온라인" eyebrow="ONLINE" accent="cyan" metrics={metrics} />
-<InventoryScopeCard title="백화점 점포" eyebrow="OFFLINE STORES" accent="orange" status="caution" metrics={metrics} />
-<InventoryScopeCard title="경기 광주 냉동센터" eyebrow="LOGISTICS CENTER" accent="mint" status="normal" metrics={metrics} />`,
+        code: `<InventoryScopeCard title="전체 판매처" selected metrics={metrics} />
+<InventoryScopeCard title="그리팅몰 온라인" accent="cyan" metrics={metrics} />
+<InventoryScopeCard title="백화점 점포" accent="orange" status="caution" metrics={metrics} />
+<InventoryScopeCard title="경기 광주 냉동센터" accent="mint" status="normal" metrics={metrics} />`,
       },
     },
   },
 };
 
 export const InteractiveScopeCard = {
-  render: () => {
-    const [selectedScope, setSelectedScope] = useState('online');
-    const cards = [
-      { id: 'all', title: '전체 판매처', eyebrow: 'ALL CHANNELS', icon: Database, accent: 'main' },
-      { id: 'online', title: '그리팅몰 온라인', eyebrow: 'ONLINE', icon: Store, accent: 'cyan' },
-      { id: 'offline', title: '백화점 점포', eyebrow: 'OFFLINE STORES', icon: Building, accent: 'orange', status: 'caution' },
-      { id: 'center', title: '경기 광주 냉동센터', eyebrow: 'LOGISTICS CENTER', icon: Box, accent: 'mint', status: 'normal' },
-    ];
-
-    return (
-      <div className="grid w-full max-w-[1040px] grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
-          <InventoryScopeCard
-            key={card.id}
-            {...card}
-            selected={selectedScope === card.id}
-            metrics={scopeMetrics}
-            onClick={() => setSelectedScope(card.id)}
-          />
-        ))}
-      </div>
-    );
-  },
+  render: InteractiveScopeCardStory,
   parameters: {
     docs: {
       source: {
@@ -97,7 +98,6 @@ export const InteractiveScopeCard = {
 
 <InventoryScopeCard
   title="그리팅몰 온라인"
-  eyebrow="ONLINE"
   selected={selectedScope === 'online'}
   metrics={metrics}
   onClick={() => setSelectedScope('online')}
@@ -112,7 +112,6 @@ export const LongContent = {
     <div className="w-full max-w-[520px]">
       <InventoryScopeCard
         title="현대그린푸드 온라인·오프라인 통합 재고 운영 범위"
-        eyebrow="GREEN FOOD / MULTI CHANNEL INVENTORY"
         icon={Building}
         accent="mint"
         status="risk"
@@ -130,7 +129,6 @@ export const LongContent = {
       source: {
         code: `<InventoryScopeCard
   title="현대그린푸드 온라인·오프라인 통합 재고 운영 범위"
-  eyebrow="GREEN FOOD / MULTI CHANNEL INVENTORY"
   status="risk"
   metrics={longMetrics}
 />`,
@@ -211,9 +209,15 @@ export const ProductDetailPreview = {
     <div className="w-full max-w-[1160px] bg-[var(--background)] p-6">
       <header className="mb-5 flex items-start justify-between border-b border-[var(--border)] pb-5">
         <div>
-          <p className="text-[length:var(--font-size-meta)] font-bold uppercase tracking-[0.12em] text-[color:var(--text-label)]">GF-LUNCH-BEEF-350 · 최근 동기화 2026.08.02 09:00</p>
-          <h1 className="mt-2 text-[length:var(--font-size-page-title)] font-bold text-[color:var(--text-heading)]">소불고기 도시락 · 350g</h1>
-          <p className="mt-1 text-[length:var(--font-size-body)] text-[color:var(--text-muted)]">그리팅 영양균형 도시락 · 그리팅 · 케어푸드/도시락</p>
+          <p className="text-[length:var(--font-size-meta)] font-bold uppercase tracking-[0.12em] text-[color:var(--text-label)]">
+            GF-LUNCH-BEEF-350 · 최근 동기화 2026.08.02 09:00
+          </p>
+          <h1 className="mt-2 text-[length:var(--font-size-page-title)] font-bold text-[color:var(--text-heading)]">
+            소불고기 도시락 · 350g
+          </h1>
+          <p className="mt-1 text-[length:var(--font-size-body)] text-[color:var(--text-muted)]">
+            그리팅 영양균형 도시락 · 그리팅 · 케어푸드/도시락
+          </p>
         </div>
       </header>
       <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -223,26 +227,72 @@ export const ProductDetailPreview = {
         <MetricCard label="SKU 위험도" value="주의" tone="warning" icon={Building} />
       </div>
       <DetailLayout
-        asideContent={(
+        asideContent={
           <div className="grid gap-3">
-            <Card padding="none" className="overflow-hidden"><div className="h-44 bg-[var(--primary-soft)]" /><CardContent className="p-4"><CardTitle>옵션·가격</CardTitle><p className="mt-4 text-[length:var(--font-size-body)] font-bold">판매가 ₩8,900</p></CardContent></Card>
-            <Card><CardHeader><CardTitle>상품 설명</CardTitle><CardDescription>영양 균형을 고려한 냉동 도시락 제품군입니다.</CardDescription></CardHeader></Card>
+            <Card padding="none" className="overflow-hidden">
+              <div className="h-44 bg-[var(--primary-soft)]" />
+              <CardContent className="p-4">
+                <CardTitle>옵션·가격</CardTitle>
+                <p className="mt-4 text-[length:var(--font-size-body)] font-bold">판매가 ₩8,900</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>상품 설명</CardTitle>
+                <CardDescription>영양 균형을 고려한 냉동 도시락 제품군입니다.</CardDescription>
+              </CardHeader>
+            </Card>
           </div>
-        )}
+        }
       >
         <Card padding="none">
           <CardHeader className="border-b border-[var(--border)] px-5 py-4">
             <Tabs defaultValue="lot">
               {({ value, setValue }) => (
                 <TabsList>
-                  <TabsTrigger value="lot" activeValue={value} onSelect={setValue}>LOT 재고</TabsTrigger>
-                  <TabsTrigger value="forecast" activeValue={value} onSelect={setValue}>수요예측·위험분석</TabsTrigger>
-                  <TabsTrigger value="history" activeValue={value} onSelect={setValue}>지난 전략이력</TabsTrigger>
+                  <TabsTrigger value="lot" activeValue={value} onSelect={setValue}>
+                    LOT 재고
+                  </TabsTrigger>
+                  <TabsTrigger value="forecast" activeValue={value} onSelect={setValue}>
+                    수요예측·위험분석
+                  </TabsTrigger>
+                  <TabsTrigger value="history" activeValue={value} onSelect={setValue}>
+                    지난 전략이력
+                  </TabsTrigger>
                 </TabsList>
               )}
             </Tabs>
           </CardHeader>
-          <CardContent className="grid gap-3 p-5"><div><CardTitle>LOT별 재고 현황</CardTitle><CardDescription>기한과 출고 순서가 다른 재고를 LOT별로 비교합니다.</CardDescription></div><LotInventoryRow rank={1} lot="LOT-GF-LUNCH-BEEF-350-01" location="경기 광주 냉동센터 F-01" inboundDate="2026.07.29" expiryDate="2026.09.14" expiryLabel="D-43" currentStock="120개" scheduledShipment="13개" availableStock="107개" status="caution" /><LotInventoryRow rank={2} lot="LOT-GF-LUNCH-BEEF-350-02" location="경기 광주 냉동센터 F-01-2" inboundDate="2026.08.01" expiryDate="2026.09.21" expiryLabel="D-50" currentStock="164개" scheduledShipment="21개" availableStock="143개" status="normal" /></CardContent>
+          <CardContent className="grid gap-3 p-5">
+            <div>
+              <CardTitle>LOT별 재고 현황</CardTitle>
+              <CardDescription>기한과 출고 순서가 다른 재고를 LOT별로 비교합니다.</CardDescription>
+            </div>
+            <LotInventoryRow
+              rank={1}
+              lot="LOT-GF-LUNCH-BEEF-350-01"
+              location="경기 광주 냉동센터 F-01"
+              inboundDate="2026.07.29"
+              expiryDate="2026.09.14"
+              expiryLabel="D-43"
+              currentStock="120개"
+              scheduledShipment="13개"
+              availableStock="107개"
+              status="caution"
+            />
+            <LotInventoryRow
+              rank={2}
+              lot="LOT-GF-LUNCH-BEEF-350-02"
+              location="경기 광주 냉동센터 F-01-2"
+              inboundDate="2026.08.01"
+              expiryDate="2026.09.21"
+              expiryLabel="D-50"
+              currentStock="164개"
+              scheduledShipment="21개"
+              availableStock="143개"
+              status="normal"
+            />
+          </CardContent>
         </Card>
       </DetailLayout>
     </div>

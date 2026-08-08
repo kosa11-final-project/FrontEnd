@@ -19,6 +19,8 @@ sub-orange:        #FDA643
 sub-mint-soft:     #DAF7E9
 sub-cyan-soft:     #CFF4FC
 sub-orange-soft:   #FFEC2C
+danger:            #D92D20 (semantic extension)
+danger-soft:       #FEE4E2 (semantic extension)
 gray-900:          #282828
 gray-700:          #747474
 gray-500:          #8E8E8E
@@ -35,7 +37,8 @@ gray-50:           #F4F4F4
 - 데이터 테이블은 불투명한 표면과 충분한 대비를 유지한다.
 - `main`은 주요 행동·선택·포커스와 양호 상태에 사용한다.
 - `sub-mint`와 `sub-cyan`은 보조 강조와 정보 상태에 사용한다.
-- `sub-orange`와 `sub-orange-soft`는 주의·위험 상태에 사용한다.
+- `sub-orange`와 `sub-orange-soft`는 주의 상태에 사용한다.
+- `danger`와 `danger-soft`는 위험·오류 상태의 semantic 확장 토큰으로 사용한다.
 - 회색 스케일은 제목·본문·placeholder·border·배경 계층에 사용한다.
 - 필터 label/value는 Pretendard `0.8125rem / 1.125rem`, medium을 기본으로 한다.
 - 필드 간격은 `8px`, 필터 바 그룹 간격은 `12px`, field radius는 `6px`, bar radius는 `8px`를 기준으로 한다.
