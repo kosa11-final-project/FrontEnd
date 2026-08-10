@@ -6,7 +6,7 @@
 
 > 실제 Spring Boot API 계약, 로그인·권한 정책, 재고 조회·페이지네이션과 배포 환경은 기능 또는 운영 단계에서 확정합니다. 공통 개발 환경, lint·format, 테스트와 PR 자동 검증은 이 저장소에 포함되어 있습니다.
 
-처음 참여하는 팀원은 먼저 [`docs/team-onboarding.md`](./docs/team-onboarding.md)를 순서대로 진행합니다. 구조와 사용 규칙은 [`docs/frontend-foundation-team-guide.md`](./docs/frontend-foundation-team-guide.md)에서 확인합니다.
+처음 참여하는 팀원은 먼저 [`docs/team-onboarding.md`](./docs/team-onboarding.md)를 순서대로 진행합니다. 팀원이 이해하기 쉽게 설명할 때는 [`docs/team-frontend-handbook.md`](./docs/team-frontend-handbook.md)를 사용하고, 토큰·컴포넌트·API의 상세 기준은 [`docs/frontend-foundation-team-guide.md`](./docs/frontend-foundation-team-guide.md)에서 확인합니다.
 
 ## 빠른 시작
 
@@ -228,6 +228,7 @@ Page / Widget
 - API 응답을 Zustand에 복사하지 않습니다.
 - Query의 `signal`을 API 함수까지 전달해 취소 가능한 요청을 유지합니다.
 - query key는 entity별 key factory에서 관리합니다.
+- `shared/api`는 `getJson`, `postJson`, `putJson`, `patchJson`, `deleteJson`, `headJson` named helper를 제공합니다.
 
 사용 예시:
 
@@ -239,6 +240,20 @@ const query = useQuery(inventoryListQueryOptions(filters));
 ```
 
 공통 통신 코드는 [`src/shared/api`](./src/shared/api), 재고 API 예시는 [`src/entities/inventory/api`](./src/entities/inventory/api)에 있습니다.
+
+변경 요청이 생기면 실제 도메인 API에서 같은 options 구조를 사용합니다. 아직 백엔드 계약이 없는 재고 수정·삭제 endpoint를 미리 만들지는 않습니다.
+
+```js
+import { postJson } from '@/shared/api';
+
+export function syncInventory(body, signal) {
+  return postJson({
+    path: 'v1/inventory-sync',
+    body,
+    signal,
+  });
+}
+```
 
 세션 인증의 백엔드 계약은 아직 확정하지 않았습니다. 프론트에는 `withCredentials: true`와 CSRF cookie/header 골격만 준비했으며, `/me` bootstrap, 로그인 redirect, 401·403 정책은 Spring Security 계약이 정해진 뒤 연결합니다. 세션 ID는 localStorage나 Zustand에 저장하지 않습니다.
 
@@ -313,21 +328,27 @@ import {
 
 Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/PretendardVariable.woff2`](./public/fonts/PretendardVariable.woff2)에 포함되어 있습니다.
 
-| Token | 크기 | 용도 |
-| --- | --- | --- |
-| `headline1` | `1.375rem` · 22px | 페이지 대표 제목 |
-| `headline2` | `1.25rem` · 20px | 큰 섹션 제목 |
-| `subtitle1` | `1rem` · 16px | 카드·패널 제목 |
-| `subtitle2` | `0.875rem` · 14px | 보조 제목 |
-| `body1` | `0.875rem` · 14px | 기본 본문 |
-| `body2` | `0.75rem` · 12px | 조밀한 업무 UI 본문 |
-| `description` | `0.75rem` · 12px | 설명과 metadata |
+| Token | 크기 | 기본 굵기 | 용도 |
+| --- | --- | --- | --- |
+| `headline1` | `1.375rem` · 22px | `700` | 페이지 대표 제목 |
+| `headline2` | `1.25rem` · 20px | `700` | 큰 섹션 제목 |
+| `subtitle1` | `1rem` · 16px | `600` | 카드·패널 제목 |
+| `subtitle2` | `0.875rem` · 14px | `600` | 보조 제목 |
+| `body1` | `0.875rem` · 14px | `400` | 기본 본문 |
+| `body2` | `0.75rem` · 12px | `500` | 조밀한 업무 UI 본문 |
+| `description` | `0.75rem` · 12px | `400` | 설명과 metadata |
+
+기본 굵기는 `--font-weight-regular`(400), `--font-weight-medium`(500), `--font-weight-semibold`(600), `--font-weight-bold`(700), `--font-weight-extrabold`(800)으로 관리합니다. 컴포넌트에서는 `--font-weight-headline1`, `--font-weight-button`, `--font-weight-metric`처럼 역할별 semantic token을 우선 사용합니다.
 
 숫자는 비교가 쉽도록 전역 `tabular-nums`를 사용합니다. 컴포넌트에서 임의 px 크기나 색상을 하드코딩하지 않고 [`src/styles.css`](./src/styles.css)의 semantic token을 사용합니다.
 
 ### 간격과 표면
 
+- 간격은 4px 기반의 `--space-*` primitive scale을 사용합니다.
+- 자주 쓰는 semantic 간격은 `--spacing-page-x`, `--spacing-section-gap`, `--spacing-card-padding`, `--spacing-table-cell-x/y`를 사용합니다.
+- control height는 `--control-height-sm`(32px), `--control-height-default`(40px), `--control-height-lg`(48px)로 통일합니다.
 - control radius: `0.375rem` · 6px
+- bar/card radius: `0.5rem` · 8px
 - panel radius: `0.5rem` · 8px
 - field gap: `0.5rem` · 8px
 - bar gap: `0.75rem` · 12px
@@ -386,6 +407,7 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 ## 참고 문서
 
 - [신규 팀원 필수 온보딩](./docs/team-onboarding.md)
+- [팀 설명용 프론트엔드 핸드북](./docs/team-frontend-handbook.md)
 - [프론트엔드 초기 세팅 팀 가이드](./docs/frontend-foundation-team-guide.md)
 - [프론트엔드 개발 규칙](./docs/development-conventions.md)
 - [기능 개발 체크리스트](./docs/checklists/frontend-feature-checklist.md)
