@@ -32,52 +32,88 @@ const typography = [
   {
     name: 'Headline1',
     token: '--font-size-headline1',
-    weightToken: '--font-weight-bold',
+    weightToken: '--font-weight-headline1',
     line: '--line-height-headline1',
     sample: '통합 재고 조회',
   },
   {
     name: 'Headline2',
     token: '--font-size-headline2',
-    weightToken: '--font-weight-bold',
+    weightToken: '--font-weight-headline2',
     line: '--line-height-headline2',
     sample: 'LOT별 재고 현황',
   },
   {
     name: 'Subtitle1',
     token: '--font-size-subtitle1',
-    weightToken: '--font-weight-bold',
+    weightToken: '--font-weight-subtitle1',
     line: '--line-height-subtitle1',
     sample: '재고 범위와 판매처',
   },
   {
     name: 'Subtitle2',
     token: '--font-size-subtitle2',
-    weightToken: '--font-weight-semibold',
+    weightToken: '--font-weight-subtitle2',
     line: '--line-height-subtitle2',
     sample: '판매 가능 수량',
   },
   {
     name: 'Body1',
     token: '--font-size-body1',
-    weightToken: '--font-weight-regular',
-    line: '--line-height-body',
+    weightToken: '--font-weight-body1',
+    line: '--line-height-body1',
     sample: '현재고와 가용수량을 비교합니다.',
   },
   {
     name: 'Body2',
     token: '--font-size-body2',
-    weightToken: '--font-weight-medium',
-    line: '--line-height-body',
+    weightToken: '--font-weight-body2',
+    line: '--line-height-body2',
     sample: '전체 판매처 기준',
   },
   {
     name: 'Description',
     token: '--font-size-description',
-    weightToken: '--font-weight-regular',
-    line: '--line-height-meta',
+    weightToken: '--font-weight-description',
+    line: '--line-height-description',
     sample: '소비기한과 출고 순서를 확인합니다.',
   },
+];
+
+const fontWeights = [
+  { name: 'Regular', token: '--font-weight-regular', usage: '기본 본문·설명' },
+  { name: 'Medium', token: '--font-weight-medium', usage: '필터 값·보조 라벨' },
+  { name: 'Semibold', token: '--font-weight-semibold', usage: '버튼·카드 제목·표 헤더' },
+  { name: 'Bold', token: '--font-weight-bold', usage: '페이지 제목·핵심 수치' },
+  { name: 'ExtraBold', token: '--font-weight-extrabold', usage: '제한적인 강조용' },
+];
+
+const spacingTokens = [
+  { name: 'space/1', token: '--space-1', usage: '아이콘·세밀한 간격' },
+  { name: 'space/2', token: '--space-2', usage: '필드·아이콘 간격' },
+  { name: 'space/3', token: '--space-3', usage: '바·카드 내부 간격' },
+  { name: 'space/4', token: '--space-4', usage: '요소 그룹 간격' },
+  { name: 'space/5', token: '--space-5', usage: '카드·패널 padding' },
+  { name: 'space/6', token: '--space-6', usage: '페이지·섹션 간격' },
+  { name: 'space/8', token: '--space-8', usage: '큰 섹션 간격' },
+  { name: 'space/10', token: '--space-10', usage: '페이지 큰 여백' },
+  { name: 'space/12', token: '--space-12', usage: '큰 화면 분리' },
+];
+
+const semanticSpacingTokens = [
+  { name: 'page/x', token: '--spacing-page-x', usage: '페이지 좌우 여백' },
+  { name: 'page/y', token: '--spacing-page-y', usage: '페이지 상하 여백' },
+  { name: 'section/gap', token: '--spacing-section-gap', usage: '섹션 사이 간격' },
+  { name: 'panel/gap', token: '--spacing-panel-gap', usage: '패널 사이 간격' },
+  { name: 'card/padding', token: '--spacing-card-padding', usage: '카드 내부 여백' },
+  { name: 'table/cell-x', token: '--spacing-table-cell-x', usage: '표 셀 좌우 여백' },
+  { name: 'table/cell-y', token: '--spacing-table-cell-y', usage: '표 셀 상하 여백' },
+];
+
+const controlTokens = [
+  { name: 'control/sm', token: '--control-height-sm', usage: '작은 버튼·보조 필터' },
+  { name: 'control/default', token: '--control-height-default', usage: '기본 버튼·입력·Select' },
+  { name: 'control/lg', token: '--control-height-lg', usage: '강조 버튼·큰 입력' },
 ];
 
 const semanticTokens = [
@@ -102,6 +138,8 @@ const shapeTokens = [
   { name: 'field gap', token: '--spacing-field-gap', usage: '필터 필드 사이 간격' },
   { name: 'bar gap', token: '--spacing-bar-gap', usage: '툴바·요약 바 간격' },
   { name: 'control radius', token: '--radius-control', usage: '버튼·입력·badge' },
+  { name: 'bar radius', token: '--radius-bar', usage: '필터 바·그룹 표면' },
+  { name: 'card radius', token: '--radius-card', usage: '카드 표면' },
   { name: 'panel radius', token: '--radius-panel', usage: '카드·작업 패널' },
   { name: 'panel shadow', token: '--shadow-panel', usage: 'Mesh 요약 표면' },
   { name: 'soft shadow', token: '--shadow-soft', usage: 'hover·보조 표면' },
@@ -163,6 +201,84 @@ function TypographyScale() {
             <br />
             {readToken(weightToken)}
           </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FontWeightScale() {
+  return (
+    <div className="grid w-full max-w-[840px] gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {fontWeights.map(({ name, token, usage }) => (
+        <div key={name} className="rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] p-4">
+          <p
+            className="text-[length:var(--font-size-subtitle1)] text-[color:var(--text-heading)]"
+            style={{ fontWeight: `var(${token})` }}
+          >
+            Pretendard {name}
+          </p>
+          <code className="mt-2 block text-[length:var(--font-size-meta)]">
+            {token} · {readToken(token)}
+          </code>
+          <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">{usage}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SpacingScale({ tokens }) {
+  return (
+    <div className="w-full max-w-[920px] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)]">
+      {tokens.map(({ name, token, usage }) => (
+        <div
+          key={token}
+          className="grid grid-cols-[110px_minmax(0,1fr)] items-center gap-3 border-b border-[var(--border)] p-3 last:border-b-0 sm:grid-cols-[140px_minmax(0,1fr)_180px]"
+        >
+          <strong className="text-[length:var(--font-size-body2)] text-[color:var(--text-heading)]">{name}</strong>
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className="block h-3 max-w-full shrink-0 rounded-[var(--radius-control)] bg-[var(--primary)]"
+              style={{ width: `var(${token})` }}
+              aria-hidden="true"
+            />
+            <span className="truncate text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">{usage}</span>
+          </div>
+          <code className="hidden text-right text-[length:var(--font-size-meta)] tabular-nums sm:block">
+            {token} · {readToken(token)} {tokenPixels(token)}
+          </code>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ControlTokenGrid() {
+  return (
+    <div className="grid w-full max-w-[920px] gap-3 sm:grid-cols-3">
+      {controlTokens.map(({ name, token, usage }) => (
+        <div
+          key={token}
+          className="flex flex-col justify-between rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--card)] p-4"
+        >
+          <div>
+            <strong className="block text-[length:var(--font-size-body2)] text-[color:var(--text-heading)]">
+              {name}
+            </strong>
+            <code className="mt-1 block text-[length:var(--font-size-meta)]">
+              {token} · {readToken(token)} {tokenPixels(token)}
+            </code>
+            <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+              {usage}
+            </span>
+          </div>
+          <div
+            className="mt-4 flex items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] px-3 text-[length:var(--font-size-body2)] font-[var(--font-weight-button)] text-[color:var(--primary)]"
+            style={{ height: `var(${token})` }}
+          >
+            control height
+          </div>
         </div>
       ))}
     </div>
@@ -305,16 +421,22 @@ export const Typography = {
         </p>
       </div>
       <TypographyScale />
+      <h3 className="mb-3 mt-6 text-[length:var(--font-size-subtitle1)] font-[var(--font-weight-subtitle1)] text-[color:var(--text-heading)]">
+        Font weight tokens
+      </h3>
+      <FontWeightScale />
     </section>
   ),
   parameters: {
     docs: {
       source: {
-        code: `<p className="text-[length:var(--font-size-headline1)]">Headline1</p>
+        code: `<p className="text-[length:var(--font-size-headline1)] font-[var(--font-weight-headline1)] leading-[var(--line-height-headline1)]">Headline1</p>
 <p className="text-[length:var(--font-size-headline2)]">Headline2</p>
 <p className="text-[length:var(--font-size-subtitle1)]">Subtitle1</p>
 <p className="text-[length:var(--font-size-body1)]">Body1</p>
-<p className="text-[length:var(--font-size-description)]">Description</p>`,
+<p className="text-[length:var(--font-size-description)] font-[var(--font-weight-description)] leading-[var(--line-height-description)]">Description</p>
+
+<span style={{ fontWeight: 'var(--font-weight-semibold)' }}>Semibold</span>`,
       },
     },
   },
@@ -428,6 +550,18 @@ export const SpacingAndShape = {
         </p>
       </div>
       <ShapeTokenGrid />
+      <h3 className="mb-3 mt-6 text-[length:var(--font-size-subtitle1)] font-[var(--font-weight-subtitle1)] text-[color:var(--text-heading)]">
+        Primitive spacing scale
+      </h3>
+      <SpacingScale tokens={spacingTokens} />
+      <h3 className="mb-3 mt-6 text-[length:var(--font-size-subtitle1)] font-[var(--font-weight-subtitle1)] text-[color:var(--text-heading)]">
+        Semantic spacing
+      </h3>
+      <SpacingScale tokens={semanticSpacingTokens} />
+      <h3 className="mb-3 mt-6 text-[length:var(--font-size-subtitle1)] font-[var(--font-weight-subtitle1)] text-[color:var(--text-heading)]">
+        Control heights
+      </h3>
+      <ControlTokenGrid />
       <div className="mt-4 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)] p-4">
         <p className="mb-3 text-[length:var(--font-size-body-sm)] font-semibold text-[color:var(--text-heading)]">
           실제 간격 적용 예시

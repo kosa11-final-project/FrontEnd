@@ -1,3 +1,12 @@
 export { ApiError, normalizeApiError } from './apiError.js';
 export { axiosClient } from './clients/axiosClient.js';
-export { defaultHttpClient, requestJson } from './httpClient.js';
+export {
+  defaultHttpClient,
+  deleteJson,
+  getJson,
+  headJson,
+  patchJson,
+  postJson,
+  putJson,
+  requestJson,
+} from './httpClient.js';
