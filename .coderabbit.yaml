@@ -24,7 +24,7 @@ reviews:
       instructions: |
         이 저장소는 React 19 + Vite 기반 JavaScript 프론트엔드입니다.
         다음 기준을 기존 코드와 문서에 맞춰 리뷰하세요.
-        - FSD-lite 계층 의존성 app -> pages -> widgets -> features -> entities -> shared를 지키고, 상위 계층이 하위 계층을 역참조하지 않는지 확인합니다.
+        - FSD-lite 계층 의존성 app -> pages -> widgets -> features -> entities -> shared를 지키고, 하위 계층이 상위 계층을 참조하지 않는지 확인합니다.
         - 페이지·위젯·피처에서 Axios를 직접 import하지 않고 shared/api와 TanStack Query 경계를 지키는지 확인합니다.
         - API 응답 mapper, URL 상태, 서버 상태, 전역 UI 상태의 소유권이 프론트엔드 개발 규칙과 일치하는지 확인합니다.
         - 적용 가능한 loading, empty, error, forbidden 상태와 접근성 이름·키보드 포커스·모바일 레이아웃을 확인합니다.
@@ -54,6 +54,7 @@ reviews:
 
 chat:
   auto_reply: true
+  allow_non_org_members: false
   integrations:
     jira:
       usage: 'enabled'
