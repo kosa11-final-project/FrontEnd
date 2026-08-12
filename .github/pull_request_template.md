@@ -1,3 +1,9 @@
+## 관련 Jira
+
+- 이슈 키: `YSK-XX`
+- 이슈 URL: `https://sookmyung-team-yemifit1.atlassian.net/browse/YSK-XX`
+- PR 연결 문구: `Resolves https://sookmyung-team-yemifit1.atlassian.net/browse/YSK-XX`
+
 ## 변경 내용
 
 - 무엇을 왜 변경했는지 적어주세요.
