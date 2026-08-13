@@ -10,7 +10,9 @@ reviews:
   high_level_summary: true
   review_status: true
   auto_review:
-    enabled: true
+    enabled: false
+    labels:
+      - 'coderabbit-review'
     drafts: false
     auto_incremental_review: true
   path_filters:
