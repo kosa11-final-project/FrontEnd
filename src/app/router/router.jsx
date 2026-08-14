@@ -1,10 +1,12 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout.jsx';
+import AuthGuard from './AuthGuard.jsx';
 import AiStrategyPage from '@/pages/ai-strategy/AiStrategyPage.jsx';
 import DashboardPage from '@/pages/dashboard/DashboardPage.jsx';
 import ExecutionPage from '@/pages/execution/ExecutionPage.jsx';
 import InventoryPage from '@/pages/inventory/InventoryPage.jsx';
+import LoginPage from '@/pages/login/LoginPage.jsx';
 import StatisticsPage from '@/pages/statistics/StatisticsPage.jsx';
 import { StateView } from '@/shared/ui';
 
@@ -29,6 +31,8 @@ function NotFoundPage() {
 }
 
 export const router = createBrowserRouter([
+  // 로그인 준비 API는 백엔드에서도 permitAll이므로 로그인 화면은 보호 라우트 밖에 둠
+  { path: 'login', element: <LoginPage /> },
   {
     path: 'heendi-loader',
     element: (
@@ -38,14 +42,20 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    element: <AppLayout />,
+    // AuthGuard 아래의 업무 화면은 유효한 서버 세션이 있어야 렌더링됨
+    element: <AuthGuard />,
     children: [
-      { index: true, element: <Navigate replace to="/inventory" /> },
-      { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'inventory', element: <InventoryPage /> },
-      { path: 'ai-strategy', element: <AiStrategyPage /> },
-      { path: 'execution', element: <ExecutionPage /> },
-      { path: 'statistics', element: <StatisticsPage /> },
+      {
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <Navigate replace to="/inventory" /> },
+          { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'inventory', element: <InventoryPage /> },
+          { path: 'ai-strategy', element: <AiStrategyPage /> },
+          { path: 'execution', element: <ExecutionPage /> },
+          { path: 'statistics', element: <StatisticsPage /> },
+        ],
+      },
     ],
   },
   { path: '*', element: <NotFoundPage /> },
