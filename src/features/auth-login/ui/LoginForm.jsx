@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { authKeys, isAuthenticationError, login as loginWithSession } from '@/entities/auth';
+import { cacheAuthenticatedUser, isAuthenticationError, login as loginWithSession } from '@/entities/auth';
 import { Alert, Button, Input } from '@/shared/ui';
 import { loginSchema } from '../model/loginSchema.js';
 
@@ -27,9 +27,9 @@ export function LoginForm({ onSuccess }) {
   const loginMutation = useMutation({
     // TanStack Query가 넘기는 mutation context를 API의 AbortSignal 인자로 잘못 전달하지 않도록 명시적으로 감쌈
     mutationFn: (credentials) => loginWithSession(credentials),
-    onSuccess: (user) => {
-      // 로그인 응답은 /me와 같은 AuthUserResponse이므로 추가 호출 없이 현재 사용자 캐시를 갱신함
-      queryClient.setQueryData(authKeys.currentUser(), user);
+    onSuccess: async (user) => {
+      // 로그인 응답은 /me와 같은 사용자 모델이므로 기존 Query를 취소한 뒤 캐시에 바로 기록함
+      await cacheAuthenticatedUser(queryClient, user);
       onSuccess?.(user);
     },
   });

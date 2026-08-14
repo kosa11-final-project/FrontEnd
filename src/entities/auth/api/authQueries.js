@@ -25,6 +25,12 @@ export async function resolveCurrentUser(signal) {
   }
 }
 
+/** 진행 중인 세션 조회를 취소한 뒤 로그인 사용자를 캐시에 기록함 */
+export async function cacheAuthenticatedUser(queryClient, user) {
+  await queryClient.cancelQueries({ queryKey: authKeys.currentUser(), exact: true });
+  queryClient.setQueryData(authKeys.currentUser(), user);
+}
+
 /** 현재 사용자 서버 상태를 모든 로그인 화면과 보호 라우트가 공유하는 Query 설정 */
 export function currentUserQueryOptions() {
   return queryOptions({
