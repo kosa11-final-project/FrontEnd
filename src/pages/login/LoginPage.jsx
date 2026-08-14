@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { currentUserQueryOptions } from '@/entities/auth';
 import { LoginForm } from '@/features/auth-login';
-import { StateView } from '@/shared/ui';
+import { Alert, StateView } from '@/shared/ui';
 
 const defaultAuthenticatedPath = '/dashboard';
 
@@ -15,6 +15,7 @@ function getReturnPath(locationState) {
 
 export default function LoginPage() {
   const location = useLocation();
+  const isSessionExpired = location.state?.authReason === 'session-expired';
   // 이미 유효한 JSESSIONID가 있는 사용자가 로그인 폼을 다시 보지 않도록 /me를 확인함
   const currentUserQuery = useQuery(currentUserQueryOptions());
 
@@ -75,6 +76,12 @@ export default function LoginPage() {
               업무 계정으로 재고 운영 플랫폼에 접속해 주세요.
             </p>
           </div>
+
+          {isSessionExpired ? (
+            <Alert className="mb-6" variant="danger" title="로그인 세션이 만료되었습니다.">
+              계속하려면 다시 로그인해 주세요.
+            </Alert>
+          ) : null}
 
           <LoginForm />
         </div>
