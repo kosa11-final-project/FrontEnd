@@ -7,7 +7,7 @@ test.describe('기본 앱 셸', () => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible();
-    await expect(page.locator('nav a[aria-current="page"]')).toContainText('대시보드');
+    await expect(page.getByRole('link', { name: '대시보드' })).toHaveAttribute('aria-current', 'page');
   });
 
   test('사이드바 메뉴가 각 기본 페이지로 이동한다', async ({ page }) => {
@@ -19,6 +19,6 @@ test.describe('기본 앱 셸', () => {
 
     await page.getByRole('link', { name: '통계' }).click();
     await expect(page).toHaveURL(/\/statistics$/);
-    await expect(page.locator('nav a[aria-current="page"]')).toContainText('통계');
+    await expect(page.getByRole('link', { name: '통계' })).toHaveAttribute('aria-current', 'page');
   });
 });
