@@ -2,7 +2,7 @@
 export const authenticatedUser = Object.freeze({
   userId: 1,
   loginId: 'greenfood-admin',
-  userName: '전체 총괄',
+  userName: '김영만',
   email: 'admin@example.com',
   organizationId: 10,
   organizationName: '그린푸드',

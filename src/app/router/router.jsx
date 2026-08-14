@@ -48,7 +48,7 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <Navigate replace to="/inventory" /> },
+          { index: true, element: <Navigate replace to="/dashboard" /> },
           { path: 'dashboard', element: <DashboardPage /> },
           { path: 'inventory', element: <InventoryPage /> },
           { path: 'ai-strategy', element: <AiStrategyPage /> },

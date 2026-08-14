@@ -1,12 +1,9 @@
 import { memo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ChevronDown } from 'reicon-react';
 import {
-  Avatar,
   Icon,
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -40,19 +37,6 @@ function AppSidebar() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-
-      <div className="sidebar-spacer" />
-
-      <SidebarFooter>
-        <button className="sidebar-account" type="button">
-          <Avatar>김</Avatar>
-          <span className="account-copy">
-            <strong>김명만 수석 MD</strong>
-            <small>현대그린푸드 재고운영</small>
-          </span>
-          <Icon icon={ChevronDown} size={15} />
-        </button>
-      </SidebarFooter>
     </Sidebar>
   );
 }

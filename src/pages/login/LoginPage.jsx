@@ -4,7 +4,7 @@ import { currentUserQueryOptions } from '@/entities/auth';
 import { LoginForm } from '@/features/auth-login';
 import { StateView } from '@/shared/ui';
 
-const defaultAuthenticatedPath = '/inventory';
+const defaultAuthenticatedPath = '/dashboard';
 
 /** AuthGuard가 보존한 최초 요청 주소를 안전하게 복원함 */
 function getReturnPath(locationState) {

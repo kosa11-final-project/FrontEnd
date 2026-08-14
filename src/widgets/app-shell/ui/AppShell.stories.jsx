@@ -1,8 +1,32 @@
+import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ArrowRight, ChartBar, Database, Refresh } from 'reicon-react';
 import { Button, Icon } from '@/shared/ui';
+import { authKeys } from '@/entities/auth';
 import { AppHeader } from './AppHeader.jsx';
 import AppSidebar from './AppSidebar.jsx';
+
+const storyUser = {
+  userId: 1,
+  loginId: 'greenfood-admin',
+  userName: '김영만',
+  email: 'admin@example.com',
+  organizationId: 10,
+  organizationName: '그린푸드',
+  roleCode: 'GREENFOOD_ADMIN',
+  roleName: '그린푸드 총괄',
+};
+
+function AuthenticatedStory({ children }) {
+  const [queryClient] = useState(() => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(authKeys.currentUser(), storyUser);
+    return client;
+  });
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
 
 const meta = {
   title: 'App Shell/Foundations',
@@ -16,6 +40,13 @@ const meta = {
       },
     },
   },
+  decorators: [
+    (Story) => (
+      <AuthenticatedStory>
+        <Story />
+      </AuthenticatedStory>
+    ),
+  ],
 };
 
 export default meta;
@@ -142,7 +173,7 @@ export const AppSidebarOnly = {
     layout: 'fullscreen',
     docs: {
       description: {
-        story: '현대그린푸드 업무 메뉴와 사용자 계정 영역을 포함한 사이드바 단독 상태입니다.',
+        story: '현대그린푸드 브랜드와 업무 메뉴를 포함한 사이드바 단독 상태입니다.',
       },
       source: {
         code: `<MemoryRouter initialEntries={['/inventory']}>
