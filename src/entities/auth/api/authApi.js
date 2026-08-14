@@ -32,6 +32,12 @@ export async function login(credentials, signal) {
   return mapAuthUser(response.data);
 }
 
+/** 서버 세션과 JSESSIONID·XSRF-TOKEN 쿠키를 제거함 */
+export async function logout(signal) {
+  await getCsrfToken(signal);
+  await postJson({ path: `${authPath}/logout`, signal });
+}
+
 /** JSESSIONID에 연결된 현재 사용자를 GET /api/v1/auth/me에서 조회함 */
 export async function getCurrentUser(signal) {
   const response = await getJson({ path: `${authPath}/me`, signal });

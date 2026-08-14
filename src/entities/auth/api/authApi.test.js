@@ -7,7 +7,7 @@ const { getJson, postJson } = vi.hoisted(() => ({
 
 vi.mock('@/shared/api', () => ({ getJson, postJson }));
 
-import { getCurrentUser, login } from './authApi.js';
+import { getCurrentUser, login, logout } from './authApi.js';
 
 // API 호출과 응답 매핑 검증에만 사용하는 테스트 전용 사용자
 const userResponse = {
@@ -22,6 +22,8 @@ const userResponse = {
   },
 };
 
+const mappedUser = { ...userResponse.data, roleName: '그린푸드 총괄' };
+
 describe('auth API', () => {
   beforeEach(() => {
     getJson.mockReset();
@@ -32,7 +34,7 @@ describe('auth API', () => {
     getJson.mockResolvedValueOnce({ data: { token: 'csrf-token', headerName: 'X-XSRF-TOKEN' } });
     postJson.mockResolvedValueOnce(userResponse);
 
-    await expect(login({ loginId: 'greenfood-admin', password: 'password' })).resolves.toEqual(userResponse.data);
+    await expect(login({ loginId: 'greenfood-admin', password: 'password' })).resolves.toEqual(mappedUser);
 
     expect(getJson).toHaveBeenCalledWith({ path: 'v1/auth/csrf', signal: undefined });
     expect(postJson).toHaveBeenCalledWith({
@@ -46,7 +48,18 @@ describe('auth API', () => {
   it('maps the current session user envelope', async () => {
     getJson.mockResolvedValueOnce(userResponse);
 
-    await expect(getCurrentUser()).resolves.toEqual(userResponse.data);
+    await expect(getCurrentUser()).resolves.toEqual(mappedUser);
     expect(getJson).toHaveBeenCalledWith({ path: 'v1/auth/me', signal: undefined });
+  });
+
+  it('issues a CSRF token before requesting logout', async () => {
+    getJson.mockResolvedValueOnce({ data: { token: 'csrf-token', headerName: 'X-XSRF-TOKEN' } });
+    postJson.mockResolvedValueOnce({ data: null });
+
+    await expect(logout()).resolves.toBeUndefined();
+
+    expect(getJson).toHaveBeenCalledWith({ path: 'v1/auth/csrf', signal: undefined });
+    expect(postJson).toHaveBeenCalledWith({ path: 'v1/auth/logout', signal: undefined });
+    expect(getJson.mock.invocationCallOrder[0]).toBeLessThan(postJson.mock.invocationCallOrder[0]);
   });
 });

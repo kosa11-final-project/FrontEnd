@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapAuthUser } from './authUserMapper.js';
+import { getAuthRoleName, mapAuthUser } from './authUserMapper.js';
 
 describe('mapAuthUser', () => {
   it('maps the session user response to the frontend model', () => {
@@ -24,10 +24,17 @@ describe('mapAuthUser', () => {
       organizationId: 10,
       organizationName: '그린푸드',
       roleCode: 'GREENFOOD_ADMIN',
+      roleName: '그린푸드 총괄',
     });
   });
 
   it('returns null when no authenticated user exists', () => {
     expect(mapAuthUser(null)).toBeNull();
+  });
+
+  it('maps the backend role code to a display name', () => {
+    expect(getAuthRoleName('GREENFOOD_ADMIN')).toBe('그린푸드 총괄');
+    expect(getAuthRoleName('CUSTOM_ROLE')).toBe('CUSTOM_ROLE');
+    expect(getAuthRoleName(null)).toBe('역할 미지정');
   });
 });
