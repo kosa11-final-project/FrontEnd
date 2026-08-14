@@ -9,7 +9,15 @@ export const defaultHttpClient = axiosClient;
  * Keeping this boundary small prevents pages and features from coupling to
  * the HTTP library or its response shape.
  */
-export async function requestJson({ method = 'get', path, params, body, headers, signal }) {
+export async function requestJson({
+  method = 'get',
+  path,
+  params,
+  body,
+  headers,
+  signal,
+  skipSessionExpirationHandling = false,
+}) {
   const normalizedMethod = method.toLowerCase();
   if (!methods.has(normalizedMethod)) {
     throw new Error(`지원하지 않는 HTTP 메서드입니다: ${method}`);
@@ -22,6 +30,7 @@ export async function requestJson({ method = 'get', path, params, body, headers,
     data: body,
     headers,
     signal,
+    ...(skipSessionExpirationHandling ? { skipSessionExpirationHandling: true } : {}),
   });
 
   return response.status === 204 ? undefined : response.data;
