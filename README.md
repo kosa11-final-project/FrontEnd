@@ -4,7 +4,7 @@
 
 현재 저장소는 **실제 업무 기능 개발 전 공통 초기 세팅을 마친 상태**입니다. 팀원이 같은 구조와 디자인 규칙으로 기능을 개발할 수 있도록 앱 셸, 라우터, FSD-lite 폴더 구조, HTTP 통신 경계, 디자인 토큰, 재사용 UI, Storybook, 테스트와 CI 기반을 구성했습니다.
 
-> 실제 Spring Boot API 계약, 로그인·권한 정책, 재고 조회·페이지네이션과 배포 환경은 기능 또는 운영 단계에서 확정합니다. 공통 개발 환경, lint·format, 테스트와 PR 자동 검증은 이 저장소에 포함되어 있습니다.
+> Spring Security 세션 로그인과 현재 사용자 조회 계약을 연결했으며, 세부 권한 정책, 재고 조회·페이지네이션과 배포 환경은 기능 또는 운영 단계에서 확정합니다. 공통 개발 환경, lint·format, 테스트와 PR 자동 검증은 이 저장소에 포함되어 있습니다.
 
 처음 참여하는 팀원은 먼저 [`docs/team-onboarding.md`](./docs/team-onboarding.md)를 순서대로 진행합니다. 팀원이 이해하기 쉽게 설명할 때는 [`docs/team-frontend-handbook.md`](./docs/team-frontend-handbook.md)를 사용하고, 토큰·컴포넌트·API의 상세 기준은 [`docs/frontend-foundation-team-guide.md`](./docs/frontend-foundation-team-guide.md)에서 확인합니다.
 
@@ -48,6 +48,7 @@ pnpm run build-storybook
 
 | 경로 | 화면 | 현재 범위 |
 | --- | --- | --- |
+| `/login` | 로그인 | CSRF 발급, 세션 로그인, 오류 상태 연결 |
 | `/dashboard` | 대시보드 | 기본 페이지와 앱 셸 연결 |
 | `/inventory` | 통합 재고 조회 | 초기 화면 구조와 예시 컴포넌트 |
 | `/ai-strategy` | AI 전략 및 시뮬레이션 | 기본 페이지 연결 |
@@ -55,7 +56,7 @@ pnpm run build-storybook
 | `/statistics` | 통계 | 기본 페이지 연결 |
 | `/heendi-loader` | 로딩 모션 확인 | MP4 레퍼런스와 Lottie 스피너 비교 |
 
-루트(`/`)는 `/inventory`로 이동합니다. 라우트 정의는 [`src/app/router/router.jsx`](./src/app/router/router.jsx), 메뉴의 단일 출처는 [`src/widgets/app-shell/model/navigation.js`](./src/widgets/app-shell/model/navigation.js)입니다.
+로그인하지 않은 사용자가 루트(`/`) 또는 업무 경로에 접근하면 `/login`으로 이동합니다. 로그인 후 루트는 `/inventory`로 이동하며, 사용자가 먼저 접근한 업무 경로가 있으면 해당 경로로 돌아갑니다. 라우트 정의는 [`src/app/router/router.jsx`](./src/app/router/router.jsx), 메뉴의 단일 출처는 [`src/widgets/app-shell/model/navigation.js`](./src/widgets/app-shell/model/navigation.js)입니다.
 
 ## 기술 스택과 역할
 
@@ -68,7 +69,7 @@ pnpm run build-storybook
 | 서버 상태 | TanStack Query v5 | 서버 데이터 캐시, 로딩·오류, 재조회, 무효화 | Provider와 query options 예시 완료 |
 | HTTP | Axios | base URL, timeout, 쿠키 전송, CSRF header, 오류 정규화 | 공통 client 완료 |
 | 클라이언트 상태 | Zustand | 여러 화면이 공유하는 UI 상태만 관리 | 설치 완료, 필요할 때 store 생성 |
-| 폼 | React Hook Form, Zod | 입력 상태, 검증, 제출 처리 | 설치 완료, 실제 폼에서 적용 |
+| 폼 | React Hook Form, Zod | 입력 상태, 검증, 제출 처리 | 로그인 폼 적용 완료 |
 | 테이블 | TanStack Table v8 | 컬럼·행 모델과 정렬, 재사용 테이블 껍데기 | `DataTable` 완료 |
 | 차트 | Recharts | 수요예측, 위험분석, 전략 성과 시각화 | 설치 완료, 기능 단계에서 적용 |
 | 스타일 | Tailwind CSS v4 | layout과 token 기반 스타일링 | 완료 |
@@ -255,7 +256,15 @@ export function syncInventory(body, signal) {
 }
 ```
 
-세션 인증의 백엔드 계약은 아직 확정하지 않았습니다. 프론트에는 `withCredentials: true`와 CSRF cookie/header 골격만 준비했으며, `/me` bootstrap, 로그인 redirect, 401·403 정책은 Spring Security 계약이 정해진 뒤 연결합니다. 세션 ID는 localStorage나 Zustand에 저장하지 않습니다.
+세션 로그인은 다음 Spring Security 계약을 사용합니다.
+
+```text
+GET  /api/v1/auth/csrf   -> CSRF cookie와 header 정보 발급
+POST /api/v1/auth/login  -> loginId, password로 세션 로그인
+GET  /api/v1/auth/me     -> 현재 세션 사용자 조회
+```
+
+앱은 `/me`의 `401 AUTH-001`을 비로그인 상태로 해석하고 보호된 업무 경로를 `/login`으로 전환합니다. 네트워크 오류나 서버 오류는 로그인 화면으로 숨기지 않고 다시 시도할 수 있는 오류 상태로 표시합니다. 세션 ID는 localStorage, sessionStorage 또는 Zustand에 저장하지 않으며 브라우저의 HttpOnly cookie가 관리합니다. 로그아웃, 업무 API에서 발생하는 전역 세션 만료, 세부 403 권한 정책은 후속 기능에서 연결합니다.
 
 ## 재사용 UI 규칙
 
@@ -380,6 +389,8 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 - Dashboard Filter Foundations 디자인 토큰과 Pretendard
 - shadcn 기반 재사용 UI와 Storybook
 - Axios·CSRF·ApiError 공통 통신 경계
+- 세션 로그인, `/me` 인증 복원과 보호 라우터
+- React Hook Form·Zod 기반 로그인 화면
 - TanStack Query Provider, inventory query key/options 예시
 - TanStack Table 기반 재사용 DataTable
 - Sentry Error Boundary와 민감정보 scrubber
@@ -397,7 +408,7 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 기능 또는 운영 단계에서 진행:
 
 - 실제 Spring Boot API와 응답 mapper 연결
-- Spring Security 로그인·로그아웃·세션·권한 계약
+- Spring Security 로그아웃, 전역 세션 만료와 세부 권한 정책
 - 실제 재고 조회, 서버 페이지네이션, URL 필터와 정렬
 - 재고 상세와 AI 전략 업무 기능
 - Zustand, React Hook Form, Zod, Recharts의 실제 도메인 적용
