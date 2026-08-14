@@ -56,7 +56,7 @@ pnpm run build-storybook
 | `/statistics` | 통계 | 기본 페이지 연결 |
 | `/heendi-loader` | 로딩 모션 확인 | MP4 레퍼런스와 Lottie 스피너 비교 |
 
-로그인하지 않은 사용자가 루트(`/`) 또는 업무 경로에 접근하면 `/login`으로 이동합니다. 로그인 후 루트는 `/inventory`로 이동하며, 사용자가 먼저 접근한 업무 경로가 있으면 해당 경로로 돌아갑니다. 라우트 정의는 [`src/app/router/router.jsx`](./src/app/router/router.jsx), 메뉴의 단일 출처는 [`src/widgets/app-shell/model/navigation.js`](./src/widgets/app-shell/model/navigation.js)입니다.
+로그인하지 않은 사용자가 루트(`/`) 또는 업무 경로에 접근하면 `/login`으로 이동합니다. 로그인 후 루트는 `/dashboard`로 이동하며, 사용자가 먼저 접근한 업무 경로가 있으면 해당 경로로 돌아갑니다. 라우트 정의는 [`src/app/router/router.jsx`](./src/app/router/router.jsx), 메뉴의 단일 출처는 [`src/widgets/app-shell/model/navigation.js`](./src/widgets/app-shell/model/navigation.js)입니다.
 
 ## 기술 스택과 역할
 
@@ -262,9 +262,10 @@ export function syncInventory(body, signal) {
 GET  /api/v1/auth/csrf   -> CSRF cookie와 header 정보 발급
 POST /api/v1/auth/login  -> loginId, password로 세션 로그인
 GET  /api/v1/auth/me     -> 현재 세션 사용자 조회
+POST /api/v1/auth/logout -> 서버 세션과 인증 cookie 제거
 ```
 
-앱은 `/me`의 `401 AUTH-001`을 비로그인 상태로 해석하고 보호된 업무 경로를 `/login`으로 전환합니다. 네트워크 오류나 서버 오류는 로그인 화면으로 숨기지 않고 다시 시도할 수 있는 오류 상태로 표시합니다. 세션 ID는 localStorage, sessionStorage 또는 Zustand에 저장하지 않으며 브라우저의 HttpOnly cookie가 관리합니다. 로그아웃, 업무 API에서 발생하는 전역 세션 만료, 세부 403 권한 정책은 후속 기능에서 연결합니다.
+앱은 `/me`의 `401 AUTH-001`을 비로그인 상태로 해석하고 보호된 업무 경로를 `/login`으로 전환합니다. 네트워크 오류나 서버 오류는 로그인 화면으로 숨기지 않고 다시 시도할 수 있는 오류 상태로 표시합니다. 세션 ID는 localStorage, sessionStorage 또는 Zustand에 저장하지 않으며 브라우저의 HttpOnly cookie가 관리합니다. 로그아웃 성공 시 사용자별 서버 캐시를 제거하고 `/login`으로 이동합니다. 업무 API에서 발생하는 전역 세션 만료와 세부 403 권한 정책은 후속 기능에서 연결합니다.
 
 ## 재사용 UI 규칙
 
@@ -408,7 +409,7 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 기능 또는 운영 단계에서 진행:
 
 - 실제 Spring Boot API와 응답 mapper 연결
-- Spring Security 로그아웃, 전역 세션 만료와 세부 권한 정책
+- Spring Security 전역 세션 만료와 세부 권한 정책
 - 실제 재고 조회, 서버 페이지네이션, URL 필터와 정렬
 - 재고 상세와 AI 전략 업무 기능
 - Zustand, React Hook Form, Zod, Recharts의 실제 도메인 적용
