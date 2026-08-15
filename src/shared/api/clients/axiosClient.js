@@ -2,6 +2,7 @@ import axios from 'axios';
 import { env } from '../../config/env.js';
 import { getCsrfHeader } from '../csrf.js';
 import { normalizeApiError } from '../apiError.js';
+import { notifySessionExpiration } from '../sessionExpiration.js';
 
 export const axiosClient = axios.create({
   baseURL: env.apiBaseUrl,
@@ -24,5 +25,9 @@ axiosClient.interceptors.request.use((config) => {
 
 axiosClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(normalizeApiError(error)),
+  (error) => {
+    const normalizedError = normalizeApiError(error);
+    notifySessionExpiration(normalizedError, error?.config);
+    return Promise.reject(normalizedError);
+  },
 );

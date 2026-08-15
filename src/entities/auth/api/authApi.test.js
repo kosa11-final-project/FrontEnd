@@ -36,11 +36,16 @@ describe('auth API', () => {
 
     await expect(login({ loginId: 'greenfood-admin', password: 'password' })).resolves.toEqual(mappedUser);
 
-    expect(getJson).toHaveBeenCalledWith({ path: 'v1/auth/csrf', signal: undefined });
+    expect(getJson).toHaveBeenCalledWith({
+      path: 'v1/auth/csrf',
+      signal: undefined,
+      skipSessionExpirationHandling: true,
+    });
     expect(postJson).toHaveBeenCalledWith({
       path: 'v1/auth/login',
       body: { loginId: 'greenfood-admin', password: 'password' },
       signal: undefined,
+      skipSessionExpirationHandling: true,
     });
     expect(getJson.mock.invocationCallOrder[0]).toBeLessThan(postJson.mock.invocationCallOrder[0]);
   });
@@ -49,7 +54,11 @@ describe('auth API', () => {
     getJson.mockResolvedValueOnce(userResponse);
 
     await expect(getCurrentUser()).resolves.toEqual(mappedUser);
-    expect(getJson).toHaveBeenCalledWith({ path: 'v1/auth/me', signal: undefined });
+    expect(getJson).toHaveBeenCalledWith({
+      path: 'v1/auth/me',
+      signal: undefined,
+      skipSessionExpirationHandling: true,
+    });
   });
 
   it('issues a CSRF token before requesting logout', async () => {
@@ -58,7 +67,11 @@ describe('auth API', () => {
 
     await expect(logout()).resolves.toBeUndefined();
 
-    expect(getJson).toHaveBeenCalledWith({ path: 'v1/auth/csrf', signal: undefined });
+    expect(getJson).toHaveBeenCalledWith({
+      path: 'v1/auth/csrf',
+      signal: undefined,
+      skipSessionExpirationHandling: true,
+    });
     expect(postJson).toHaveBeenCalledWith({ path: 'v1/auth/logout', signal: undefined });
     expect(getJson.mock.invocationCallOrder[0]).toBeLessThan(postJson.mock.invocationCallOrder[0]);
   });

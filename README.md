@@ -265,7 +265,7 @@ GET  /api/v1/auth/me     -> 현재 세션 사용자 조회
 POST /api/v1/auth/logout -> 서버 세션과 인증 cookie 제거
 ```
 
-앱은 `/me`의 `401 AUTH-001`을 비로그인 상태로 해석하고 보호된 업무 경로를 `/login`으로 전환합니다. 네트워크 오류나 서버 오류는 로그인 화면으로 숨기지 않고 다시 시도할 수 있는 오류 상태로 표시합니다. 세션 ID는 localStorage, sessionStorage 또는 Zustand에 저장하지 않으며 브라우저의 HttpOnly cookie가 관리합니다. 로그아웃 성공 시 사용자별 서버 캐시를 제거하고 `/login`으로 이동합니다. 업무 API에서 발생하는 전역 세션 만료와 세부 403 권한 정책은 후속 기능에서 연결합니다.
+앱은 `/me`의 `401 AUTH-001`을 비로그인 상태로 해석하고 보호된 업무 경로를 `/login`으로 전환합니다. 네트워크 오류나 서버 오류는 로그인 화면으로 숨기지 않고 다시 시도할 수 있는 오류 상태로 표시합니다. 세션 ID는 localStorage, sessionStorage 또는 Zustand에 저장하지 않으며 브라우저의 HttpOnly cookie가 관리합니다. 로그아웃 성공 시 사용자별 서버 캐시를 제거하고 `/login`으로 이동합니다. 업무 API의 `401 AUTH-001`은 전역 세션 만료로 처리하여 전체 서버 캐시를 제거하고 현재 URL을 보존한 뒤 로그인 화면으로 이동합니다. 세부 `403` 권한 정책은 후속 기능에서 연결합니다.
 
 ## 재사용 UI 규칙
 
@@ -391,6 +391,7 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 - shadcn 기반 재사용 UI와 Storybook
 - Axios·CSRF·ApiError 공통 통신 경계
 - 세션 로그인, `/me` 인증 복원과 보호 라우터
+- 업무 API의 전역 세션 만료 감지, 캐시 정리와 원래 경로 복귀
 - React Hook Form·Zod 기반 로그인 화면
 - TanStack Query Provider, inventory query key/options 예시
 - TanStack Table 기반 재사용 DataTable
@@ -409,7 +410,7 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 기능 또는 운영 단계에서 진행:
 
 - 실제 Spring Boot API와 응답 mapper 연결
-- Spring Security 전역 세션 만료와 세부 권한 정책
+- Spring Security 세부 역할·권한 정책
 - 실제 재고 조회, 서버 페이지네이션, URL 필터와 정렬
 - 재고 상세와 AI 전략 업무 기능
 - Zustand, React Hook Form, Zod, Recharts의 실제 도메인 적용

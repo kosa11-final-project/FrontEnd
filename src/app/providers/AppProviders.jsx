@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/shared/ui';
+import { SessionExpirationHandler } from './SessionExpirationHandler.jsx';
 
 function createQueryClient() {
   return new QueryClient({
@@ -20,6 +21,7 @@ export function AppProviders({ children }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <SessionExpirationHandler />
       <TooltipProvider>{children}</TooltipProvider>
     </QueryClientProvider>
   );

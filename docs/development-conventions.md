@@ -128,7 +128,7 @@ Page / Widget
 - 같은 GET 요청을 `useEffect`로 다시 구현하지 않습니다.
 - API response는 mapper를 통과한 뒤 UI에 전달합니다.
 
-Spring Security 세션 계약에 따라 `/me` bootstrap과 보호 route를 사용합니다. `/me`의 `401 AUTH-001`만 비로그인 상태로 해석하며, 네트워크 오류나 5xx를 로그인 redirect로 숨기지 않습니다. 업무 API에서 발생하는 전역 401과 403은 후속 작업에서 인증 기능의 공통 경계에 구현하며, 개별 page에서 임의로 redirect하지 않습니다.
+Spring Security 세션 계약에 따라 `/me` bootstrap과 보호 route를 사용합니다. `/me`의 `401 AUTH-001`만 비로그인 상태로 해석하며, 네트워크 오류나 5xx를 로그인 redirect로 숨기지 않습니다. 업무 API의 `401 AUTH-001`은 공통 Axios 응답 경계에서 감지하고, 진행 중인 Query와 전체 서버 캐시를 정리한 뒤 현재 URL을 보존해 `/login`으로 이동합니다. 로그인과 `/me`의 `401`은 각 인증 화면이 직접 처리하며, `403`은 세션을 제거하지 않고 적용되는 page의 forbidden 상태로 표시합니다.
 
 ## 8. 페이지 상태 규칙
 

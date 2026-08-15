@@ -65,6 +65,7 @@ test.describe('세션 로그인과 보호 라우팅', () => {
 
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole('heading', { name: '로그인' })).toBeVisible();
+    await expect(page.getByText('로그인 세션이 만료되었습니다.')).not.toBeVisible();
   });
 
   test('로그인 성공 후 대시보드로 이동한다', async ({ page }) => {
@@ -92,6 +93,70 @@ test.describe('세션 로그인과 보호 라우팅', () => {
     await expect(page.getByRole('heading', { name: '통계' })).toBeVisible();
   });
 
+  test('업무 API에서 세션이 만료되면 안내 후 재로그인하여 원래 경로로 돌아간다', async ({ page }) => {
+    await mockAuthenticatedSession(page);
+    await page.route('**/api/v1/inventories', (route) =>
+      route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'AUTH-001',
+          message: '인증에 실패했습니다.',
+          fieldErrors: [],
+          path: '/api/v1/inventories',
+          timestamp: '2026-08-14T00:00:00Z',
+        }),
+      }),
+    );
+    await page.goto('/statistics?period=month#summary');
+
+    await page.evaluate(async () => {
+      const { getInventories } = await import('/src/entities/inventory/api/inventoryApi.js');
+      await getInventories().catch(() => undefined);
+    });
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole('alert')).toContainText('로그인 세션이 만료되었습니다.');
+    await expect(page.getByRole('alert')).toContainText('계속하려면 다시 로그인해 주세요.');
+
+    await mockSuccessfulLogin(page);
+    await fillLoginForm(page);
+    await page.getByRole('button', { name: '로그인' }).click();
+
+    await expect(page).toHaveURL(/\/statistics\?period=month#summary$/);
+  });
+
+  for (const response of [
+    { status: 403, code: 'COMMON-003' },
+    { status: 500, code: 'COMMON-006' },
+  ]) {
+    test(`업무 API의 ${response.status} 오류는 세션 만료로 처리하지 않는다`, async ({ page }) => {
+      await mockAuthenticatedSession(page);
+      await page.route('**/api/v1/inventories', (route) =>
+        route.fulfill({
+          status: response.status,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            code: response.code,
+            message: '요청을 처리하지 못했습니다.',
+            fieldErrors: [],
+            path: '/api/v1/inventories',
+            timestamp: '2026-08-14T00:00:00Z',
+          }),
+        }),
+      );
+      await page.goto('/statistics');
+
+      await page.evaluate(async () => {
+        const { getInventories } = await import('/src/entities/inventory/api/inventoryApi.js');
+        await getInventories().catch(() => undefined);
+      });
+
+      await expect(page).toHaveURL(/\/statistics$/);
+      await expect(page.getByText('로그인 세션이 만료되었습니다.')).not.toBeVisible();
+    });
+  }
+
   test('잘못된 로그인 정보에는 계정을 구분하지 않는 오류를 표시한다', async ({ page }) => {
     await mockAnonymousSession(page);
     await mockCsrfToken(page);
@@ -114,6 +179,7 @@ test.describe('세션 로그인과 보호 라우팅', () => {
     await page.getByRole('button', { name: '로그인' }).click();
 
     await expect(page.getByRole('alert')).toContainText('아이디 또는 비밀번호를 확인해 주세요.');
+    await expect(page.getByText('로그인 세션이 만료되었습니다.')).not.toBeVisible();
     await expect(page).toHaveURL(/\/login$/);
   });
 });

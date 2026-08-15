@@ -10,7 +10,11 @@ const authPath = 'v1/auth';
  * 공통 Axios 인터셉터가 쿠키 값을 X-XSRF-TOKEN 헤더로 복사함
  */
 export async function getCsrfToken(signal) {
-  const response = await getJson({ path: `${authPath}/csrf`, signal });
+  const response = await getJson({
+    path: `${authPath}/csrf`,
+    signal,
+    skipSessionExpirationHandling: true,
+  });
   return response.data;
 }
 
@@ -27,6 +31,7 @@ export async function login(credentials, signal) {
     path: `${authPath}/login`,
     body: credentials,
     signal,
+    skipSessionExpirationHandling: true,
   });
 
   return mapAuthUser(response.data);
@@ -40,6 +45,10 @@ export async function logout(signal) {
 
 /** JSESSIONID에 연결된 현재 사용자를 GET /api/v1/auth/me에서 조회함 */
 export async function getCurrentUser(signal) {
-  const response = await getJson({ path: `${authPath}/me`, signal });
+  const response = await getJson({
+    path: `${authPath}/me`,
+    signal,
+    skipSessionExpirationHandling: true,
+  });
   return mapAuthUser(response.data);
 }
