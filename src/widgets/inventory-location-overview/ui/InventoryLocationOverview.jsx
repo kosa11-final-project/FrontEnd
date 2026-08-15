@@ -3,7 +3,7 @@ import { Building, Database, Store, Warning } from 'reicon-react';
 import { distributionCenters, offlineStoreInventories } from '@/entities/inventory';
 import { cn } from '@/shared/lib/cn';
 import { formatQuantity } from '@/shared/lib/format';
-import { Card, CardDescription, CardHeader, CardTitle, Icon } from '@/shared/ui';
+import { Badge, Card, CardDescription, CardHeader, CardTitle, Icon } from '@/shared/ui';
 
 const centerToneClasses = Object.freeze({
   danger:
@@ -32,8 +32,12 @@ const storeShortNames = Object.freeze({
 });
 
 function resolveLocationTone(location) {
-  if (location.riskSkuCount >= 5 || location.nearExpiryStock >= 50) return 'danger';
-  if (location.riskSkuCount >= 3 || location.nearExpiryStock >= 30) return 'warning';
+  if (location.riskSkuCount >= 5 || location.nearExpiryStock >= 50 || location.expectedDisposal >= 40) {
+    return 'danger';
+  }
+  if (location.riskSkuCount >= 3 || location.nearExpiryStock >= 30 || location.expectedDisposal >= 25) {
+    return 'warning';
+  }
   return 'good';
 }
 
@@ -135,6 +139,65 @@ function ViewModeButton({ active, count, icon, label, onClick }) {
   );
 }
 
+function MobileStoreList({ activeStoreId, onActivate, stores }) {
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] sm:hidden">
+      <div className="border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3">
+        <strong className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
+          활성 오프라인 매장 {stores.length}곳
+        </strong>
+        <p className="mt-1 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+          매장을 선택하면 아래 상세 정보가 변경됩니다.
+        </p>
+      </div>
+
+      <ul className="max-h-[480px] divide-y divide-[var(--border)] overflow-y-auto">
+        {stores.map((store) => {
+          const selected = store.id === activeStoreId;
+          const tone = resolveLocationTone(store);
+          const statusLabel = tone === 'danger' ? '위험' : tone === 'warning' ? '주의' : '정상';
+
+          return (
+            <li key={store.id}>
+              <button
+                type="button"
+                aria-pressed={selected}
+                className={cn(
+                  'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors',
+                  selected ? 'bg-[var(--primary-faint)]' : 'hover:bg-[var(--surface-subtle)]',
+                )}
+                onClick={() => onActivate(store.id)}
+              >
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <strong className="truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
+                      {store.name}
+                    </strong>
+                    <Badge variant={tone}>{statusLabel}</Badge>
+                  </span>
+                  <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+                    {store.region} · 위험 SKU {formatQuantity(store.riskSkuCount)} · 임박{' '}
+                    <strong className="text-[color:var(--warning)]">{formatQuantity(store.nearExpiryStock)}</strong>
+                  </span>
+                </span>
+
+                <span className="text-right">
+                  <span className="block text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
+                    판매 가능
+                  </span>
+                  <strong className="mt-1 block tabular-nums text-[length:var(--font-size-body)] text-[color:var(--good)]">
+                    {formatQuantity(store.availableStock)}
+                  </strong>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export function InventoryLocationOverview({ centers = distributionCenters, stores = offlineStoreInventories }) {
   const [viewMode, setViewMode] = useState('centers');
   const [activeLocationIds, setActiveLocationIds] = useState({
@@ -192,8 +255,15 @@ export function InventoryLocationOverview({ centers = distributionCenters, store
 
         <div className="grid xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="p-4 sm:p-5">
+            {!isCenterView ? (
+              <MobileStoreList activeStoreId={activeLocation.id} onActivate={handleLocationActivate} stores={stores} />
+            ) : null}
+
             <div
-              className="relative min-h-[520px] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface-subtle)] sm:min-h-[580px]"
+              className={cn(
+                'relative min-h-[520px] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface-subtle)] sm:min-h-[580px]',
+                !isCenterView && 'hidden sm:block',
+              )}
               style={{
                 backgroundImage:
                   'linear-gradient(color-mix(in srgb, var(--border) 65%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--border) 65%, transparent) 1px, transparent 1px), radial-gradient(circle at 45% 35%, var(--primary-soft), transparent 42%)',

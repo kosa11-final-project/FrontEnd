@@ -16,7 +16,7 @@ export function UrgentSkuList({ skus = urgentSkus }) {
             <Icon icon={AlertTriangle} size={18} className="text-[color:var(--danger)]" aria-hidden="true" />
             긴급 처리 SKU TOP 5
           </CardTitle>
-          <CardDescription>위험점수를 우선하며, 동점이면 예상 폐기수량이 많은 SKU를 표시합니다.</CardDescription>
+          <CardDescription>예상 폐기수량과 소비기한을 함께 고려해 우선 조치 대상을 표시합니다.</CardDescription>
         </CardHeader>
 
         <ol className="divide-y divide-[var(--border)] px-5">
@@ -43,27 +43,23 @@ export function UrgentSkuList({ skus = urgentSkus }) {
 
                     <div className="text-right">
                       <span className="block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-                        위험점수
+                        예상 폐기
                       </span>
                       <strong className="text-[length:var(--font-size-subtitle1)] text-[color:var(--danger)]">
-                        {sku.riskScore.toFixed(1)}
+                        {formatQuantity(sku.expectedDisposal)}
                       </strong>
                     </div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
                     <span>
-                      유형 <strong className="text-[color:var(--text-body)]">{sku.issue}</strong>
+                      소비기한 <strong className="text-[color:var(--warning)]">D-{sku.expiryDays}</strong>
                     </span>
                     <span>
                       판매처 <strong className="text-[color:var(--text-body)]">{sku.salesPoint}</strong>
                     </span>
                     <span>
-                      소비기한 <strong className="text-[color:var(--warning)]">D-{sku.expiryDays}</strong>
-                    </span>
-                    <span>
-                      예상 폐기{' '}
-                      <strong className="text-[color:var(--danger)]">{formatQuantity(sku.expectedDisposal)}</strong>
+                      유형 <strong className="text-[color:var(--text-body)]">{sku.issue}</strong>
                     </span>
                   </div>
 

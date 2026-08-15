@@ -15,7 +15,13 @@ export function DashboardSummary({ summary = dashboardInventorySummary }) {
     {
       label: '위험·주의 SKU',
       value: formatQuantity(summary.riskAndCautionSkuCount),
-      helper: '위험 5개 · 주의 7개',
+      helper: (
+        <>
+          <span className="font-[var(--font-weight-semibold)] text-[color:var(--danger)]">위험 5개</span>
+          {' · '}
+          <span className="font-[var(--font-weight-semibold)] text-[color:var(--warning)]">주의 7개</span>
+        </>
+      ),
       icon: AlertTriangle,
       tone: 'danger',
     },
@@ -24,30 +30,22 @@ export function DashboardSummary({ summary = dashboardInventorySummary }) {
       value: formatQuantity(summary.shortageSkuCount),
       helper: '안전재고 미만 판매처 기준',
       icon: Warning,
-      tone: 'warning',
+      tone: 'danger',
     },
     {
       label: '향후 30일 예상 폐기',
       value: formatQuantity(summary.expectedDisposal),
       helper: '수요예측·LOT 소비기한 기준',
       icon: Clock,
-      tone: 'warning',
+      tone: 'danger',
     },
   ];
 
   return (
     <section aria-labelledby="dashboard-summary-title">
-      <div className="mb-3">
-        <h2
-          id="dashboard-summary-title"
-          className="text-[length:var(--font-size-section-title)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]"
-        >
-          핵심 재고 지표
-        </h2>
-        <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-          우선 확인이 필요한 전국 재고 지표를 요약합니다.
-        </p>
-      </div>
+      <h2 id="dashboard-summary-title" className="sr-only">
+        핵심 재고 지표
+      </h2>
 
       <div className="grid grid-cols-1 gap-[var(--spacing-card-gap)] sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
