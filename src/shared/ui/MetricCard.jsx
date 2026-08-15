@@ -18,11 +18,11 @@ const metricIconVariants = cva('grid size-8 shrink-0 place-items-center rounded-
 });
 
 const metricValueVariants = cva(
-  'mt-4 block tabular-nums text-[length:var(--font-size-display)] font-[var(--font-weight-bold)] leading-none text-[color:var(--text-heading)]',
+  'mt-4 block tabular-nums text-[length:var(--font-size-display)] font-[var(--font-weight-bold)] leading-none',
   {
     variants: {
       tone: {
-        neutral: '',
+        neutral: 'text-[color:var(--text-heading)]',
         good: 'text-[color:var(--good)]',
         info: 'text-[color:var(--info)]',
         warning: 'text-[color:var(--warning)]',
