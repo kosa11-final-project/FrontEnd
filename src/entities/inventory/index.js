@@ -4,9 +4,11 @@ export { inventoryMetricLabels, inventoryRiskLevels, inventoryStatusLevels } fro
 export {
   dashboardInventorySummary,
   distributionCenters,
+  offlineStoreInventories,
   rankRiskSalesPoints,
   rankUrgentSkus,
   riskSalesPoints,
+  salesPointInventories,
   urgentSkus,
 } from './model/dashboard.js';
 export { InventoryScopeCard } from './ui/InventoryScopeCard.jsx';

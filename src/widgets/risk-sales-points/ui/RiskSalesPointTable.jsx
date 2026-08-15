@@ -69,7 +69,7 @@ const columns = [
 ];
 
 export function RiskSalesPointTable({ points = riskSalesPoints }) {
-  const rankedPoints = useMemo(() => rankRiskSalesPoints(points).slice(0, 5), [points]);
+  const rankedPoints = useMemo(() => rankRiskSalesPoints(points).slice(0, 10), [points]);
 
   return (
     <Card asChild padding="none" className="min-w-0 overflow-hidden shadow-[var(--shadow-soft)]">
@@ -77,14 +77,14 @@ export function RiskSalesPointTable({ points = riskSalesPoints }) {
         <CardHeader className="border-b border-[var(--border)] p-5">
           <CardTitle id="risk-sales-points-title" className="flex items-center gap-2">
             <Icon icon={Store} size={18} className="text-[color:var(--danger)]" aria-hidden="true" />
-            위험재고 보유 판매처 TOP 5
+            위험재고 보유 판매처 TOP 10
           </CardTitle>
           <CardDescription>위험 SKU 수가 많은 순서이며, 동점이면 예상 폐기수량을 비교합니다.</CardDescription>
         </CardHeader>
 
         <DataTable
           ariaLabel="위험재고 보유 판매처 순위"
-          caption="위험재고 보유 판매처 TOP 5"
+          caption="위험재고 보유 판매처 TOP 10"
           columns={columns}
           data={rankedPoints}
           density="compact"

@@ -23,7 +23,7 @@ export default function DashboardPage() {
                 >
                   재고 운영 대시보드
                 </h1>
-                <Badge variant="good">전국 물류센터</Badge>
+                <Badge variant="good">전국 재고 거점</Badge>
               </div>
               <p className="mt-2 max-w-3xl text-[length:var(--font-size-body)] text-[color:var(--text-muted)]">
                 전체 재고를 요약하고 조치가 필요한 물류센터·판매처·SKU를 빠르게 확인합니다.
