@@ -17,11 +17,25 @@ export default meta;
 
 export const Statuses = {
   render: () => (
-    <div className="flex flex-wrap items-center gap-3">
-      <Badge variant="neutral">정상 동기화</Badge>
-      <Badge variant="good">양호</Badge>
-      <Badge variant="warning">주의</Badge>
-      <Badge variant="danger">위험</Badge>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Badge variant="neutral">기본 중립</Badge>
+        <Badge variant="good">양호</Badge>
+        <Badge variant="info">보통</Badge>
+        <Badge variant="warning">주의</Badge>
+        <Badge variant="danger">위험</Badge>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Badge variant="good" size="sm">
+          양호 (SM)
+        </Badge>
+        <Badge variant="info" size="md">
+          보통 (MD)
+        </Badge>
+        <Badge variant="warning" size="lg">
+          주의 (LG)
+        </Badge>
+      </div>
     </div>
   ),
 };

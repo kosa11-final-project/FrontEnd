@@ -1,12 +1,32 @@
-export { getDashboard, getInventories, getInventoryDetail } from './api/inventoryApi.js';
+export {
+  getDashboard,
+  getInventories,
+  getInventoryDetail,
+  getInventoryFilterOptions,
+  getInventoryLots,
+  getInventorySummary,
+} from './api/inventoryApi.js';
 export {
   dashboardKeys,
   dashboardQueryOptions,
   inventoryKeys,
   inventoryListQueryOptions,
+  inventorySummaryQueryOptions,
+  inventoryFilterOptionsQueryOptions,
   inventoryDetailQueryOptions,
+  inventoryLotsQueryOptions,
 } from './api/inventoryQueries.js';
-export { inventoryMetricLabels, inventoryRiskLevels, inventoryStatusLevels } from './model/inventory.js';
+export {
+  CHANNEL_NAMES,
+  FACT_STATE_LABELS,
+  INVENTORY_FACT_STATE,
+  INVENTORY_RISK_GRADES,
+  REGION_NAMES,
+  RESULT_STATE,
+  RISK_ASSESSMENT_STATUS,
+  RISK_GRADE_META,
+  STORAGE_NAMES,
+} from './model/inventory.js';
 export {
   dashboardInventorySummary,
   distributionCenters,

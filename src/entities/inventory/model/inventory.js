@@ -1,11 +1,108 @@
-// 재고 도메인의 공통 용어와 표시 기준을 두는 자리입니다.
-// 실제 API 응답 타입과 위험등급 계산은 백엔드 계약이 확정된 뒤 추가합니다.
-export const inventoryStatusLevels = Object.freeze(['양호', '보통', '주의', '위험']);
-export const inventoryRiskLevels = inventoryStatusLevels;
+/**
+ * 통합 재고 도메인 상태 및 메트릭 표준 상수
+ */
 
-export const inventoryMetricLabels = Object.freeze({
-  current: '현재고',
-  available: '가용수량',
-  expiryDays: '소비기한 잔여일',
-  stockDays: '재고일수',
+/** 위험 판정 등급 */
+export const INVENTORY_RISK_GRADES = Object.freeze({
+  SAFE: 'SAFE',
+  NORMAL: 'NORMAL',
+  CAUTION: 'CAUTION',
+  DANGER: 'DANGER',
+});
+
+/** 위험 판정 상태 */
+export const RISK_ASSESSMENT_STATUS = Object.freeze({
+  ASSESSED: 'ASSESSED',
+  UNASSESSED: 'UNASSESSED',
+  STALE: 'STALE',
+  FAILED: 'FAILED',
+  REASSESSING: 'REASSESSING',
+});
+
+/** 재고 물리/논리 사실 상태 (서버 집계 결과) */
+export const INVENTORY_FACT_STATE = Object.freeze({
+  EXPIRED_INCLUDED: 'EXPIRED_INCLUDED',
+  SALE_STOPPED_INCLUDED: 'SALE_STOPPED_INCLUDED',
+  DEPLETED_ONLY: 'DEPLETED_ONLY',
+  OUT_OF_STOCK: 'OUT_OF_STOCK',
+  AVAILABLE: 'AVAILABLE',
+});
+
+/** 판매 데이터 가용성 */
+export const SALES_AVAILABILITY = Object.freeze({
+  AVAILABLE: 'AVAILABLE',
+  ZERO_SALES: 'ZERO_SALES',
+  SALES_NOT_LOADED: 'SALES_NOT_LOADED',
+  STALE: 'STALE',
+});
+
+/** 조회 결과 상태 */
+export const RESULT_STATE = Object.freeze({
+  HAS_DATA: 'HAS_DATA',
+  NO_DATA: 'NO_DATA',
+  FILTER_EMPTY: 'FILTER_EMPTY',
+});
+
+/** 위험 등급별 UI 표시 설정 */
+export const RISK_GRADE_META = Object.freeze({
+  SAFE: {
+    label: '양호',
+    tone: 'success',
+    badgeVariant: 'success',
+    colorHex: '#27B06E',
+  },
+  NORMAL: {
+    label: '보통',
+    tone: 'info',
+    badgeVariant: 'info',
+    colorHex: '#00B0D7',
+  },
+  CAUTION: {
+    label: '주의',
+    tone: 'warning',
+    badgeVariant: 'warning',
+    colorHex: '#FDA643',
+  },
+  DANGER: {
+    label: '위험',
+    tone: 'danger',
+    badgeVariant: 'danger',
+    colorHex: '#D92D20',
+  },
+});
+
+/** 재고 사실 상태별 UI 레이블 */
+export const FACT_STATE_LABELS = Object.freeze({
+  EXPIRED_INCLUDED: '만료 재고 포함',
+  SALE_STOPPED_INCLUDED: '판매중지 포함',
+  DEPLETED_ONLY: '전량 소진',
+  OUT_OF_STOCK: '품절',
+  AVAILABLE: '정상 가용',
+});
+
+/** 채널 코드별 이름 */
+export const CHANNEL_NAMES = Object.freeze({
+  GREETING: '그리팅',
+  ECOMMERCE: '모두의맛집',
+  HYUNDAI_DEPT: '현대백화점',
+  HMART: 'H마트',
+});
+
+/** 보관유형 코드별 이름 */
+export const STORAGE_NAMES = Object.freeze({
+  FROZEN: '냉동',
+  COLD: '냉장',
+  ROOM_TEMP: '상온',
+  AMBIENT: '상온',
+});
+
+/** 권역 코드별 한국어 이름 */
+export const REGION_NAMES = Object.freeze({
+  SEOUL: '서울권',
+  GYEONGGI: '경기권',
+  BUSAN: '부산/경남권',
+  DAEGU: '대구/경북권',
+  CHUNGCHEONG: '충청/대전권',
+  ULSAN: '울산권',
+  ONLINE: '온라인/전국',
 });
