@@ -1,5 +1,6 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query';
-import { getInventories, getInventoryDetail } from './inventoryApi.js';
+import { mapDashboardResponse } from '../model/dashboardMapper.js';
+import { getDashboard, getInventories, getInventoryDetail } from './inventoryApi.js';
 
 /** Cache key and query option factory for the inventory domain. */
 export const inventoryKeys = Object.freeze({
@@ -8,6 +9,11 @@ export const inventoryKeys = Object.freeze({
   list: (params = {}) => [...inventoryKeys.lists(), params],
   details: () => [...inventoryKeys.all, 'detail'],
   detail: (inventoryId) => [...inventoryKeys.details(), inventoryId],
+});
+
+export const dashboardKeys = Object.freeze({
+  all: ['dashboard'],
+  snapshot: () => [...dashboardKeys.all, 'snapshot'],
 });
 
 export function inventoryListQueryOptions(params = {}) {
@@ -23,5 +29,14 @@ export function inventoryDetailQueryOptions(inventoryId) {
     queryKey: inventoryKeys.detail(inventoryId),
     queryFn: ({ signal }) => getInventoryDetail(inventoryId, signal),
     enabled: Boolean(inventoryId),
+  });
+}
+
+export function dashboardQueryOptions() {
+  return queryOptions({
+    queryKey: dashboardKeys.snapshot(),
+    queryFn: ({ signal }) => getDashboard(signal),
+    select: mapDashboardResponse,
+    staleTime: 60_000,
   });
 }

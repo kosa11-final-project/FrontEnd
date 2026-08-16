@@ -1,14 +1,13 @@
 import { AlertTriangle, Box, Clock, Warning } from 'reicon-react';
-import { dashboardInventorySummary } from '@/entities/inventory';
 import { formatQuantity } from '@/shared/lib/format';
 import { MetricCard } from '@/shared/ui';
 
-export function DashboardSummary({ summary = dashboardInventorySummary }) {
+export function DashboardSummary({ summary }) {
   const metrics = [
     {
       label: '전체 판매 가능 재고',
       value: formatQuantity(summary.totalAvailableStock),
-      helper: '전국 8개 물류센터 기준',
+      helper: '전국 온·오프라인 재고 기준',
       icon: Box,
       tone: 'good',
     },
@@ -17,9 +16,13 @@ export function DashboardSummary({ summary = dashboardInventorySummary }) {
       value: formatQuantity(summary.riskAndCautionSkuCount),
       helper: (
         <>
-          <span className="font-[var(--font-weight-semibold)] text-[color:var(--danger)]">위험 5개</span>
+          <span className="font-[var(--font-weight-semibold)] text-[color:var(--danger)]">
+            위험 {formatQuantity(summary.criticalSkuCount)}
+          </span>
           {' · '}
-          <span className="font-[var(--font-weight-semibold)] text-[color:var(--warning)]">주의 7개</span>
+          <span className="font-[var(--font-weight-semibold)] text-[color:var(--warning)]">
+            주의 {formatQuantity(summary.warningSkuCount)}
+          </span>
         </>
       ),
       icon: AlertTriangle,

@@ -443,6 +443,8 @@ export const urgentSkus = Object.freeze([
 
 export const dashboardInventorySummary = Object.freeze({
   totalAvailableStock: distributionCenters.reduce((sum, center) => sum + center.availableStock, 0),
+  criticalSkuCount: 5,
+  warningSkuCount: 7,
   riskAndCautionSkuCount: 12,
   shortageSkuCount: 9,
   expectedDisposal: riskSalesPoints.reduce((sum, point) => sum + point.expectedDisposal, 0),

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { inventoryDetailQueryOptions, inventoryKeys, inventoryListQueryOptions } from './inventoryQueries.js';
+import {
+  dashboardKeys,
+  dashboardQueryOptions,
+  inventoryDetailQueryOptions,
+  inventoryKeys,
+  inventoryListQueryOptions,
+} from './inventoryQueries.js';
 
 describe('inventory query conventions', () => {
   it('keeps list and detail caches in one domain namespace', () => {
@@ -16,5 +22,15 @@ describe('inventory query conventions', () => {
     expect(detailOptions.enabled).toBe(true);
     expect(typeof listOptions.queryFn).toBe('function');
     expect(typeof detailOptions.queryFn).toBe('function');
+  });
+
+  it('keeps the dashboard snapshot in a separate cache namespace', () => {
+    const options = dashboardQueryOptions();
+
+    expect(dashboardKeys.snapshot()).toEqual(['dashboard', 'snapshot']);
+    expect(options.queryKey).toEqual(['dashboard', 'snapshot']);
+    expect(options.staleTime).toBe(60_000);
+    expect(typeof options.queryFn).toBe('function');
+    expect(typeof options.select).toBe('function');
   });
 });

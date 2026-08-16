@@ -17,3 +17,13 @@ export function getInventoryDetail(inventoryId, signal) {
     signal,
   });
 }
+
+export async function getDashboard(signal) {
+  const response = await requestJson({
+    path: 'v1/dashboard',
+    method: 'get',
+    signal,
+  });
+
+  return response?.data;
+}

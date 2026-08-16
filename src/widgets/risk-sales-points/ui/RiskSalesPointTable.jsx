@@ -1,7 +1,5 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Store } from 'reicon-react';
-import { rankRiskSalesPoints, riskSalesPoints } from '@/entities/inventory';
 import { formatQuantity } from '@/shared/lib/format';
 import { Badge, Card, CardDescription, CardHeader, CardTitle, DataTable, Icon } from '@/shared/ui';
 
@@ -11,7 +9,7 @@ const columns = [
     header: '순위',
     enableSorting: false,
     meta: { align: 'center', width: 56 },
-    cell: ({ row }) => <strong className="text-[color:var(--text-heading)]">{row.index + 1}</strong>,
+    cell: ({ row }) => <strong className="text-[color:var(--text-heading)]">{row.original.rank}</strong>,
   },
   {
     accessorKey: 'name',
@@ -68,9 +66,7 @@ const columns = [
   },
 ];
 
-export function RiskSalesPointTable({ points = riskSalesPoints }) {
-  const rankedPoints = useMemo(() => rankRiskSalesPoints(points).slice(0, 10), [points]);
-
+export function RiskSalesPointTable({ points }) {
   return (
     <Card asChild padding="none" className="min-w-0 overflow-hidden shadow-[var(--shadow-soft)]">
       <section aria-labelledby="risk-sales-points-title">
@@ -86,11 +82,12 @@ export function RiskSalesPointTable({ points = riskSalesPoints }) {
           ariaLabel="위험재고 보유 판매처 순위"
           caption="위험재고 보유 판매처 TOP 10"
           columns={columns}
-          data={rankedPoints}
+          data={points}
           density="compact"
           surface="plain"
           enableSorting={false}
           getRowId={(row) => row.id}
+          emptyMessage="위험재고를 보유한 판매처가 없습니다."
           className="rounded-none border-0"
         />
       </section>
