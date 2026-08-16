@@ -97,3 +97,13 @@ export async function getInventoryLots(skuCode, salesPointCode, signal) {
 
   return mapInventoryLotsResponse(response);
 }
+
+export async function getDashboard(signal) {
+  const response = await requestJson({
+    path: 'v1/dashboard',
+    method: 'get',
+    signal,
+  });
+
+  return response?.data;
+}

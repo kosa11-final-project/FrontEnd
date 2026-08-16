@@ -1,9 +1,37 @@
 import { MemoryRouter } from 'react-router-dom';
-import DashboardPage from './DashboardPage.jsx';
+import {
+  dashboardInventorySummary,
+  distributionCenters,
+  offlineStoreInventories,
+  rankRiskSalesPoints,
+  rankUrgentSkus,
+  riskSalesPoints,
+  urgentSkus,
+} from '@/entities/inventory';
+import { DashboardPageContent } from './DashboardPage.jsx';
+
+const dashboardFixture = {
+  summary: dashboardInventorySummary,
+  warehouses: distributionCenters,
+  offlineStores: offlineStoreInventories,
+  riskSalesPointsTop10: rankRiskSalesPoints(riskSalesPoints)
+    .slice(0, 10)
+    .map((point, index) => ({ ...point, rank: index + 1 })),
+  urgentSkusTop5: rankUrgentSkus(urgentSkus)
+    .slice(0, 5)
+    .map((sku, index) => ({
+      ...sku,
+      rank: index + 1,
+      skuId: sku.id,
+      stockLocation: sku.salesPoint,
+      saleStopDays: null,
+    })),
+  calculatedAt: '2026-08-15T01:05:00Z',
+};
 
 const meta = {
   title: 'Pages/Dashboard',
-  component: DashboardPage,
+  component: DashboardPageContent,
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
@@ -23,7 +51,7 @@ export const Default = {
     <MemoryRouter initialEntries={['/dashboard']}>
       <div className="min-h-screen bg-[var(--background)]">
         <div className="content-wrap">
-          <DashboardPage />
+          <DashboardPageContent dashboard={dashboardFixture} />
         </div>
       </div>
     </MemoryRouter>
