@@ -9,9 +9,67 @@ export const authenticatedUser = Object.freeze({
   roleCode: 'GREENFOOD_ADMIN',
 });
 
+const emptyInventoryListBody = JSON.stringify({
+  data: {
+    items: [],
+    totalCount: 0,
+    page: 1,
+    size: 20,
+    totalPages: 1,
+    isFilterEmpty: false,
+  },
+  timestamp: '2026-08-14T00:00:00Z',
+});
+
+const emptyInventorySummaryBody = JSON.stringify({
+  data: {
+    totalCurrentQuantity: 0,
+    totalAvailableQuantity: 0,
+    totalReservedQuantity: 0,
+    underSafetyCount: 0,
+    dangerRiskCount: 0,
+    cautionRiskCount: 0,
+    safeRiskCount: 0,
+    lastSyncTime: null,
+  },
+  timestamp: '2026-08-14T00:00:00Z',
+});
+
+const emptyInventoryFilterOptionsBody = JSON.stringify({
+  data: {
+    channels: [],
+    salesPoints: [],
+    warehouses: [],
+    regions: [],
+    categories: [],
+    storageTypes: [],
+    riskGrades: [],
+    assessmentStatuses: [],
+  },
+  timestamp: '2026-08-14T00:00:00Z',
+});
+
 // 실제 백엔드 ApiResponse<T>와 같은 data/timestamp 봉투를 사용해 계약 차이를 테스트에서 드러냄
 function jsonBody(data) {
   return JSON.stringify(data);
+}
+
+/** 보호 라우트 회귀 테스트가 실제 백엔드 상태에 영향을 받지 않도록 읽기 API를 비움 */
+async function mockInventoryReadSlice(page) {
+  // 목록 요청에는 page/size/sort 쿼리가 붙으므로 query string까지 매칭한다.
+  // 이 route는 보호 라우팅 테스트가 실행 중인 백엔드 인증 상태에 의존하지 않게 한다.
+  await page.route('**/api/v1/inventories?*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: emptyInventoryListBody }),
+  );
+  await page.route('**/api/v1/inventories/summary', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: emptyInventorySummaryBody }),
+  );
+  await page.route('**/api/v1/inventories/filter-options', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: emptyInventoryFilterOptionsBody }),
+  );
+  await page.route('**/api/v1/inventories', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: emptyInventoryListBody }),
+  );
 }
 
 export async function mockAuthenticatedSession(page) {
@@ -22,6 +80,7 @@ export async function mockAuthenticatedSession(page) {
       body: jsonBody({ data: authenticatedUser, timestamp: '2026-08-14T00:00:00Z' }),
     }),
   );
+  await mockInventoryReadSlice(page);
 }
 
 export async function mockAnonymousSession(page) {
