@@ -9,6 +9,8 @@ export const axiosClient = axios.create({
   timeout: env.requestTimeoutMs,
   withCredentials: true,
   headers: { Accept: 'application/json' },
+  // Spring MVC의 List query parameter 바인딩(channelType=a&channelType=b)에 맞춥니다.
+  paramsSerializer: { indexes: null },
 });
 
 axiosClient.interceptors.request.use((config) => {
