@@ -5,6 +5,13 @@ export const CHANNEL_BADGE_STYLES = {
   HMART: 'bg-[#FFEDD5] text-[#C2410C] border-[#FED7AA]',
 };
 
+export const CHANNEL_BADGE_LABELS = Object.freeze({
+  GREETING: '그리팅',
+  ECOMMERCE: '모두의맛집',
+  HYUNDAI_DEPT: '현대백화점',
+  HMART: 'H마트',
+});
+
 export const STORAGE_BADGE_STYLES = {
   FROZEN: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
   COLD: 'bg-[#E0E7FF] text-[#4338CA] border-[#C7D2FE]',

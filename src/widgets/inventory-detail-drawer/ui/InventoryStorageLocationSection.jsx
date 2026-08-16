@@ -23,7 +23,10 @@ export function InventoryStorageLocationSection({
         <div className="space-y-1.5">
           {locations.map((loc) => {
             const qty = loc.quantity == null ? null : Number(loc.quantity);
-            const pct = skuTotalStockQty > 0 && qty != null ? Math.round((qty / skuTotalStockQty) * 100) : null;
+            const pct =
+              skuTotalStockQty > 0 && qty != null
+                ? Math.min(100, Math.max(0, Math.round((qty / skuTotalStockQty) * 100)))
+                : null;
             const isHighlighted = Boolean(
               selectedSalesPointCode &&
               ((selectedSalesPointWarehouseCode && loc.warehouseCode === selectedSalesPointWarehouseCode) ||
@@ -53,7 +56,7 @@ export function InventoryStorageLocationSection({
                   <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-emerald-200/50">
                     <div
                       className="h-full rounded-full bg-[var(--primary)] transition-all"
-                      style={{ width: `${pct == null ? 0 : Math.min(100, Math.max(0, pct))}%` }}
+                      style={{ width: `${pct == null ? 0 : pct}%` }}
                     />
                   </div>
                 </div>
@@ -87,7 +90,7 @@ export function InventoryStorageLocationSection({
                 <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-gray-200/60">
                   <div
                     className={`h-full rounded-full transition-all ${isDimmed ? 'bg-gray-300' : 'bg-[var(--primary)]'}`}
-                    style={{ width: `${pct == null ? 0 : Math.min(100, Math.max(0, pct))}%` }}
+                    style={{ width: `${pct == null ? 0 : pct}%` }}
                   />
                 </div>
               </div>

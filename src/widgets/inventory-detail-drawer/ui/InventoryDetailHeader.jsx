@@ -25,7 +25,7 @@ export function InventoryDetailHeader({
         {item.imageUrl ? (
           <img
             src={item.imageUrl}
-            alt={item.productName}
+            alt={item.skuName || item.productName || item.skuCode}
             className="size-12 shrink-0 rounded-xl border border-[var(--border)] bg-white object-cover shadow-2xs"
           />
         ) : (

@@ -60,7 +60,7 @@ function mapInventoryCategory(dto, fallback = {}) {
 
 /**
  * 백엔드 LOT DTO를 화면에서 사용하는 LOT 모델로 정규화합니다.
- * 백엔드가 제공하지 않는 랙 위치는 임의의 위치를 생성하지 않고 물류센터명으로 대체합니다.
+ * 백엔드가 제공하지 않는 랙 위치는 물류센터명으로 추정하지 않고 null로 유지합니다.
  */
 export function mapInventoryLot(dto = {}, index = 0) {
   const warehouseName = valueOf(dto, 'warehouseName', 'warehouse_name', '');

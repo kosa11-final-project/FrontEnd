@@ -78,7 +78,11 @@ const statusLabelMap = Object.freeze({
 
 export function resolveInventoryStatus(status) {
   if (status == null || status === '') return 'unassessed';
-  return inventoryStatusMeta[status] ? status : (statusLabelMap[status] ?? 'unassessed');
+  return Object.hasOwn(inventoryStatusMeta, status)
+    ? status
+    : Object.hasOwn(statusLabelMap, status)
+      ? statusLabelMap[status]
+      : 'unassessed';
 }
 
 export function InventoryStatusBadge({ status, className, showDot = false, showIcon = false, ...props }) {

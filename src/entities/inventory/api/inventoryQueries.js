@@ -7,13 +7,37 @@ import {
   getInventorySummary,
 } from './inventoryApi.js';
 
+const SUMMARY_FILTER_KEYS = Object.freeze([
+  'q',
+  'channelType',
+  'salesPointCode',
+  'warehouseCode',
+  'regionCode',
+  'categoryId',
+  'storageType',
+  'riskGrade',
+  'assessmentStatus',
+]);
+
+function pickSummaryParams(params = {}) {
+  return SUMMARY_FILTER_KEYS.reduce((result, key) => {
+    const value = params?.[key];
+    if (Array.isArray(value)) {
+      if (value.length > 0) result[key] = [...value];
+    } else if (value !== undefined && value !== null && value !== '') {
+      result[key] = value;
+    }
+    return result;
+  }, {});
+}
+
 /** 통합 재고 Query Key Factory */
 export const inventoryKeys = Object.freeze({
   all: ['inventory'],
   lists: () => [...inventoryKeys.all, 'list'],
   list: (params = {}) => [...inventoryKeys.lists(), params],
   summaries: () => [...inventoryKeys.all, 'summary'],
-  summary: (params = {}) => [...inventoryKeys.summaries(), params],
+  summary: (params = {}) => [...inventoryKeys.summaries(), pickSummaryParams(params)],
   details: () => [...inventoryKeys.all, 'detail'],
   // 식별자를 하나의 문자열로 합치지 않아 업무 코드 안의 구분자도 안전하게 보존합니다.
   detail: (skuCode, salesPointCode) => [...inventoryKeys.details(), skuCode, salesPointCode],
@@ -36,9 +60,11 @@ export function inventoryListQueryOptions(params = {}) {
 
 /** 재고 상단 KPI 요약 Query Options */
 export function inventorySummaryQueryOptions(params = {}) {
+  const summaryParams = pickSummaryParams(params);
+
   return queryOptions({
-    queryKey: inventoryKeys.summary(params),
-    queryFn: ({ signal }) => getInventorySummary(params, signal),
+    queryKey: inventoryKeys.summary(summaryParams),
+    queryFn: ({ signal }) => getInventorySummary(summaryParams, signal),
     placeholderData: keepPreviousData,
     retry: retryServerErrorOnly,
   });

@@ -154,10 +154,15 @@ export function InventoryFilterBar({
     // 부모를 추적하여 경로 생성
     const path = [target.name];
     let curr = target;
+    const visited = new Set([String(target.code)]);
     while (curr?.parentCode) {
-      const parent = categories.find((c) => String(c.code) === String(curr.parentCode));
+      const parentCode = String(curr.parentCode);
+      if (visited.has(parentCode)) break;
+
+      const parent = categories.find((c) => String(c.code) === parentCode);
       if (parent) {
         path.unshift(parent.name);
+        visited.add(parentCode);
         curr = parent;
       } else {
         break;

@@ -52,9 +52,11 @@ function normalizeArrayParam(raw, allowed = null) {
   if (!raw) return [];
   let values = [];
   if (Array.isArray(raw)) {
-    values = raw;
+    values = allowed
+      ? raw.flatMap((value) => (typeof value === 'string' && value.includes(',') ? value.split(',') : [value]))
+      : raw;
   } else if (typeof raw === 'string') {
-    values = raw.includes(',') ? raw.split(',') : [raw];
+    values = allowed && raw.includes(',') ? raw.split(',') : [raw];
   }
   const filtered = values
     .map((v) => (typeof v === 'string' ? v.trim() : String(v).trim()))
@@ -99,10 +101,7 @@ export function parseInventoryFilters(rawParams) {
     if (searchParams) {
       const allValues = searchParams.getAll(key);
       if (allValues.length > 0) {
-        return normalizeArrayParam(
-          allValues.flatMap((v) => (v.includes(',') ? v.split(',') : v)),
-          allowed,
-        );
+        return normalizeArrayParam(allValues, allowed);
       }
       return [];
     }

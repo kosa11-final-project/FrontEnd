@@ -13,7 +13,7 @@ describe('inventoryQueries', () => {
     const listParams = { channelType: 'GREETING', page: 1, size: 20 };
     expect(inventoryKeys.list(listParams)).toEqual(['inventory', 'list', listParams]);
 
-    expect(inventoryKeys.summary(listParams)).toEqual(['inventory', 'summary', listParams]);
+    expect(inventoryKeys.summary(listParams)).toEqual(['inventory', 'summary', { channelType: 'GREETING' }]);
 
     expect(inventoryKeys.detail('SKU_01', 'STORE_01')).toEqual(['inventory', 'detail', 'SKU_01', 'STORE_01']);
     expect(inventoryKeys.lot('SKU_01', 'STORE_01')).toEqual(['inventory', 'lots', 'SKU_01', 'STORE_01']);
@@ -36,6 +36,25 @@ describe('inventoryQueries', () => {
     expect(inventoryFilterOptionsQueryOptions().queryKey).toEqual(['inventory', 'filter-options']);
     expect(inventoryLotsQueryOptions('SKU_01', 'STORE_01').enabled).toBe(true);
     expect(inventoryLotsQueryOptions('', '').enabled).toBe(false);
+  });
+
+  it('reuses the summary key when only pagination or sorting changes', () => {
+    const first = inventoryKeys.summary({
+      q: '만두',
+      channelType: ['GREETING'],
+      page: 1,
+      size: 20,
+      sort: 'updatedAt,desc',
+    });
+    const second = inventoryKeys.summary({
+      q: '만두',
+      channelType: ['GREETING'],
+      page: 4,
+      size: 100,
+      sort: 'skuCode,asc',
+    });
+
+    expect(second).toEqual(first);
   });
 
   it('does not keep another seller detail or LOT response as placeholder data', () => {

@@ -34,6 +34,17 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     expect(filters.detailTab).toBe('LOTS');
   });
 
+  it('preserves comma-containing unvalidated codes as one value', () => {
+    expect(parseInventoryFilters('?salesPointCode=STORE_1,STORE_2&salesPointCode=STORE_3').salesPointCode).toEqual([
+      'STORE_1,STORE_2',
+      'STORE_3',
+    ]);
+  });
+
+  it('splits comma-separated values only for validated enum filters', () => {
+    expect(parseInventoryFilters('?channelType=GREETING,HMART').channelType).toEqual(['GREETING', 'HMART']);
+  });
+
   it('rejects invalid enum values and falls back safely', () => {
     const raw = '?channelType=INVALID_CHANNEL&riskGrade=SUPER_RISK&storageType=WARM&page=-5&detailTab=INVALID_TAB';
     const filters = parseInventoryFilters(raw);

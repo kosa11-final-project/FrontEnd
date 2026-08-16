@@ -11,4 +11,9 @@ describe('InventoryStatusBadge', () => {
 
     expect(screen.getByText('판정 불가')).toBeInTheDocument();
   });
+
+  it('does not treat inherited object keys as supported statuses', () => {
+    expect(resolveInventoryStatus('constructor')).toBe('unassessed');
+    expect(resolveInventoryStatus('toString')).toBe('unassessed');
+  });
 });

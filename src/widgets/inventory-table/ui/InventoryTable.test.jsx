@@ -79,6 +79,8 @@ describe('InventoryTable pagination', () => {
 
     expect(screen.queryByRole('button', { name: /상품 및 SKU 규격/ })).not.toBeInTheDocument();
 
+    expect(screen.getByRole('button', { name: '소비기한 오름차순 정렬' })).toBeInTheDocument();
+
     const availableSortButton = screen.getByRole('button', { name: '가용수량 오름차순 정렬' });
     expect(availableSortButton).toHaveAttribute('aria-pressed', 'true');
     expect(availableSortButton.querySelector('svg')).toBeInTheDocument();
