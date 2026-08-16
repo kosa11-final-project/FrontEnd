@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowRight } from 'reicon-react';
-import { InventoryRiskBadge } from '@/entities/inventory';
+import { getUrgentSkuInventoryUrl, InventoryRiskBadge } from '@/entities/inventory';
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { Card, CardDescription, CardHeader, CardTitle, Icon, StateView } from '@/shared/ui';
 
@@ -80,7 +80,7 @@ export function UrgentSkuList({ skus }) {
 
                     <div className="mt-2 flex justify-end">
                       <Link
-                        to={`/inventory?skuId=${sku.skuId}`}
+                        to={getUrgentSkuInventoryUrl(sku)}
                         className="inline-flex items-center gap-1 text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] text-[color:var(--primary-strong)] hover:underline"
                       >
                         재고 상세

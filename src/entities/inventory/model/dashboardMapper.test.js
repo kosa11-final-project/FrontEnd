@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getRiskSalesPointInventoryUrl, getUrgentSkuInventoryUrl } from './dashboardLinks.js';
 import { getHeatmapMarkerSize } from './dashboardLayout.js';
 import { mapDashboardResponse } from './dashboardMapper.js';
 
@@ -61,7 +62,9 @@ const response = {
       skuName: '그린믹스 · 5팩',
       stockLocationType: 'WAREHOUSE',
       stockLocationId: 1,
+      stockLocationCode: 'SEONGNAM',
       stockLocationName: '성남 스마트푸드센터',
+      allocatedSalesPointCode: 'GREETING',
       allocatedSalesPointName: '그리팅몰',
       expiryDaysLeft: 12,
       saleStopDaysLeft: 5,
@@ -92,7 +95,9 @@ describe('dashboard response mapper', () => {
     expect(dashboard.urgentSkusTop5[0]).toMatchObject({
       rank: 1,
       skuId: '7',
+      stockLocationCode: 'SEONGNAM',
       stockLocation: '성남 스마트푸드센터',
+      allocatedSalesPointCode: 'GREETING',
       saleStopDays: 5,
     });
     expect(dashboard.calculatedAt).toBe(response.calculatedAt);
@@ -105,6 +110,39 @@ describe('dashboard response mapper', () => {
     expect(dashboard.offlineStores).toEqual([]);
     expect(dashboard.riskSalesPointsTop10).toEqual([]);
     expect(dashboard.urgentSkusTop5).toEqual([]);
+  });
+});
+
+describe('dashboard inventory links', () => {
+  it('opens a risk sales point with the inventory sales-point filter', () => {
+    expect(getRiskSalesPointInventoryUrl({ code: 'DEPT_PANGYO' })).toBe(
+      '/inventory?salesPointCode=DEPT_PANGYO',
+    );
+  });
+
+  it('opens an urgent SKU detail for its allocated sales point', () => {
+    expect(
+      getUrgentSkuInventoryUrl({
+        code: 'GF-SAL-GRN-05',
+        stockLocationType: 'WAREHOUSE',
+        stockLocationCode: 'SEONGNAM',
+        allocatedSalesPointCode: 'GREETING',
+      }),
+    ).toBe('/inventory?detailSkuCode=GF-SAL-GRN-05&detailSalesPointCode=GREETING');
+  });
+
+  it('uses the stock location for sales-point inventory and falls back to SKU search without a sales point', () => {
+    expect(
+      getUrgentSkuInventoryUrl({
+        code: 'GF-SAL-GRN-05',
+        stockLocationType: 'SALES_POINT',
+        stockLocationCode: 'DEPT_PANGYO',
+      }),
+    ).toBe('/inventory?detailSkuCode=GF-SAL-GRN-05&detailSalesPointCode=DEPT_PANGYO');
+
+    expect(getUrgentSkuInventoryUrl({ code: 'GF-SAL-GRN-05', stockLocationType: 'WAREHOUSE' })).toBe(
+      '/inventory?q=GF-SAL-GRN-05',
+    );
   });
 });
 

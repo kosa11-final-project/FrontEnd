@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Store } from 'reicon-react';
+import { getRiskSalesPointInventoryUrl } from '@/entities/inventory';
 import { formatQuantity } from '@/shared/lib/format';
 import { Badge, Card, CardDescription, CardHeader, CardTitle, DataTable, Icon } from '@/shared/ui';
 
@@ -56,7 +57,7 @@ const columns = [
     meta: { align: 'right' },
     cell: ({ row }) => (
       <Link
-        to={`/inventory?salesPoint=${row.original.id}`}
+        to={getRiskSalesPointInventoryUrl(row.original)}
         className="inline-flex items-center gap-1 font-[var(--font-weight-bold)] text-[color:var(--primary-strong)] hover:underline"
       >
         재고 보기
