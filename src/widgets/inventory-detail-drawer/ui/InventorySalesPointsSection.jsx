@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Package } from 'reicon-react';
 import { formatNumber, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory';
@@ -7,11 +8,22 @@ export function InventorySalesPointsSection({
   allSalesPoints = [],
   ownerSalesPointCount = 0,
   selectedSalesPointCode = '',
+  channelPrices = [],
   onSelectSalesPoint,
 }) {
+  const priceMap = useMemo(() => {
+    const map = new Map();
+    (channelPrices || []).forEach((cp) => {
+      if (cp?.salesPointCode) {
+        map.set(cp.salesPointCode, cp);
+      }
+    });
+    return map;
+  }, [channelPrices]);
+
   return (
-    <div className="flex-1 p-4 overflow-y-auto">
-      <div className="flex items-center justify-between mb-2.5">
+    <div className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden">
+      <div className="flex items-center justify-between mb-2.5 shrink-0">
         <div className="flex items-center gap-1.5">
           <Package size={15} className="text-gray-600" />
           <h3 className="text-xs font-bold text-gray-900">
@@ -22,30 +34,23 @@ export function InventorySalesPointsSection({
             )
           </h3>
         </div>
-        {selectedSalesPointCode ? (
-          <button
-            type="button"
-            onClick={() => onSelectSalesPoint?.('')}
-            className="text-[11px] font-semibold text-[#1E8251] hover:underline"
-          >
-            전체 요약 보기
-          </button>
-        ) : (
-          <span className="text-[11px] text-gray-400">클릭 시 상세/LOT 연동</span>
-        )}
+        <span className="text-[11px] text-gray-400">클릭 시 거점/LOT/가격 연동</span>
       </div>
 
       {allSalesPoints.length > 0 ? (
-        <div className="space-y-1.5">
+        <div className="flex-1 min-h-0 space-y-1.5 overflow-y-auto pr-1 scrollbar-thin">
           {allSalesPoints.map((sp) => {
             const channelBadge = CHANNEL_BADGE_STYLES[sp.channelType] || 'bg-gray-100 text-gray-700 border-gray-200';
             const channelLabel = CHANNEL_BADGE_LABELS[sp.channelType] || sp.channelType || '기타';
             const isSelected = selectedSalesPointCode === sp.salesPointCode;
+            const matchedPrice = priceMap.get(sp.salesPointCode);
+            const sellingPrice = sp.sellingPrice ?? matchedPrice?.sellingPrice ?? null;
+
             return (
               <button
                 key={sp.salesPointCode}
                 type="button"
-                onClick={() => onSelectSalesPoint?.(isSelected ? '' : sp.salesPointCode)}
+                onClick={() => onSelectSalesPoint?.(isSelected ? '__ALL__' : sp.salesPointCode)}
                 className={`w-full text-left rounded-xl p-2.5 transition-all border ${
                   isSelected
                     ? 'border-[var(--primary)] bg-[#F0FDF4] shadow-xs ring-1 ring-[var(--primary)]/30'
@@ -58,20 +63,27 @@ export function InventorySalesPointsSection({
                       {channelLabel}
                     </span>
                     <span className="text-xs font-bold text-gray-900 truncate">{sp.salesPointName}</span>
+                    {sp.salesPointState && sp.salesPointState !== 'OWNED' && (
+                      <span className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 text-[9px] font-semibold text-slate-600">
+                        {sp.salesPointState === 'CENTER_ONLY' ? '센터 보관' : '할당'}
+                      </span>
+                    )}
                   </div>
                   <InventoryStatusBadge status={sp.riskGrade} />
                 </div>
 
-                <div className="mt-1.5 flex items-center justify-between text-[11px] text-gray-500">
+                <div className="mt-2 flex items-center justify-between text-[11px]">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-gray-400 truncate">{sp.warehouseName || '담당거점 미지정'}</span>
-                    {sp.sellingPrice != null && (
-                      <span className="font-semibold text-gray-700 tabular-nums">
-                        · {formatNumber(sp.sellingPrice)}원
+                    {sellingPrice != null ? (
+                      <span className="inline-flex items-center font-bold text-slate-800 bg-slate-100 border border-slate-200/80 rounded px-1.5 py-0.5 text-[11px] tabular-nums">
+                        {formatNumber(sellingPrice)}원
                       </span>
+                    ) : (
+                      <span className="text-[10px] text-gray-400">가격 미등록</span>
                     )}
                   </div>
-                  <div className="tabular-nums">
+                  <div className="tabular-nums text-right shrink-0">
                     <strong className="font-bold text-gray-900">{formatQuantity(sp.currentQuantity)}</strong>
                     <span className="text-[10px] text-[#1E8251] ml-1">
                       (가용 {formatQuantity(sp.availableQuantity)})

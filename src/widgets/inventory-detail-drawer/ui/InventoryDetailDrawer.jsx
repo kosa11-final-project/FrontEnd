@@ -1,12 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Danger, Refresh } from 'reicon-react';
-import { inventoryDetailQueryOptions, inventoryLotsQueryOptions } from '@/entities/inventory';
+import { inventoryDetailQueryOptions, inventoryLotsQueryOptions, SkuChannelPriceTable } from '@/entities/inventory';
+import {
+  demandForecastQueryOptions,
+  DemandForecastChart,
+  DemandForecastStateView,
+  DemandForecastTable,
+} from '@/entities/forecast';
+import { formatQuantity } from '@/shared/lib/format';
+import { Button, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
 import { InventoryDetailHeader } from './InventoryDetailHeader.jsx';
 import { InventoryDetailKpiRibbon } from './InventoryDetailKpiRibbon.jsx';
 import { InventoryStorageLocationSection } from './InventoryStorageLocationSection.jsx';
 import { InventorySalesPointsSection } from './InventorySalesPointsSection.jsx';
 import { InventoryLotsSection } from './InventoryLotsSection.jsx';
+import { CHANNEL_BADGE_LABELS, CHANNEL_BADGE_STYLES } from './constants.js';
 
 export function InventoryDetailDrawer({
   item: initialItem,
@@ -23,32 +32,82 @@ export function InventoryDetailDrawer({
   const [copiedSku, setCopiedSku] = useState(false);
 
   const skuCode = initialItem?.skuCode || '';
-  const allSalesPoints = initialItem?.salesPoints?.length ? initialItem.salesPoints : [];
+  const allSalesPoints = useMemo(
+    () => (initialItem?.salesPoints?.length ? initialItem.salesPoints : []),
+    [initialItem],
+  );
 
-  // 1. 판매처 상세 헤더 쿼리: 판매처가 명시적으로 선택되었을 때만 호출
+  // 1) 재고 개요 탭 전용 판매처 선택 상태 (URL 및 부모 상태와 연동)
+  const effectiveOverviewSalesPointCode = useMemo(() => {
+    if (selectedSalesPointCode === '__ALL__') return '';
+    if (selectedSalesPointCode) return selectedSalesPointCode;
+    return allSalesPoints.length > 0 ? allSalesPoints[0].salesPointCode : '';
+  }, [selectedSalesPointCode, allSalesPoints]);
+
+  // 2) 수요예측 탭 전용 독립 판매처 선택 상태 (SKU 변경 시 자동 초기화되며 탭 간 상태 독립 유지)
+  const [forecastSelection, setForecastSelection] = useState({
+    skuCode: '',
+    salesPointCode: '',
+  });
+
+  const currentForecastSalesPointCode =
+    forecastSelection.skuCode === skuCode
+      ? forecastSelection.salesPointCode
+      : selectedSalesPointCode === '__ALL__'
+        ? '__ALL__'
+        : selectedSalesPointCode || (allSalesPoints.length > 0 ? allSalesPoints[0].salesPointCode : '');
+
+  const setForecastSalesPointCode = (spCode) => {
+    setForecastSelection({
+      skuCode,
+      salesPointCode: spCode,
+    });
+  };
+
+  const effectiveForecastSalesPointCode = useMemo(() => {
+    if (currentForecastSalesPointCode === '__ALL__') return '';
+    if (currentForecastSalesPointCode) return currentForecastSalesPointCode;
+    return allSalesPoints.length > 0 ? allSalesPoints[0].salesPointCode : '';
+  }, [currentForecastSalesPointCode, allSalesPoints]);
+
+  // 1. 판매처 상세 헤더 쿼리: 개요 탭 기준
   const detailQuery = useQuery({
-    ...inventoryDetailQueryOptions(skuCode, selectedSalesPointCode),
-    enabled: Boolean(open && skuCode && selectedSalesPointCode),
+    ...inventoryDetailQueryOptions(skuCode, effectiveOverviewSalesPointCode),
+    enabled: Boolean(open && skuCode && effectiveOverviewSalesPointCode),
   });
 
-  // 2. LOT 쿼리: 데스크톱에서는 개요 탭에서도 우측 LOT 패널이 노출되므로
-  // 판매처가 선택되면 조회합니다. 모바일에서는 탭이 전환되기 전까지 패널이
-  // 숨겨져 있지만, 같은 query key를 재사용하므로 탭 전환 시 즉시 표시됩니다.
-  const activeSalesPointForLots = selectedSalesPointCode;
+  // 2. LOT 쿼리: 개요 탭 기준
   const lotsQuery = useQuery({
-    ...inventoryLotsQueryOptions(skuCode, activeSalesPointForLots),
-    enabled: Boolean(open && skuCode && activeSalesPointForLots),
+    ...inventoryLotsQueryOptions(skuCode, effectiveOverviewSalesPointCode),
+    enabled: Boolean(open && skuCode && effectiveOverviewSalesPointCode),
   });
 
-  // 선택된 판매처 객체
-  const selectedSalesPoint =
-    allSalesPoints.find((point) => point.salesPointCode === selectedSalesPointCode) || detailQuery.data || null;
+  const isOverviewUnassigned = effectiveOverviewSalesPointCode === 'UNASSIGNED';
+  const isForecastUnassigned = effectiveForecastSalesPointCode === 'UNASSIGNED';
+
+  // 3. 수요예측 쿼리: 수요예측 탭 독립 판매처 기준
+  const forecastQuery = useQuery({
+    ...demandForecastQueryOptions(skuCode, effectiveForecastSalesPointCode),
+    enabled: Boolean(
+      open && skuCode && effectiveForecastSalesPointCode && !isForecastUnassigned && activeTab === 'FORECAST',
+    ),
+  });
+
+  // 개요 탭 선택 판매처 객체
+  const selectedOverviewSalesPoint =
+    allSalesPoints.find((point) => point.salesPointCode === effectiveOverviewSalesPointCode) ||
+    detailQuery.data ||
+    null;
+
+  // 수요예측 탭 선택 판매처 객체
+  const selectedForecastSalesPoint =
+    allSalesPoints.find((point) => point.salesPointCode === effectiveForecastSalesPointCode) || null;
 
   // 전체 요약 vs 선택 판매처 상세 융합
-  const item = selectedSalesPointCode
+  const item = effectiveOverviewSalesPointCode
     ? {
         ...initialItem,
-        ...(selectedSalesPoint || {}),
+        ...(selectedOverviewSalesPoint || {}),
         ...(detailQuery.data || {}),
       }
     : initialItem || detailQuery.data;
@@ -58,16 +117,15 @@ export function InventoryDetailDrawer({
     : detailQuery.data?.locations?.length
       ? detailQuery.data.locations
       : [];
-  // 상세 API는 선택된 판매처 하나만 반환하므로 전체 소유 판매처 수는
-  // 목록의 SKU 집계값을 우선 사용합니다.
+
   const ownerSalesPointCount =
     initialItem?.ownerSalesPointCount ??
     (allSalesPoints.length > 0 ? allSalesPoints.length : (item?.ownerSalesPointCount ?? 0));
 
   const selectedSalesPointWarehouseName =
-    selectedSalesPoint?.warehouseName || detailQuery.data?.locations?.[0]?.warehouseName || '';
+    selectedOverviewSalesPoint?.warehouseName || detailQuery.data?.locations?.[0]?.warehouseName || '';
   const selectedSalesPointWarehouseCode =
-    selectedSalesPoint?.warehouseCode || detailQuery.data?.locations?.[0]?.warehouseCode || '';
+    selectedOverviewSalesPoint?.warehouseCode || detailQuery.data?.locations?.[0]?.warehouseCode || '';
 
   const skuTotalStockQty =
     initialItem?.currentQuantity != null
@@ -92,7 +150,7 @@ export function InventoryDetailDrawer({
       // Focus trap
       if (e.key === 'Tab' && drawerRef.current) {
         const focusable = drawerRef.current.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
         );
         if (focusable.length > 0) {
           const first = focusable[0];
@@ -126,7 +184,7 @@ export function InventoryDetailDrawer({
 
   if (!open || !item) return null;
 
-  const currentTab = activeTab === 'LOTS' ? 'LOTS' : 'OVERVIEW';
+  const currentTab = activeTab === 'FORECAST' ? 'FORECAST' : 'OVERVIEW';
 
   const handleCopySku = () => {
     if (!item.skuCode) return;
@@ -147,7 +205,7 @@ export function InventoryDetailDrawer({
     >
       <aside
         ref={drawerRef}
-        className="flex h-full w-full md:w-[82vw] lg:w-[72vw] xl:w-[65vw] min-w-[360px] max-w-[1040px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out animate-in slide-in-from-right"
+        className="flex h-full w-full md:w-[85vw] lg:w-[78vw] xl:w-[70vw] min-w-[360px] max-w-[1120px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out animate-in slide-in-from-right"
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-product-title"
@@ -156,101 +214,240 @@ export function InventoryDetailDrawer({
         <InventoryDetailHeader
           item={item}
           allSalesPoints={allSalesPoints}
-          selectedSalesPointCode={selectedSalesPointCode}
+          selectedSalesPointCode={
+            currentTab === 'FORECAST' ? effectiveForecastSalesPointCode : effectiveOverviewSalesPointCode
+          }
           copiedSku={copiedSku}
           closeButtonRef={closeButtonRef}
           onCopySku={handleCopySku}
-          onSelectSalesPoint={handleSelectSalesPoint}
+          onSelectSalesPoint={currentTab === 'FORECAST' ? setForecastSalesPointCode : handleSelectSalesPoint}
           onClose={onClose}
         />
 
         {/* 판매처 상세 API 에러 알림 */}
-        {detailQuery.isError && selectedSalesPointCode && (
+        {detailQuery.isError && effectiveOverviewSalesPointCode && (
           <div className="flex items-center justify-between border-b border-rose-200 bg-rose-50 px-6 py-2 text-xs text-rose-800 shrink-0">
             <div className="flex items-center gap-1.5 font-medium">
               <Danger size={14} className="text-rose-600 shrink-0" />
               <span>선택한 판매처의 상세 재고 정보를 불러오는 중 오류가 발생했습니다.</span>
             </div>
-            <button
-              type="button"
-              onClick={() => detailQuery.refetch()}
-              className="inline-flex items-center gap-1 rounded-md border border-rose-300 bg-white px-2 py-0.5 font-semibold text-rose-700 hover:bg-rose-50 transition-colors"
-            >
+            <Button type="button" variant="secondary" size="sm" onClick={() => detailQuery.refetch()}>
               <Refresh size={11} />
               다시 시도
-            </button>
+            </Button>
           </div>
         )}
 
         {/* 2. 4대 핵심 KPI 메트릭 리본 */}
-        <InventoryDetailKpiRibbon item={item} />
+        <InventoryDetailKpiRibbon item={item} showRisk={currentTab !== 'FORECAST' && !isOverviewUnassigned} />
 
-        {/* 3. 모바일/태블릿용 탭 바 */}
-        <nav className="flex lg:hidden border-b border-gray-200 bg-white px-6 shrink-0" aria-label="상세 탭">
-          <button
-            type="button"
-            onClick={() => onTabChange?.('OVERVIEW')}
-            className={`border-b-2 px-4 py-2.5 text-xs font-bold transition-all ${
-              currentTab === 'OVERVIEW'
-                ? 'border-[var(--primary)] text-[color:var(--primary)]'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            재고 개요
-          </button>
-          <button
-            type="button"
-            onClick={() => onTabChange?.('LOTS')}
-            className={`border-b-2 px-4 py-2.5 text-xs font-bold transition-all ${
-              currentTab === 'LOTS'
-                ? 'border-[var(--primary)] text-[color:var(--primary)]'
-                : 'border-transparent text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            LOT 상세 (FEFO)
-          </button>
-        </nav>
+        {/* 3. 2단 통합 탭 네비게이션 (재고 개요 | 수요예측) */}
+        <Tabs
+          value={currentTab}
+          onValueChange={onTabChange}
+          className="shrink-0 border-b border-gray-200 bg-white px-6"
+        >
+          {({ value, setValue }) => (
+            <TabsList className="gap-0" aria-label="상세 탭">
+              <TabsTrigger
+                id="inventory-tab-overview-trigger"
+                value="OVERVIEW"
+                activeValue={value}
+                onSelect={setValue}
+                aria-controls="inventory-tab-overview"
+                className="px-4 py-2.5 text-xs"
+              >
+                재고 개요
+              </TabsTrigger>
+              <TabsTrigger
+                id="inventory-tab-forecast-trigger"
+                value="FORECAST"
+                activeValue={value}
+                onSelect={setValue}
+                aria-controls="inventory-tab-forecast"
+                className="px-4 py-2.5 text-xs"
+              >
+                수요예측
+              </TabsTrigger>
+            </TabsList>
+          )}
+        </Tabs>
 
-        {/* 4. 스크롤 없는 2분할 마스터-디테일 워크스페이스 */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 overflow-hidden bg-white">
-          {/* 좌측 패널 (45%): 거점 물류센터 + 판매처 분산 리스트 */}
-          <div
-            className={`lg:col-span-5 flex flex-col border-r border-gray-200 bg-white overflow-y-auto ${
-              currentTab === 'LOTS' ? 'hidden lg:flex' : 'flex'
-            }`}
-          >
-            {/* A. 보관 물류센터 현황 */}
-            <InventoryStorageLocationSection
-              locations={locations}
-              skuTotalStockQty={skuTotalStockQty}
-              selectedSalesPointCode={selectedSalesPointCode}
-              selectedSalesPointWarehouseCode={selectedSalesPointWarehouseCode}
-              selectedSalesPointWarehouseName={selectedSalesPointWarehouseName}
-              selectedSalesPointName={selectedSalesPoint?.salesPointName}
-            />
+        {/* 4. 본문 워크스페이스 */}
+        <div className="flex-1 min-h-0 overflow-hidden bg-[#F9FAFB]">
+          {/* TAB 1: 재고 개요 (보관센터 + 판매처 분산 + 기본 LOT 요약) */}
+          {currentTab === 'OVERVIEW' && (
+            <div
+              id="inventory-tab-overview"
+              role="tabpanel"
+              aria-labelledby="inventory-tab-overview-trigger"
+              tabIndex={0}
+              className="grid grid-cols-1 lg:grid-cols-12 h-full min-h-0"
+            >
+              <div className="lg:col-span-5 flex flex-col border-r border-gray-200 bg-white h-full min-h-0 overflow-hidden">
+                <InventoryStorageLocationSection
+                  locations={locations}
+                  skuTotalStockQty={skuTotalStockQty}
+                  selectedSalesPointCode={effectiveOverviewSalesPointCode}
+                  selectedSalesPointWarehouseCode={selectedSalesPointWarehouseCode}
+                  selectedSalesPointWarehouseName={selectedSalesPointWarehouseName}
+                  selectedSalesPointName={selectedOverviewSalesPoint?.salesPointName}
+                />
+                <InventorySalesPointsSection
+                  allSalesPoints={allSalesPoints}
+                  ownerSalesPointCount={ownerSalesPointCount}
+                  selectedSalesPointCode={effectiveOverviewSalesPointCode}
+                  channelPrices={item?.channelPrices || []}
+                  onSelectSalesPoint={handleSelectSalesPoint}
+                />
+              </div>
 
-            {/* B. 판매처별 재고 분산 및 선택 리스트 */}
-            <InventorySalesPointsSection
-              allSalesPoints={allSalesPoints}
-              ownerSalesPointCount={ownerSalesPointCount}
-              selectedSalesPointCode={selectedSalesPointCode}
-              onSelectSalesPoint={handleSelectSalesPoint}
-            />
-          </div>
+              <div className="lg:col-span-7 flex flex-col p-4 space-y-4 overflow-y-auto h-full min-h-0">
+                <InventoryLotsSection
+                  selectedSalesPoint={selectedOverviewSalesPoint}
+                  selectedSalesPointCode={effectiveOverviewSalesPointCode}
+                  lotsQuery={lotsQuery}
+                  onNavigateToOverview={() => onTabChange?.('OVERVIEW')}
+                />
 
-          {/* 우측 패널 (55%): 선택 판매처의 실시간 LOT 및 FEFO 출고 우선순위 */}
-          <div
-            className={`lg:col-span-7 flex flex-col bg-[#F9FAFB] overflow-y-auto ${
-              currentTab === 'OVERVIEW' ? 'hidden lg:flex' : 'flex'
-            }`}
-          >
-            <InventoryLotsSection
-              selectedSalesPoint={selectedSalesPoint}
-              selectedSalesPointCode={selectedSalesPointCode}
-              lotsQuery={lotsQuery}
-              onNavigateToOverview={() => onTabChange?.('OVERVIEW')}
-            />
-          </div>
+                <section
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
+                  aria-labelledby="price-title"
+                >
+                  <div className="mb-3">
+                    <h3 id="price-title" className="text-sm font-bold text-slate-900">
+                      판매처별 SKU 판매가
+                    </h3>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      현재 적용 중인 판매가, 정가, 최저 판매가와 유효 상태입니다.
+                    </p>
+                  </div>
+                  <SkuChannelPriceTable channelPrices={item?.channelPrices || []} isUnassigned={isOverviewUnassigned} />
+                </section>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: 선택한 SKU × 판매처의 수요예측 */}
+          {currentTab === 'FORECAST' && (
+            <div
+              id="inventory-tab-forecast"
+              role="tabpanel"
+              aria-labelledby="inventory-tab-forecast-trigger"
+              tabIndex={0}
+              className="p-5 space-y-4 max-w-[1040px] mx-auto h-full overflow-y-auto"
+            >
+              {/* 판매처 다중 전환 칩 셀렉터 */}
+              {allSalesPoints.length > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <span className="text-xs font-bold text-slate-900">
+                      수요예측 대상 판매처 선택 ({allSalesPoints.length}개)
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      판매처를 클릭하여 지점별 예측 데이터를 바로 전환할 수 있습니다.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+                    {allSalesPoints.map((sp) => {
+                      const isSelected = effectiveForecastSalesPointCode === sp.salesPointCode;
+                      const channelBadge =
+                        CHANNEL_BADGE_STYLES[sp.channelType] || 'bg-gray-100 text-gray-700 border-gray-200';
+                      const channelLabel = CHANNEL_BADGE_LABELS[sp.channelType] || sp.channelType || '기타';
+                      return (
+                        <button
+                          key={sp.salesPointCode}
+                          type="button"
+                          onClick={() => setForecastSalesPointCode(isSelected ? '__ALL__' : sp.salesPointCode)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-all border shrink-0 ${
+                            isSelected
+                              ? 'border-[var(--primary)] bg-[#F0FDF4] text-[#1E8251] shadow-2xs ring-1 ring-[var(--primary)]/30'
+                              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className={`rounded px-1 py-0.2 text-[9px] font-bold border shrink-0 ${channelBadge}`}>
+                            {channelLabel}
+                          </span>
+                          <span>{sp.salesPointName}</span>
+                          <span className="text-[10px] text-slate-400 tabular-nums">
+                            ({formatQuantity(sp.currentQuantity)})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      {selectedForecastSalesPoint?.salesPointName
+                        ? `${selectedForecastSalesPoint.salesPointName} 수요예측 & 예상 잔고 추이`
+                        : '수요예측 & 예상 잔고 추이'}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      D+7~D+90 누적 수요예측과 예상 가용재고, 안전재고 기준선을 시각화합니다.
+                    </p>
+                  </div>
+
+                  {forecastQuery.data?.modelVersion && (
+                    <div className="text-[11px] text-slate-400">
+                      모델:{' '}
+                      <span className="font-mono font-medium text-slate-600">{forecastQuery.data.modelVersion}</span>
+                      {forecastQuery.data.confidenceLevel && (
+                        <span className="ml-2 rounded-sm bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
+                          신뢰도 {forecastQuery.data.confidenceLevel}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {forecastQuery.data?.freshness && (
+                  <div className="flex flex-wrap gap-3 text-[11px] text-slate-400">
+                    <span>예측 기준일: {forecastQuery.data.freshness.forecastAsOf || '미제공'}</span>
+                  </div>
+                )}
+
+                {!effectiveForecastSalesPointCode ? (
+                  <DemandForecastStateView
+                    status="NO_DATA"
+                    message="수요예측을 조회할 판매처를 먼저 선택해 주세요. 상단 판매처 칩에서 원하는 지점을 클릭하세요."
+                  />
+                ) : isForecastUnassigned ? (
+                  <DemandForecastStateView
+                    status="NO_DATA"
+                    message="센터 전용 재고는 판매처별 수요예측 대상이 아닙니다. 특정 판매처의 예측을 임의로 복사하지 않습니다."
+                  />
+                ) : forecastQuery.isError ? (
+                  <DemandForecastStateView
+                    status="ERROR"
+                    message="선택한 판매처의 수요예측 API 조회에 실패했습니다."
+                    onRetry={() => forecastQuery.refetch()}
+                  />
+                ) : forecastQuery.data?.status !== 'AVAILABLE' && forecastQuery.data ? (
+                  <DemandForecastStateView
+                    status={forecastQuery.data.status}
+                    message={forecastQuery.data.freshness?.message}
+                    onRetry={() => forecastQuery.refetch()}
+                  />
+                ) : forecastQuery.isLoading ? (
+                  <div className="flex h-[280px] items-center justify-center text-xs text-slate-400 animate-pulse">
+                    수요예측 데이터를 불러오는 중입니다...
+                  </div>
+                ) : (
+                  <>
+                    <DemandForecastChart data={forecastQuery.data} height={280} />
+                    {forecastQuery.data && !['NO_DATA', 'ERROR'].includes(forecastQuery.data.status) && (
+                      <DemandForecastTable data={forecastQuery.data} />
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </div>

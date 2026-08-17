@@ -3,9 +3,11 @@ import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory';
 import { ASSESSMENT_STATUS_LABELS } from './constants.js';
 
-export function InventoryDetailKpiRibbon({ item }) {
+export function InventoryDetailKpiRibbon({ item, showRisk = true }) {
   return (
-    <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 bg-[#F9FAFB] border-b border-[var(--border)] px-6 py-2.5 shrink-0">
+    <section
+      className={`grid grid-cols-2 ${showRisk ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-2.5 bg-[#F9FAFB] border-b border-[var(--border)] px-6 py-2.5 shrink-0`}
+    >
       <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-white px-3 py-2 shadow-2xs">
         <div>
           <span className="text-[10px] font-semibold text-gray-500">총 현재고</span>
@@ -29,24 +31,26 @@ export function InventoryDetailKpiRibbon({ item }) {
         <CheckCircle size={18} className="text-[color:var(--primary)] shrink-0" />
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-white px-3 py-2 shadow-2xs">
-        <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-semibold text-gray-500">위험 판정</span>
-          <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
-            <InventoryStatusBadge status={item.riskGrade} />
-            <span className="text-[10px] font-medium text-gray-500">
-              {ASSESSMENT_STATUS_LABELS[item.assessmentStatus] || '판정 상태 미제공'}
-            </span>
+      {showRisk && (
+        <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-white px-3 py-2">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-semibold text-gray-500">위험 판정</span>
+            <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <InventoryStatusBadge status={item.riskGrade} />
+              <span className="text-[10px] font-medium text-gray-500">
+                {ASSESSMENT_STATUS_LABELS[item.assessmentStatus] || '판정 상태 미제공'}
+              </span>
+            </div>
           </div>
+          {item.riskGrade === 'DANGER' ? (
+            <Danger size={18} className="text-red-500 shrink-0" />
+          ) : item.riskGrade === 'CAUTION' ? (
+            <Warning size={18} className="text-amber-500 shrink-0" />
+          ) : (
+            <CheckCircle size={18} className="text-[color:var(--primary)] shrink-0" />
+          )}
         </div>
-        {item.riskGrade === 'DANGER' ? (
-          <Danger size={18} className="text-red-500 shrink-0" />
-        ) : item.riskGrade === 'CAUTION' ? (
-          <Warning size={18} className="text-amber-500 shrink-0" />
-        ) : (
-          <CheckCircle size={18} className="text-[color:var(--primary)] shrink-0" />
-        )}
-      </div>
+      )}
 
       <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-white px-3 py-2 shadow-2xs">
         <div>
