@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildStatisticsQueryParams,
   getScopeLocations,
   getStatisticsGranularity,
   getStatisticsPeriodRange,
@@ -47,5 +48,27 @@ describe('statisticsModel', () => {
 
     expect(getScopeLocations(locations, 'WAREHOUSE').map(({ id }) => id)).toEqual(['A', 'C']);
     expect(sortLocationsByRisk(locations, 'WAREHOUSE').map(({ id }) => id)).toEqual(['C', 'A']);
+  });
+
+  it('선택한 기간과 통계 범위를 API 조회 조건으로 변환한다', () => {
+    expect(
+      buildStatisticsQueryParams({
+        range: { from: '2026-08-01', to: '2026-08-17' },
+        scopeType: 'WAREHOUSE',
+        locationId: 'SEONGNAM',
+      }),
+    ).toEqual({
+      fromDate: '2026-08-01',
+      toDate: '2026-08-17',
+      scopeType: 'WAREHOUSE',
+      scopeCode: 'SEONGNAM',
+    });
+
+    expect(
+      buildStatisticsQueryParams({
+        range: { from: '2026-08-01', to: '2026-08-17' },
+        scopeType: 'UNASSIGNED',
+      }).scopeCode,
+    ).toBe('UNASSIGNED');
   });
 });
