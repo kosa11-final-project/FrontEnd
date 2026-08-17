@@ -28,14 +28,6 @@ export const INVENTORY_FACT_STATE = Object.freeze({
   AVAILABLE: 'AVAILABLE',
 });
 
-/** 판매 데이터 가용성 */
-export const SALES_AVAILABILITY = Object.freeze({
-  AVAILABLE: 'AVAILABLE',
-  ZERO_SALES: 'ZERO_SALES',
-  SALES_NOT_LOADED: 'SALES_NOT_LOADED',
-  STALE: 'STALE',
-});
-
 /** 조회 결과 상태 */
 export const RESULT_STATE = Object.freeze({
   HAS_DATA: 'HAS_DATA',

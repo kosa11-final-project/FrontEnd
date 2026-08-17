@@ -110,7 +110,7 @@ export function InventoryTableMobile({ items = [], selectedItem = null, onRowCli
                   <strong className="text-xs font-extrabold text-[color:var(--primary)] tabular-nums">
                     {formatQuantity(item.availableQuantity)}
                   </strong>
-                  <span className="block text-[10px] text-gray-400">안전 {formatQuantity(item.safetyQuantity)}</span>
+                  <span className="block text-[10px] text-gray-400">예약 {formatQuantity(item.reservedQuantity)}</span>
                 </div>
               </div>
             </div>

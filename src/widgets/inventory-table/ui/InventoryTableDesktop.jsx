@@ -226,7 +226,7 @@ export function InventoryTableDesktop({
                       {formatQuantity(item.availableQuantity)}
                     </span>
                     <span className="text-[10px] text-gray-400 tabular-nums">
-                      예약 {formatQuantity(item.reservedQuantity)} · 안전 {formatQuantity(item.safetyQuantity)}
+                      예약 {formatQuantity(item.reservedQuantity)}
                     </span>
                   </div>
                 </td>

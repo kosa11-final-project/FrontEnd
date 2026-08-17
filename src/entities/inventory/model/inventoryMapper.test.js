@@ -67,8 +67,6 @@ describe('Inventory Mapper', () => {
     expect(mapped.reservedQuantity).toBeNull();
     expect(mapped.safetyQuantity).toBeNull();
     expect(mapped.sellingPrice).toBeNull();
-    expect(mapped.dailySales).toBeNull();
-    expect(mapped.forecast14Days).toBeNull();
     expect(mapped.inventoryFactState).toBeNull();
     expect(mapped.riskGrade).toBeNull();
     expect(mapped.assessmentStatus).toBe('UNASSESSED');
@@ -228,5 +226,20 @@ describe('Inventory Mapper', () => {
       categories: [{ code: 'CAT-3', name: '베이커리', parentCode: 'CAT-2', level: 3, categoryLevel: 3 }],
       riskGrades: [{ code: 'SAFE', name: '양호' }],
     });
+  });
+
+  it('marks a channel price without a selling value as NOT_LOADED', () => {
+    const mapped = mapInventoryItem({
+      skuCode: 'SKU-PRICE-1',
+      channelPrices: [
+        { salesPointCode: 'STORE-1', salesPointName: '테스트점', sellingPrice: null },
+        { salesPointCode: 'STORE-2', salesPointName: '정상점', sellingPrice: 12500 },
+      ],
+    });
+
+    expect(mapped.channelPrices).toEqual([
+      expect.objectContaining({ salesPointCode: 'STORE-1', sellingPrice: null, priceStatus: 'NOT_LOADED' }),
+      expect.objectContaining({ salesPointCode: 'STORE-2', sellingPrice: 12500, priceStatus: 'AVAILABLE' }),
+    ]);
   });
 });

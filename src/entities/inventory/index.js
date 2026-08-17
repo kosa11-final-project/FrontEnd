@@ -40,7 +40,15 @@ export {
 export { getHeatmapMarkerSize } from './model/dashboardLayout.js';
 export { getRiskSalesPointInventoryUrl, getUrgentSkuInventoryUrl } from './model/dashboardLinks.js';
 export { mapDashboardResponse } from './model/dashboardMapper.js';
+export {
+  mapInventoryFilterOptionsResponse,
+  mapInventoryItem,
+  mapInventoryListResponse,
+  mapInventoryLotsResponse,
+  mapInventorySummaryResponse,
+} from './model/inventoryMapper.js';
 export { InventoryScopeCard } from './ui/InventoryScopeCard.jsx';
 export { InventoryRiskBadge } from './ui/InventoryRiskBadge.jsx';
 export { InventoryStatusBadge, inventoryStatusMeta, resolveInventoryStatus } from './ui/InventoryStatusBadge.jsx';
 export { LotInventoryRow } from './ui/LotInventoryRow.jsx';
+export { SkuChannelPriceTable } from './ui/SkuChannelPriceTable.jsx';
