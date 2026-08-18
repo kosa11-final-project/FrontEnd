@@ -3,7 +3,7 @@ function unwrapApiResponse(response = {}) {
 }
 
 function nullableNumber(...values) {
-  const value = values.find((candidate) => candidate !== undefined && candidate !== null);
+  const value = values.find((candidate) => candidate !== undefined && candidate !== null && candidate !== '');
   if (value === undefined || value === null || value === '') return null;
 
   const number = Number(value);

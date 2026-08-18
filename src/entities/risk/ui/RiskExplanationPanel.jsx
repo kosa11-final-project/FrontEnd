@@ -124,13 +124,13 @@ export function RiskExplanationPanel({ data }) {
               return (
                 <div
                   key={`${r.code}-${i}`}
-                  className="flex items-center justify-between rounded-md bg-slate-50 px-2.5 py-1.5"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-2.5 py-1.5"
                 >
                   <div className="flex items-center gap-2">
                     <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-bold ${badgeClass}`}>{r.severity}</span>
                     <span className="text-slate-800">{r.message}</span>
                   </div>
-                  {r.evidence && <span className="text-[10px] text-slate-400 font-mono">{r.evidence}</span>}
+                  {r.evidence && <span className="text-[10px] text-slate-400 font-mono break-all">{r.evidence}</span>}
                 </div>
               );
             })}

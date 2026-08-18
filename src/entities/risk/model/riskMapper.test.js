@@ -47,4 +47,20 @@ describe('riskMapper', () => {
     expect(result.ruleVersion).toBeNull();
     expect(result.riskGrade).toBeNull();
   });
+
+  it('앞선 별칭이 빈 문자열일 때 후속 별칭으로 숫자를 정상 파싱한다', () => {
+    const rawDto = {
+      availableQty: '',
+      available_qty: 150,
+      shortageQty30: '',
+      shortage_qty_30: 0,
+      safetyStockQty: '',
+      safety_stock_qty: '',
+    };
+
+    const result = mapRiskAssessmentResponse({ data: rawDto });
+    expect(result.availableQty).toBe(150);
+    expect(result.shortageQty30).toBe(0);
+    expect(result.safetyStockQty).toBeNull();
+  });
 });

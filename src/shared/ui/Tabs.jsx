@@ -71,10 +71,18 @@ export function TabsTrigger({ value, activeValue, onSelect, onKeyDown, children,
     const navigationKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
     if (!navigationKeys.includes(event.key)) return;
 
-    const triggers = Array.from(event.currentTarget.parentElement?.querySelectorAll('[role="tab"]') || []);
+    const triggers = Array.from(
+      event.currentTarget.parentElement?.querySelectorAll('[role="tab"]') || [],
+    ).filter(
+      (trigger) =>
+        !trigger.hasAttribute('disabled') &&
+        trigger.getAttribute('aria-disabled') !== 'true',
+    );
     if (!triggers.length) return;
 
     const currentIndex = triggers.indexOf(event.currentTarget);
+    if (currentIndex === -1) return;
+
     const nextIndex =
       event.key === 'Home'
         ? 0
@@ -104,7 +112,10 @@ export function TabsTrigger({ value, activeValue, onSelect, onKeyDown, children,
         active && 'border-[var(--primary)] text-[color:var(--primary)]',
         className,
       )}
-      onClick={() => onSelect?.(value)}
+      onClick={() => {
+        if (props.disabled || props['aria-disabled'] === 'true' || props['aria-disabled'] === true) return;
+        onSelect?.(value);
+      }}
       onKeyDown={handleKeyDown}
       {...props}
     >

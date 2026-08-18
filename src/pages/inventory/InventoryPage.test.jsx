@@ -80,15 +80,27 @@ describe('InventoryPage Integration', () => {
     });
     inventoryApiMock.getInventoryDetail.mockImplementation(async (skuCode, salesPointCode) => {
       const item = mockRawInventoryItems.find(
-        (candidate) => candidate.sku_code === skuCode && candidate.sales_point_code === salesPointCode,
+        (candidate) =>
+          candidate.sku_code === skuCode &&
+          (candidate.sales_point_code === salesPointCode ||
+            candidate.sales_points?.some((sp) => sp.sales_point_code === salesPointCode)),
       );
-      return mapInventoryItem(item || mockRawInventoryItems[0]);
+      if (!item) {
+        throw new Error(`Inventory detail not found for sku=${skuCode}, salesPoint=${salesPointCode}`);
+      }
+      return mapInventoryItem(item);
     });
     inventoryApiMock.getInventoryLots.mockImplementation(async (skuCode, salesPointCode) => {
       const item = mockRawInventoryItems.find(
-        (candidate) => candidate.sku_code === skuCode && candidate.sales_point_code === salesPointCode,
+        (candidate) =>
+          candidate.sku_code === skuCode &&
+          (candidate.sales_point_code === salesPointCode ||
+            candidate.sales_points?.some((sp) => sp.sales_point_code === salesPointCode)),
       );
-      const mapped = mapInventoryItem(item || mockRawInventoryItems[0]);
+      if (!item) {
+        throw new Error(`Inventory lots not found for sku=${skuCode}, salesPoint=${salesPointCode}`);
+      }
+      const mapped = mapInventoryItem(item);
       return { items: mapped.lots, totalCount: mapped.lots.length };
     });
     forecastApiMock.getDemandForecast.mockResolvedValue({
@@ -192,7 +204,7 @@ describe('InventoryPage Integration', () => {
   it('opens detail drawer directly from URL query state', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: [
-        '/inventory?detailSkuCode=SKU_MANDU_01_105&detailSalesPointCode=STORE_THE_HYUNDAI_SEOUL&detailTab=OVERVIEW',
+        '/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=STORE_THE_HYUNDAI_SEOUL&detailTab=OVERVIEW',
       ],
     });
 
@@ -202,7 +214,7 @@ describe('InventoryPage Integration', () => {
 
   it('loads LOTs for a selected seller even when the desktop drawer starts on the overview tab', async () => {
     renderWithProviders(<InventoryPage />, {
-      initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_01_105&detailSalesPointCode=STORE_THE_HYUNDAI_SEOUL'],
+      initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=STORE_THE_HYUNDAI_SEOUL'],
     });
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -212,7 +224,7 @@ describe('InventoryPage Integration', () => {
     expect((await screen.findAllByText(/FEFO 1순위/)).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText('등록된 LOT 재고가 없습니다')).not.toBeInTheDocument();
     expect(inventoryApiMock.getInventoryLots).toHaveBeenCalledWith(
-      'SKU_MANDU_01_105',
+      'SKU_MANDU_001_105',
       'STORE_THE_HYUNDAI_SEOUL',
       expect.anything(),
     );
@@ -220,7 +232,7 @@ describe('InventoryPage Integration', () => {
 
   it('defaults to the top sales point or shows all-summary when __ALL__ is specified', async () => {
     renderWithProviders(<InventoryPage />, {
-      initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_01_105&detailSalesPointCode=__ALL__'],
+      initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=__ALL__'],
     });
 
     expect(await screen.findByText('판매처를 먼저 선택해 주세요')).toBeInTheDocument();

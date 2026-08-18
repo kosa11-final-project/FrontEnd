@@ -49,7 +49,7 @@ export function DemandForecastTable({ data }) {
           <tbody className="divide-y divide-slate-100 font-medium">
             {horizonRows.map((row) => {
               const isUnderSafety = hasSafetyStock && row.projectedQty != null && row.projectedQty < safetyStockQty;
-              const isDepleted = row.projectedQty != null && row.projectedQty === 0;
+              const isDepleted = row.projectedQty != null && row.projectedQty <= 0;
               return (
                 <tr key={row.horizon} className="transition-colors hover:bg-slate-50/50">
                   <th scope="row" className="px-3 py-2 font-semibold text-slate-700">

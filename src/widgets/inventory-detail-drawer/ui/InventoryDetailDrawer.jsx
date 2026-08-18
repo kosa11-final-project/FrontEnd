@@ -39,36 +39,34 @@ export function InventoryDetailDrawer({
 
   // 1) 재고 개요 탭 전용 판매처 선택 상태 (URL 및 부모 상태와 연동)
   const effectiveOverviewSalesPointCode = useMemo(() => {
-    if (selectedSalesPointCode === '__ALL__') return '';
-    if (selectedSalesPointCode) return selectedSalesPointCode;
-    return allSalesPoints.length > 0 ? allSalesPoints[0].salesPointCode : '';
-  }, [selectedSalesPointCode, allSalesPoints]);
+    if (!selectedSalesPointCode || selectedSalesPointCode === '__ALL__') return '';
+    return selectedSalesPointCode;
+  }, [selectedSalesPointCode]);
 
-  // 2) 수요예측 탭 전용 독립 판매처 선택 상태 (SKU 변경 시 자동 초기화되며 탭 간 상태 독립 유지)
+  // 2) 수요예측 탭 전용 판매처 선택 상태 (SKU 변경 시 자동 동기화 및 URL 상태 동기화)
   const [forecastSelection, setForecastSelection] = useState({
     skuCode: '',
     salesPointCode: '',
   });
 
   const currentForecastSalesPointCode =
-    forecastSelection.skuCode === skuCode
+    forecastSelection.skuCode === skuCode && forecastSelection.salesPointCode !== undefined
       ? forecastSelection.salesPointCode
-      : selectedSalesPointCode === '__ALL__'
-        ? '__ALL__'
-        : selectedSalesPointCode || (allSalesPoints.length > 0 ? allSalesPoints[0].salesPointCode : '');
+      : selectedSalesPointCode;
 
   const setForecastSalesPointCode = (spCode) => {
+    const nextCode = spCode === '__ALL__' ? '__ALL__' : spCode;
     setForecastSelection({
       skuCode,
-      salesPointCode: spCode,
+      salesPointCode: nextCode,
     });
+    onSalesPointChange?.(nextCode);
   };
 
   const effectiveForecastSalesPointCode = useMemo(() => {
-    if (currentForecastSalesPointCode === '__ALL__') return '';
-    if (currentForecastSalesPointCode) return currentForecastSalesPointCode;
-    return allSalesPoints.length > 0 ? allSalesPoints[0].salesPointCode : '';
-  }, [currentForecastSalesPointCode, allSalesPoints]);
+    if (!currentForecastSalesPointCode || currentForecastSalesPointCode === '__ALL__') return '';
+    return currentForecastSalesPointCode;
+  }, [currentForecastSalesPointCode]);
 
   // 1. 판매처 상세 헤더 쿼리: 개요 탭 기준
   const detailQuery = useQuery({
@@ -194,7 +192,12 @@ export function InventoryDetailDrawer({
   };
 
   const handleSelectSalesPoint = (spCode) => {
-    onSalesPointChange?.(spCode);
+    const nextCode = spCode === '__ALL__' ? '__ALL__' : spCode;
+    setForecastSelection({
+      skuCode,
+      salesPointCode: nextCode,
+    });
+    onSalesPointChange?.(nextCode);
   };
 
   return (
