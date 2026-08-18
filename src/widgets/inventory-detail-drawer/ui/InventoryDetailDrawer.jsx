@@ -439,6 +439,14 @@ export function InventoryDetailDrawer({
                   </div>
                 ) : (
                   <>
+                    {forecastQuery.data?.safetyStockQty == null && (
+                      <div
+                        role="status"
+                        className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+                      >
+                        수요예측은 표시되지만 안전재고 데이터가 없어 기준선과 대비 상태는 표시되지 않습니다.
+                      </div>
+                    )}
                     <DemandForecastChart data={forecastQuery.data} height={280} />
                     {forecastQuery.data && !['NO_DATA', 'ERROR'].includes(forecastQuery.data.status) && (
                       <DemandForecastTable data={forecastQuery.data} />

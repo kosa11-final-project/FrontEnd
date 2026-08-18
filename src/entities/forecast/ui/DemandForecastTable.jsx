@@ -4,6 +4,7 @@ export function DemandForecastTable({ data }) {
   if (!data) return null;
 
   const { cumulativeForecast, projectedInventories, safetyStockQty } = data;
+  const hasSafetyStock = safetyStockQty != null;
   const horizonRows = [
     ['D+7 (1주)', cumulativeForecast?.predictedQtyD7, projectedInventories?.projectedD7],
     ['D+14 (2주)', cumulativeForecast?.predictedQtyD14, projectedInventories?.projectedD14],
@@ -19,7 +20,10 @@ export function DemandForecastTable({ data }) {
           현재 가용재고: <strong className="text-slate-900">{formatNumber(data.availableQty)}개</strong>
         </span>
         <span>
-          안전재고 기준: <strong className="text-rose-600">{formatNumber(safetyStockQty)}개</strong>
+          안전재고 기준:{' '}
+          <strong className={hasSafetyStock ? 'text-rose-600' : 'text-slate-500'}>
+            {hasSafetyStock ? `${formatNumber(safetyStockQty)}개` : '미적재'}
+          </strong>
         </span>
         {projectedInventories?.stockoutPeriod && <span>예상 소진 구간: {projectedInventories.stockoutPeriod}</span>}
       </div>
@@ -44,8 +48,7 @@ export function DemandForecastTable({ data }) {
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium">
             {horizonRows.map((row) => {
-              const isUnderSafety =
-                row.projectedQty != null && safetyStockQty != null && row.projectedQty < safetyStockQty;
+              const isUnderSafety = hasSafetyStock && row.projectedQty != null && row.projectedQty < safetyStockQty;
               const isDepleted = row.projectedQty != null && row.projectedQty === 0;
               return (
                 <tr key={row.horizon} className="transition-colors hover:bg-slate-50/50">
@@ -61,7 +64,9 @@ export function DemandForecastTable({ data }) {
                     {row.projectedQty != null ? `${formatNumber(row.projectedQty)}개` : '-'}
                   </td>
                   <td className="px-3 py-2 text-center">
-                    {row.projectedQty == null ? (
+                    {!hasSafetyStock ? (
+                      <span className="text-slate-400">기준 미적재</span>
+                    ) : row.projectedQty == null ? (
                       <span className="text-slate-400">-</span>
                     ) : isDepleted ? (
                       <span className="inline-flex rounded-sm bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">

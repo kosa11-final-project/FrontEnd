@@ -65,4 +65,33 @@ describe('forecastMapper', () => {
     expect(result.forecastSource).toBeNull();
     expect(result.projectedInventories.stockoutPeriod).toBeNull();
   });
+
+  it('안전재고가 없어도 예측·예상 잔고 chart point를 보존한다', () => {
+    const result = mapDemandForecastResponse({
+      data: {
+        status: 'AVAILABLE',
+        availableQty: 100,
+        safetyStockQty: null,
+        cumulativeForecast: {
+          predictedQtyD7: 10,
+          predictedQtyD14: 20,
+          predictedQtyD30: 30,
+          predictedQtyD60: 40,
+          predictedQtyD90: 50,
+        },
+        projectedInventories: {
+          projectedD7: 90,
+          projectedD14: 80,
+          projectedD30: 70,
+          projectedD60: 60,
+          projectedD90: 50,
+        },
+      },
+    });
+
+    expect(result.status).toBe('AVAILABLE');
+    expect(result.safetyStockQty).toBeNull();
+    expect(result.chartPoints).toHaveLength(6);
+    expect(result.chartPoints[1]).toMatchObject({ forecastQty: 10, projectedQty: 90, safetyStockQty: null });
+  });
 });
