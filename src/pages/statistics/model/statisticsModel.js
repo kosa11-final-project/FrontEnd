@@ -87,6 +87,17 @@ export function getSelectedStatisticsSummary(statistics, scopeType, locationId =
   return statistics.scopeSummaries[scopeType] ?? statistics.scopeSummaries.NATIONAL;
 }
 
+export function buildStatisticsQueryParams({ range, scopeType, locationId = 'ALL' }) {
+  const scopeCode = scopeType === 'UNASSIGNED' ? 'UNASSIGNED' : locationId;
+
+  return {
+    fromDate: range.from,
+    toDate: range.to,
+    scopeType,
+    scopeCode,
+  };
+}
+
 export function scaleStatisticsTrend(points, summary, nationalSummary) {
   if (!summary || summary === nationalSummary || !nationalSummary.criticalStockQty) return points;
 
