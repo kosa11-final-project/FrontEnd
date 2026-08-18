@@ -1,6 +1,16 @@
 import { Building } from 'reicon-react';
 import { formatQuantity } from '@/shared/lib/format';
 
+/**
+ * 재고 상세 보관 물류센터 현황 섹션
+ * @param {object} props
+ * @param {Array<any>} [props.locations=[]]
+ * @param {number} [props.skuTotalStockQty=0]
+ * @param {string} [props.selectedSalesPointCode='']
+ * @param {string} [props.selectedSalesPointWarehouseCode='']
+ * @param {string} [props.selectedSalesPointWarehouseName='']
+ * @param {string} [props.selectedSalesPointName='']
+ */
 export function InventoryStorageLocationSection({
   locations = [],
   skuTotalStockQty = 0,

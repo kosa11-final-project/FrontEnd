@@ -1,5 +1,10 @@
 import { formatNumber } from '@/shared/lib/format';
 
+/**
+ * 수요예측 및 구간별 예상 잔고 테이블 컴포넌트
+ * @param {object} props
+ * @param {import('../model/forecast.js').DemandForecastDetail | null} props.data - 수요예측 응답 뷰 모델
+ */
 export function DemandForecastTable({ data }) {
   if (!data) return null;
 

@@ -17,6 +17,17 @@ import { InventorySalesPointsSection } from './InventorySalesPointsSection.jsx';
 import { InventoryLotsSection } from './InventoryLotsSection.jsx';
 import { CHANNEL_BADGE_LABELS, CHANNEL_BADGE_STYLES } from './constants.js';
 
+/**
+ * 재고 상세 사이드 드로어 위젯 (재고 개요 + 수요예측 2단 탭 구성)
+ * @param {object} props
+ * @param {import('@/entities/inventory').InventoryItem | null} props.item - 상세 조회 대상 재고 아이템
+ * @param {boolean} props.open - 드로어 열림 여부
+ * @param {'OVERVIEW' | 'FORECAST'} [props.activeTab='OVERVIEW'] - 활성 탭
+ * @param {string} [props.selectedSalesPointCode=''] - 선택된 판매처 코드
+ * @param {(salesPointCode: string) => void} [props.onSalesPointChange] - 판매처 변경 콜백
+ * @param {(tab: 'OVERVIEW' | 'FORECAST') => void} [props.onTabChange] - 탭 변경 콜백
+ * @param {() => void} [props.onClose] - 드로어 닫기 콜백
+ */
 export function InventoryDetailDrawer({
   item: initialItem,
   open,

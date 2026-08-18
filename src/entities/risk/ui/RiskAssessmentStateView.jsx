@@ -1,6 +1,12 @@
 import { StateView } from '@/shared/ui';
 import { ASSESSMENT_STATUS_LABELS } from '../model/risk.js';
 
+/**
+ * 위험도 판정 상태 안내 뷰
+ * @param {object} props
+ * @param {string} props.status - 판정 상태 코드 (ASSESSED, UNASSESSED, FAILED 등)
+ * @param {() => void} [props.onRetry] - 재시도 콜백
+ */
 export function RiskAssessmentStateView({ status, onRetry }) {
   if (!status || status === 'ASSESSED') return null;
 

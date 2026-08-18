@@ -37,6 +37,16 @@ const tabsTriggerVariants = cva(
   },
 );
 
+/**
+ * 탭 컨테이너 컴포넌트
+ * @param {object} props
+ * @param {string} [props.value] - 제어 방식 활성 탭 값
+ * @param {string} [props.defaultValue] - 비제어 방식 초기 활성 탭 값
+ * @param {(value: string) => void} [props.onValueChange] - 탭 변경 핸들러
+ * @param {React.ReactNode | ((context: { value: string, setValue: (v: string) => void }) => React.ReactNode)} props.children
+ * @param {string} [props.className]
+ * @param {'horizontal' | 'vertical'} [props.orientation]
+ */
 export function Tabs({ value, defaultValue, onValueChange, children, className, orientation }) {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const activeValue = value ?? internalValue;
@@ -52,6 +62,13 @@ export function Tabs({ value, defaultValue, onValueChange, children, className, 
   );
 }
 
+/**
+ * 탭 목록 헤더 컨테이너
+ * @param {object} props
+ * @param {React.ReactNode} props.children
+ * @param {string} [props.className]
+ * @param {'sm' | 'md' | 'lg'} [props.size]
+ */
 export function TabsList({ children, className, size, ...props }) {
   return (
     <div role="tablist" className={cn(tabsListVariants({ size }), className)} {...props}>
@@ -60,6 +77,17 @@ export function TabsList({ children, className, size, ...props }) {
   );
 }
 
+/**
+ * 개별 탭 트리거 버튼
+ * @param {object} props
+ * @param {string} props.value - 탭 식별 값
+ * @param {string} [props.activeValue] - 현재 활성화된 탭 값
+ * @param {(value: string) => void} [props.onSelect] - 선택 콜백
+ * @param {(event: React.KeyboardEvent) => void} [props.onKeyDown] - 키보드 이벤트 핸들러
+ * @param {React.ReactNode} props.children
+ * @param {string} [props.className]
+ * @param {'sm' | 'md' | 'lg'} [props.size]
+ */
 export function TabsTrigger({ value, activeValue, onSelect, onKeyDown, children, className, size, ...props }) {
   const id = useId();
   const active = activeValue === value;
@@ -71,12 +99,8 @@ export function TabsTrigger({ value, activeValue, onSelect, onKeyDown, children,
     const navigationKeys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
     if (!navigationKeys.includes(event.key)) return;
 
-    const triggers = Array.from(
-      event.currentTarget.parentElement?.querySelectorAll('[role="tab"]') || [],
-    ).filter(
-      (trigger) =>
-        !trigger.hasAttribute('disabled') &&
-        trigger.getAttribute('aria-disabled') !== 'true',
+    const triggers = Array.from(event.currentTarget.parentElement?.querySelectorAll('[role="tab"]') || []).filter(
+      (trigger) => !trigger.hasAttribute('disabled') && trigger.getAttribute('aria-disabled') !== 'true',
     );
     if (!triggers.length) return;
 

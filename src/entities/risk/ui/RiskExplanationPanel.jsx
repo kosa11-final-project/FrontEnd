@@ -2,6 +2,11 @@ import { Danger } from 'reicon-react';
 import { formatDateTime, formatNumber } from '@/shared/lib/format';
 import { RiskGradeBadge } from './RiskGradeBadge.jsx';
 
+/**
+ * 위험도 평가 상세 설명 및 근거 패널 컴포넌트
+ * @param {object} props
+ * @param {Record<string, any> | null} props.data - 위험도 평가 뷰 모델 데이터
+ */
 export function RiskExplanationPanel({ data }) {
   if (!data) return null;
 

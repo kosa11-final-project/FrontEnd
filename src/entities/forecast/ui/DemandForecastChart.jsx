@@ -45,6 +45,12 @@ function SingleSeriesTooltip({ active, payload, label, safetyStockQty }) {
   );
 }
 
+/**
+ * 수요예측 및 재고 추이 차트 시각화 컴포넌트
+ * @param {object} props
+ * @param {import('../model/forecast.js').DemandForecastDetail | null} props.data - 수요예측 뷰 모델 데이터
+ * @param {number} [props.height=300] - 차트 높이(px)
+ */
 export function DemandForecastChart({ data, height = 300 }) {
   if (!data) {
     return (

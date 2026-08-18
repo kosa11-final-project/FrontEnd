@@ -4,6 +4,15 @@ import { formatNumber, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory';
 import { CHANNEL_BADGE_LABELS, CHANNEL_BADGE_STYLES } from './constants.js';
 
+/**
+ * 재고 상세 판매처 분산 현황 목록 섹션
+ * @param {object} props
+ * @param {Array<any>} [props.allSalesPoints=[]]
+ * @param {number} [props.ownerSalesPointCount=0]
+ * @param {string} [props.selectedSalesPointCode='']
+ * @param {Array<any>} [props.channelPrices=[]]
+ * @param {(salesPointCode: string) => void} [props.onSelectSalesPoint]
+ */
 export function InventorySalesPointsSection({
   allSalesPoints = [],
   ownerSalesPointCount = 0,

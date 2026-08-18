@@ -2,6 +2,13 @@ import { Danger, Refresh } from 'reicon-react';
 import { FORECAST_STATUS, FORECAST_STATUS_LABELS } from '../model/forecast.js';
 import { Button } from '@/shared/ui';
 
+/**
+ * 수요예측 상태 안내 뷰 (오류, 과거 데이터, 미적재 등)
+ * @param {object} props
+ * @param {string} props.status - 상태 코드 (ERROR, STALE, NO_DATA 등)
+ * @param {string} [props.message] - 상태 상세 안내 메시지
+ * @param {() => void} [props.onRetry] - 재시도 콜백 핸들러
+ */
 export function DemandForecastStateView({ status, message, onRetry }) {
   if (!status || status === FORECAST_STATUS.AVAILABLE) {
     return null;

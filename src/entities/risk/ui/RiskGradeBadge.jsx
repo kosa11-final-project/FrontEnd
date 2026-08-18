@@ -1,5 +1,13 @@
 import { ASSESSMENT_STATUS_LABELS, RISK_GRADES, RISK_GRADE_META } from '../model/risk.js';
 
+/**
+ * 위험 등급 배지 컴포넌트
+ * @param {object} props
+ * @param {string | null} [props.grade=null] - 위험 등급 (CRITICAL, WARNING, SAFE 등)
+ * @param {string} [props.status='ASSESSED'] - 판정 상태 (ASSESSED, UNASSESSED 등)
+ * @param {boolean} [props.showStatus=false] - 판정 상태 텍스트 표시 여부
+ * @param {string} [props.className='']
+ */
 export function RiskGradeBadge({ grade = null, status = 'ASSESSED', showStatus = false, className = '' }) {
   const isUnassessed =
     status === 'UNASSESSED' ||

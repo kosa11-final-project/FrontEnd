@@ -3,6 +3,12 @@ import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory';
 import { ASSESSMENT_STATUS_LABELS } from './constants.js';
 
+/**
+ * 재고 상세 상단 핵심 4대 KPI 리본 영역
+ * @param {object} props
+ * @param {import('@/entities/inventory').InventoryItem} props.item
+ * @param {boolean} [props.showRisk=true] - 위험도 카드 노출 여부
+ */
 export function InventoryDetailKpiRibbon({ item, showRisk = true }) {
   return (
     <section

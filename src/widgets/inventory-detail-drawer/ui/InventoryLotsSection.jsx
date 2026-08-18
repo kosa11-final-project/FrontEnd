@@ -2,6 +2,14 @@ import { Package } from 'reicon-react';
 import { formatDaysRemaining, formatNumber, formatQuantity } from '@/shared/lib/format';
 import { StateView } from '@/shared/ui';
 
+/**
+ * 재고 상세 LOT 목록 및 FEFO 출고 우선순위 섹션
+ * @param {object} props
+ * @param {any} [props.selectedSalesPoint] - 선택된 판매처 정보 객체
+ * @param {string} [props.selectedSalesPointCode=''] - 선택된 판매처 코드
+ * @param {any} props.lotsQuery - LOT 목록 쿼리 객체
+ * @param {() => void} [props.onNavigateToOverview]
+ */
 export function InventoryLotsSection({
   selectedSalesPoint,
   selectedSalesPointCode = '',
