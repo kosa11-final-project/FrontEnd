@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ChartBar } from 'reicon-react';
+import { inventoryStatisticsQueryOptions } from '@/entities/statistics';
 import { formatDateTime } from '@/shared/lib/format';
 import { Badge, Card, Icon, StateView, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
-import { inventoryStatisticsFixture } from './model/statisticsFixtures.js';
 import { getStatisticsInventoryUrl } from './model/statisticsLinks.js';
 import {
+  buildStatisticsQueryParams,
   getScopeLocations,
   getSelectedStatisticsSummary,
   getStatisticsGranularity,
@@ -57,10 +59,10 @@ export function StatisticsPageShell({ calculatedAt, children }) {
   );
 }
 
-export function StatisticsPageContent({ statistics }) {
+export function StatisticsPageContent({ statistics, isRefreshing = false, onQueryParamsChange }) {
   const [activeTab, setActiveTab] = useState('inventory');
   const [period, setPeriod] = useState('30D');
-  const [customRange, setCustomRange] = useState({ from: '2026-07-18', to: statistics.asOfDate });
+  const [customRange, setCustomRange] = useState(() => getStatisticsPeriodRange('30D', statistics.asOfDate));
   const [scopeType, setScopeType] = useState('NATIONAL');
   const [locationId, setLocationId] = useState('ALL');
   const [comparisonScope, setComparisonScope] = useState('WAREHOUSE');
@@ -70,7 +72,15 @@ export function StatisticsPageContent({ statistics }) {
   const locationOptions = getScopeLocations(statistics.locations, scopeType);
   const summary = getSelectedStatisticsSummary(statistics, scopeType, locationId);
   const selectedTrend = selectStatisticsTrend(statistics.dailyTrend, range);
-  const trend = scaleStatisticsTrend(selectedTrend, summary, statistics.scopeSummaries.NATIONAL);
+  const selectedScopeCode = scopeType === 'UNASSIGNED' ? 'UNASSIGNED' : locationId;
+  const usesServerTrend = Boolean(statistics.trendScopeType);
+  const serverTrendMatchesSelection =
+    statistics.trendScopeType === scopeType && statistics.trendScopeCode === selectedScopeCode;
+  const trend = usesServerTrend
+    ? serverTrendMatchesSelection
+      ? selectedTrend
+      : []
+    : scaleStatisticsTrend(selectedTrend, summary, statistics.scopeSummaries.NATIONAL);
   const inventoryLinkContext = {
     scopeType,
     locationId,
@@ -83,10 +93,38 @@ export function StatisticsPageContent({ statistics }) {
     assessmentStatus: 'UNASSESSED',
   });
 
+  function requestStatistics(nextPeriod, nextCustomRange, nextScopeType, nextLocationId) {
+    const nextRange = getStatisticsPeriodRange(nextPeriod, statistics.asOfDate, nextCustomRange);
+    onQueryParamsChange?.(
+      buildStatisticsQueryParams({
+        range: nextRange,
+        scopeType: nextScopeType,
+        locationId: nextLocationId,
+      }),
+    );
+  }
+
+  function changePeriod(nextPeriod) {
+    setPeriod(nextPeriod);
+    requestStatistics(nextPeriod, customRange, scopeType, locationId);
+  }
+
+  function changeCustomRange(nextRange) {
+    setCustomRange(nextRange);
+    setPeriod('CUSTOM');
+    requestStatistics('CUSTOM', nextRange, scopeType, locationId);
+  }
+
   function changeScopeType(nextScopeType) {
     setScopeType(nextScopeType);
     setLocationId('ALL');
     if (nextScopeType !== 'NATIONAL') setComparisonScope(nextScopeType);
+    requestStatistics(period, customRange, nextScopeType, 'ALL');
+  }
+
+  function changeLocation(nextLocationId) {
+    setLocationId(nextLocationId);
+    requestStatistics(period, customRange, scopeType, nextLocationId);
   }
 
   return (
@@ -106,7 +144,12 @@ export function StatisticsPageContent({ statistics }) {
             </Card>
 
             {value === 'inventory' ? (
-              <div className="space-y-4">
+              <div className="space-y-4" aria-busy={isRefreshing}>
+                {isRefreshing ? (
+                  <p className="sr-only" role="status">
+                    통계 데이터를 갱신하고 있습니다.
+                  </p>
+                ) : null}
                 <StatisticsFilters
                   period={period}
                   range={range}
@@ -114,13 +157,10 @@ export function StatisticsPageContent({ statistics }) {
                   scopeType={scopeType}
                   locationId={locationId}
                   locationOptions={locationOptions}
-                  onPeriodChange={setPeriod}
-                  onCustomRangeChange={(nextRange) => {
-                    setCustomRange(nextRange);
-                    setPeriod('CUSTOM');
-                  }}
+                  onPeriodChange={changePeriod}
+                  onCustomRangeChange={changeCustomRange}
                   onScopeTypeChange={changeScopeType}
-                  onLocationChange={setLocationId}
+                  onLocationChange={changeLocation}
                 />
 
                 <InventoryStatisticsSummary
@@ -172,7 +212,58 @@ export function StatisticsPageContent({ statistics }) {
   );
 }
 
-// 실제 통계 API가 확정되기 전까지 페이지 전용 결정적 fixture로 UI를 검증합니다.
 export default function StatisticsPage() {
-  return <StatisticsPageContent statistics={inventoryStatisticsFixture} />;
+  const [queryParams, setQueryParams] = useState({});
+  const statisticsQuery = useQuery(inventoryStatisticsQueryOptions(queryParams));
+
+  if (statisticsQuery.isPending) {
+    return (
+      <StatisticsPageShell>
+        <StateView
+          state="loading"
+          title="재고 통계를 불러오고 있습니다."
+          description="최근 정상 집계와 위험재고 추이를 확인하는 중입니다."
+        />
+      </StatisticsPageShell>
+    );
+  }
+
+  if (statisticsQuery.isError) {
+    const snapshotNotReady = statisticsQuery.error?.code === 'STATISTICS-001';
+    const forbidden = statisticsQuery.error?.status === 403;
+
+    return (
+      <StatisticsPageShell>
+        <StateView
+          state={forbidden ? 'forbidden' : snapshotNotReady ? 'empty' : 'error'}
+          title={snapshotNotReady ? '아직 생성된 재고 통계가 없습니다.' : undefined}
+          description={snapshotNotReady ? '재고 동기화와 위험등급 산정이 완료된 후 다시 확인해 주세요.' : undefined}
+          actionLabel={forbidden ? undefined : '다시 시도'}
+          onAction={forbidden ? undefined : () => statisticsQuery.refetch()}
+        />
+      </StatisticsPageShell>
+    );
+  }
+
+  if (!statisticsQuery.data?.scopeSummaries?.NATIONAL) {
+    return (
+      <StatisticsPageShell calculatedAt={statisticsQuery.data?.calculatedAt}>
+        <StateView
+          state="empty"
+          title="표시할 재고 통계가 없습니다."
+          description="전국 범위의 정상 집계 결과가 생성되었는지 확인해 주세요."
+          actionLabel="다시 시도"
+          onAction={() => statisticsQuery.refetch()}
+        />
+      </StatisticsPageShell>
+    );
+  }
+
+  return (
+    <StatisticsPageContent
+      statistics={statisticsQuery.data}
+      isRefreshing={statisticsQuery.isFetching}
+      onQueryParamsChange={setQueryParams}
+    />
+  );
 }
