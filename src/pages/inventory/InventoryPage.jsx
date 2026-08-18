@@ -14,6 +14,7 @@ import {
   toInventoryQueryParams,
 } from '@/features/inventory-filter';
 import { InventoryFilterBar } from '@/features/inventory-filter';
+import { InventorySyncControl } from '@/features/inventory-sync';
 import { InventorySummaryBar } from '@/widgets/inventory-summary';
 import { InventoryTable } from '@/widgets/inventory-table';
 import { InventoryDetailDrawer } from '@/widgets/inventory-detail-drawer';
@@ -157,14 +158,16 @@ export default function InventoryPage() {
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-[#B7ECCF] bg-[#DAF7E9] px-2.5 py-0.5 text-xs font-semibold text-[#1E8251]">
                 <span className="size-1.5 rounded-full bg-[#27B06E]" />
-                데이터 연동
+                현재 DB 기준
               </span>
             )}
           </div>
           <p className="text-xs font-medium text-gray-500">
-            통합 판매채널과 물류센터의 실시간 재고 현황 및 위험도를 관제합니다.
+            통합 판매채널과 물류센터에 적재된 현재 재고 현황과 위험도를 관제합니다.
           </p>
         </div>
+
+        <InventorySyncControl />
       </div>
 
       {/* 1. 상단 KPI 요약 카드 바 */}

@@ -94,6 +94,8 @@ function mapLocation(dto = {}) {
 }
 
 function mapSalesPoint(dto = {}, fallback = {}) {
+  const sellingPrice = nullableNumber(valueOf(dto, 'sellingPrice', 'selling_price', fallback.sellingPrice));
+  const rawPriceStatus = valueOf(dto, 'priceStatus', 'price_status', null);
   return {
     salesPointCode: valueOf(dto, 'salesPointCode', 'sales_point_code', fallback.salesPointCode || ''),
     salesPointName: valueOf(
@@ -107,8 +109,10 @@ function mapSalesPoint(dto = {}, fallback = {}) {
     availableQuantity: nullableNumber(valueOf(dto, 'availableQuantity', 'available_qty')),
     reservedQuantity: nullableNumber(valueOf(dto, 'reservedQuantity', 'reserved_qty')),
     riskGrade: valueOf(dto, 'riskGrade', 'risk_grade', fallback.riskGrade || null),
+    salesPointState: valueOf(dto, 'salesPointState', 'sales_point_state', fallback.salesPointState || 'OWNED'),
+    priceStatus: rawPriceStatus || (sellingPrice == null ? 'NOT_LOADED' : 'AVAILABLE'),
     warehouseName: valueOf(dto, 'warehouseName', 'warehouse_name', fallback.warehouseName || ''),
-    sellingPrice: nullableNumber(valueOf(dto, 'sellingPrice', 'selling_price', fallback.sellingPrice)),
+    sellingPrice,
   };
 }
 
@@ -144,10 +148,9 @@ export function mapInventoryItem(response = {}) {
   const reservedQuantity = nullableNumber(dto.reservedQuantity, dto.reserved_qty);
   const safetyQuantity = nullableNumber(dto.safetyQuantity, dto.safety_qty);
 
-  // 가격 및 수요 정보 (null 보존)
+  // 판매처별 현재 가격 정보만 상세에서 사용합니다. 판매량은 ML 파이프라인의 입력이며
+  // 통합재고 조회 응답에 포함하지 않습니다.
   const sellingPrice = nullableNumber(dto.sellingPrice, dto.selling_price);
-  const dailySales = nullableNumber(dto.dailySales, dto.daily_sales);
-  const forecast14Days = nullableNumber(dto.forecast14Days, dto.forecast_14_days);
 
   // 재고 사실 상태
   const rawFactState = dto.inventoryFactState ?? dto.inventory_fact_state ?? null;
@@ -220,6 +223,26 @@ export function mapInventoryItem(response = {}) {
   const rawLots = Array.isArray(dto.lots) ? dto.lots : [];
   const lots = rawLots.map(mapInventoryLot);
 
+  // 판매처별 판매가 목록 정규화
+  const rawPrices = Array.isArray(dto.channelPrices)
+    ? dto.channelPrices
+    : Array.isArray(dto.channel_prices)
+      ? dto.channel_prices
+      : [];
+  const channelPrices = rawPrices.map((p) => {
+    const channelSellingPrice = nullableNumber(p.sellingPrice, p.selling_price);
+    return {
+      salesPointCode: p.salesPointCode || p.sales_point_code || '',
+      salesPointName: p.salesPointName || p.sales_point_name || '',
+      sellingPrice: channelSellingPrice,
+      actualPrice: nullableNumber(p.actualPrice, p.actual_price),
+      minimumSellingPrice: nullableNumber(p.minimumSellingPrice, p.minimum_selling_price),
+      effectiveFrom: p.effectiveFrom || p.effective_from || null,
+      effectiveTo: p.effectiveTo || p.effective_to || null,
+      priceStatus: p.priceStatus || p.price_status || (channelSellingPrice == null ? 'NOT_LOADED' : 'AVAILABLE'),
+    };
+  });
+
   return {
     rowId,
     productCode,
@@ -238,10 +261,9 @@ export function mapInventoryItem(response = {}) {
     salesPointCode,
     salesPointName,
     storageType,
+    channelPrices,
     storageName: storageType ? STORAGE_NAMES[storageType] || storageType : '보관유형 미제공',
     sellingPrice,
-    dailySales,
-    forecast14Days,
     currentQuantity,
     availableQuantity,
     reservedQuantity,

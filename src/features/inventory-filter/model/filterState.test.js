@@ -19,7 +19,7 @@ describe('Inventory Filter State (URL SearchParams)', () => {
 
   it('correctly parses valid search params and repeated multi-value keys', () => {
     const raw =
-      '?q=만두&channelType=GREETING&channelType=HMART&storageType=FROZEN&riskGrade=CAUTION&page=2&size=50&sort=availableQuantity,asc&detailSkuCode=SKU-1&detailSalesPointCode=SP-1&detailTab=LOTS';
+      '?q=만두&channelType=GREETING&channelType=HMART&storageType=FROZEN&riskGrade=CAUTION&page=2&size=50&sort=availableQuantity,asc&detailSkuCode=SKU-1&detailSalesPointCode=SP-1&detailTab=FORECAST';
     const filters = parseInventoryFilters(raw);
 
     expect(filters.q).toBe('만두');
@@ -31,7 +31,12 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     expect(filters.sort).toBe('availableQuantity,asc');
     expect(filters.detailSkuCode).toBe('SKU-1');
     expect(filters.detailSalesPointCode).toBe('SP-1');
-    expect(filters.detailTab).toBe('LOTS');
+    expect(filters.detailTab).toBe('FORECAST');
+  });
+
+  it('correctly parses FORECAST detailTab', () => {
+    const filters = parseInventoryFilters('?detailSkuCode=SKU-1&detailTab=FORECAST');
+    expect(filters.detailTab).toBe('FORECAST');
   });
 
   it('preserves comma-containing unvalidated codes as one value', () => {
@@ -56,6 +61,11 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     expect(filters.detailTab).toBe('OVERVIEW');
   });
 
+  it('falls back to OVERVIEW when legacy detailTab=LOTS is passed in URL', () => {
+    const filters = parseInventoryFilters('?detailSkuCode=SKU-1&detailTab=LOTS');
+    expect(filters.detailTab).toBe('OVERVIEW');
+  });
+
   it('clamps page size to the API maximum of 100', () => {
     expect(parseInventoryFilters('?size=101').size).toBe(100);
     expect(parseInventoryFilters('?size=200').size).toBe(100);
@@ -75,7 +85,7 @@ describe('Inventory Filter State (URL SearchParams)', () => {
       size: 50,
       detailSkuCode: 'SKU-1',
       detailSalesPointCode: 'STORE-1',
-      detailTab: 'LOTS',
+      detailTab: 'FORECAST',
     });
 
     expect(params).toEqual({ q: '만두', page: 2, size: 50, sort: 'updatedAt,desc' });
@@ -94,7 +104,7 @@ describe('Inventory Filter State (URL SearchParams)', () => {
       sort: 'currentQuantity,desc',
       detailSkuCode: 'SKU-MANDU',
       detailSalesPointCode: 'STORE_1',
-      detailTab: 'LOTS',
+      detailTab: 'FORECAST',
     };
 
     const serialized = serializeInventoryFilters(initial);

@@ -2,7 +2,9 @@
 
 현대그린푸드의 다중 판매채널 재고를 통합 조회하고 위험 재고와 AI 실행 전략을 관리하기 위한 B2B 운영 플랫폼의 프론트엔드 기반입니다.
 
-현재 저장소는 **실제 업무 기능 개발 전 공통 초기 세팅을 마친 상태**입니다. 팀원이 같은 구조와 디자인 규칙으로 기능을 개발할 수 있도록 앱 셸, 라우터, FSD-lite 폴더 구조, HTTP 통신 경계, 디자인 토큰, 재사용 UI, Storybook, 테스트와 CI 기반을 구성했습니다.
+통합 재고 조회의 로컬 feature 범위는 구현되어 있습니다. 앱 셸, 라우터, FSD-lite 폴더 구조, HTTP 통신 경계, 디자인 토큰, 재사용 UI, Storybook, 테스트와 CI 기반이 구성되어 있으며, 실제 source sync·Oracle 반영은 별도 후속 범위입니다.
+
+통합 재고의 물리 스키마는 BackEnd Flyway V1~V16이 우선합니다. 화면에서는 `on_hand_qty` 집계를 가용재고, `reserved_qty` 집계를 예약재고, 두 값의 합인 `total_qty`를 총재고로 표시하며 FrontEnd가 예약수량을 다시 차감하지 않습니다. 세부 정합성 작업은 workspace의 `../docs/integrated-inventory/SCHEMA-FLYWAY-WORKLIST.md`를 기준으로 합니다.
 
 > Spring Security 세션 로그인과 현재 사용자 조회 계약을 연결했으며, 세부 권한 정책, 재고 조회·페이지네이션과 배포 환경은 기능 또는 운영 단계에서 확정합니다. 공통 개발 환경, lint·format, 테스트와 PR 자동 검증은 이 저장소에 포함되어 있습니다.
 
@@ -50,7 +52,7 @@ pnpm run build-storybook
 | --- | --- | --- |
 | `/login` | 로그인 | CSRF 발급, 세션 로그인, 오류 상태 연결 |
 | `/dashboard` | 대시보드 | 기본 페이지와 앱 셸 연결 |
-| `/inventory` | 통합 재고 조회 | 초기 화면 구조와 예시 컴포넌트 |
+| `/inventory` | 통합 재고 조회 | 목록·필터·상세·LOT·수요예측·위험·가격·미할당 재고 구현, source sync는 준비 중 |
 | `/ai-strategy` | AI 전략 및 시뮬레이션 | 기본 페이지 연결 |
 | `/execution` | AI 전략 기록 & 성과 | 기본 페이지 연결 |
 | `/statistics` | 통계 | 기본 페이지 연결 |
@@ -71,7 +73,7 @@ pnpm run build-storybook
 | 클라이언트 상태 | Zustand | 여러 화면이 공유하는 UI 상태만 관리 | 설치 완료, 필요할 때 store 생성 |
 | 폼 | React Hook Form, Zod | 입력 상태, 검증, 제출 처리 | 로그인 폼 적용 완료 |
 | 테이블 | TanStack Table v8 | 컬럼·행 모델과 정렬, 재사용 테이블 껍데기 | `DataTable` 완료 |
-| 차트 | Recharts | 수요예측, 위험분석, 전략 성과 시각화 | 설치 완료, 기능 단계에서 적용 |
+| 차트 | Recharts | 수요예측 및 전략 성과 시각화 | 수요예측 탭 적용 완료 |
 | 스타일 | Tailwind CSS v4 | layout과 token 기반 스타일링 | 완료 |
 | UI 소스 | shadcn/ui 방식 | 코드를 프로젝트가 소유하고 디자인 토큰에 맞춰 수정 | 완료 |
 | 클래스 조합 | `cn`, `clsx`, `tailwind-merge` | 조건부 class와 Tailwind 충돌 정리 | 완료 |

@@ -115,9 +115,7 @@ describe('dashboard response mapper', () => {
 
 describe('dashboard inventory links', () => {
   it('opens a risk sales point with the inventory sales-point filter', () => {
-    expect(getRiskSalesPointInventoryUrl({ code: 'DEPT_PANGYO' })).toBe(
-      '/inventory?salesPointCode=DEPT_PANGYO',
-    );
+    expect(getRiskSalesPointInventoryUrl({ code: 'DEPT_PANGYO' })).toBe('/inventory?salesPointCode=DEPT_PANGYO');
   });
 
   it('opens an urgent SKU detail for its allocated sales point', () => {

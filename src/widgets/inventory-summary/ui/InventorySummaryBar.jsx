@@ -127,10 +127,10 @@ export function InventorySummaryBar({ summary, isLoading, isError, onRetry }) {
         </div>
       </div>
 
-      {/* 4. 위험·주의 관제 */}
+      {/* 4. 위험, 주의 SKU 관제 */}
       <div className="group relative flex flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-rose-200">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">위험·주의 관제</span>
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">위험, 주의 SKU 관제</span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100/80 transition-transform duration-200 group-hover:scale-110">
             <Danger size={19} />
           </div>

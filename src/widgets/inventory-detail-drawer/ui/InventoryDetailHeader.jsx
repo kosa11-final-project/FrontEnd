@@ -8,6 +8,18 @@ function getCategoryPathLabel(item) {
   return item?.categoryName || '';
 }
 
+/**
+ * 재고 상세 상단 헤더 컴포넌트 (상품 정보, SKU 복사, 전체/개별 판매처 셀렉터, 닫기 버튼)
+ * @param {object} props
+ * @param {import('@/entities/inventory').InventoryItem} props.item
+ * @param {Array<any>} [props.allSalesPoints=[]]
+ * @param {string} [props.selectedSalesPointCode='']
+ * @param {boolean} [props.copiedSku=false]
+ * @param {React.RefObject<HTMLButtonElement>} [props.closeButtonRef]
+ * @param {() => void} [props.onCopySku]
+ * @param {(salesPointCode: string) => void} [props.onSelectSalesPoint]
+ * @param {() => void} [props.onClose]
+ */
 export function InventoryDetailHeader({
   item,
   allSalesPoints = [],
