@@ -1,10 +1,15 @@
-import OperationsPlaceholderPage from '@/pages/operations/OperationsPlaceholderPage.jsx';
+import { StrategyGenerationList } from '@/widgets/strategy-generation-list';
 
 export default function AiStrategyPage() {
   return (
-    <OperationsPlaceholderPage
-      title="AI 전략 및 시뮬레이션"
-      description="위험 재고를 기준으로 실행 가능한 전략을 시뮬레이션합니다."
-    />
+    <main className="page-shell" aria-labelledby="page-title">
+      <section className="page-heading">
+        <div>
+          <h1 id="page-title">AI 전략 및 시뮬레이션</h1>
+          <p>AI 전략 생성 상태를 확인하고, 완료된 전략을 비교·시뮬레이션합니다.</p>
+        </div>
+      </section>
+      <StrategyGenerationList />
+    </main>
   );
 }

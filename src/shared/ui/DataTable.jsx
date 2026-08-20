@@ -109,7 +109,7 @@ export function DataTable({
   const isEmpty = !loading && !error && rows.length === 0;
 
   return (
-    <Table density={density} surface={surface} className={cn('overflow-hidden', className)}>
+    <Table density={density} surface={surface} className={className}>
       <TableElement layout={layout} aria-label={ariaLabel}>
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         <thead>
