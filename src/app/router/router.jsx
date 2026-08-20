@@ -2,7 +2,9 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout.jsx';
 import AuthGuard from './AuthGuard.jsx';
+import AiStrategyDetailPage from '@/pages/ai-strategy/AiStrategyDetailPage.jsx';
 import AiStrategyPage from '@/pages/ai-strategy/AiStrategyPage.jsx';
+import AiStrategySimulationPage from '@/pages/ai-strategy/AiStrategySimulationPage.jsx';
 import DashboardPage from '@/pages/dashboard/DashboardPage.jsx';
 import ExecutionPage from '@/pages/execution/ExecutionPage.jsx';
 import InventoryPage from '@/pages/inventory/InventoryPage.jsx';
@@ -52,6 +54,8 @@ export const router = createBrowserRouter([
           { path: 'dashboard', element: <DashboardPage /> },
           { path: 'inventory', element: <InventoryPage /> },
           { path: 'ai-strategy', element: <AiStrategyPage /> },
+          { path: 'ai-strategy/:strategyCaseId', element: <AiStrategyDetailPage /> },
+          { path: 'ai-strategy/:strategyCaseId/simulation', element: <AiStrategySimulationPage /> },
           { path: 'execution', element: <ExecutionPage /> },
           { path: 'statistics', element: <StatisticsPage /> },
         ],
