@@ -2,11 +2,17 @@ const warehouseLayoutByCode = Object.freeze({
   GYEONGIN_1: { shortName: '경인1', region: '수도권', x: 24, y: 24 },
   GYEONGIN_2: { shortName: '경인2', region: '수도권', x: 18, y: 43 },
   SUJI: { shortName: '수지', region: '수도권', x: 38, y: 37 },
+  SMART_FOOD: { shortName: '성남', region: '수도권', x: 49, y: 20 },
   SEONGNAM: { shortName: '성남', region: '수도권', x: 49, y: 20 },
   DONGTAN: { shortName: '동탄', region: '수도권', x: 52, y: 50 },
   ICHEON_DC: { shortName: '이천', region: '수도권', x: 70, y: 37 },
   YEONGNAM: { shortName: '영남', region: '영남권', x: 76, y: 72 },
   HONAM: { shortName: '호남', region: '호남권', x: 39, y: 78 },
+});
+
+const onlineSalesPointLayoutByCode = Object.freeze({
+  GREETING: { shortName: '그리팅몰', region: '온라인', x: 34, y: 44 },
+  MODU_MATJIP: { shortName: '모두의 맛집', region: '온라인', x: 66, y: 56 },
 });
 
 const storeLayoutByCode = Object.freeze({
@@ -53,6 +59,10 @@ export function getWarehouseLayout(code, index) {
 
 export function getStoreLayout(code, index) {
   return storeLayoutByCode[code] ?? { shortName: code, ...fallbackPosition(index, 5, 24) };
+}
+
+export function getOnlineSalesPointLayout(code, index) {
+  return onlineSalesPointLayoutByCode[code] ?? { shortName: code, ...fallbackPosition(index, 3, 38) };
 }
 
 export function getRegionLabel(code) {

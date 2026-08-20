@@ -67,7 +67,58 @@ const columns = [
   },
 ];
 
-export function RiskSalesPointTable({ points }) {
+function CompactRiskSalesPointList({ points }) {
+  return (
+    <Card asChild padding="none" className="min-w-0 overflow-hidden shadow-[var(--shadow-soft)]">
+      <section aria-labelledby="risk-sales-points-title">
+        <CardHeader className="border-b border-[var(--border)] p-4">
+          <CardTitle id="risk-sales-points-title" className="flex items-center gap-2">
+            <Icon icon={Store} size={17} className="text-[color:var(--danger)]" aria-hidden="true" />
+            위험재고 보유 판매처 TOP 10
+          </CardTitle>
+          <CardDescription>위험 SKU 수 → 예상 폐기수량 순</CardDescription>
+        </CardHeader>
+
+        {points.length === 0 ? (
+          <p className="p-5 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
+            위험재고를 보유한 판매처가 없습니다.
+          </p>
+        ) : (
+          <ol className="max-h-[282px] divide-y divide-[var(--border)] overflow-y-auto px-4">
+            {points.map((point) => (
+              <li key={point.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 py-2.5">
+                <span className="grid size-6 place-items-center rounded-full bg-[var(--danger-soft)] text-[length:var(--font-size-tiny)] font-[var(--font-weight-bold)] text-[color:var(--danger)]">
+                  {point.rank}
+                </span>
+                <span className="min-w-0">
+                  <strong className="block truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
+                    {point.name}
+                  </strong>
+                  <span className="mt-0.5 block text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
+                    {point.type} · 위험 SKU{' '}
+                    <strong className="text-[color:var(--danger)]">{formatQuantity(point.riskSkuCount)}</strong> · 폐기{' '}
+                    <strong className="text-[color:var(--danger)]">{formatQuantity(point.expectedDisposal)}</strong>
+                  </span>
+                </span>
+                <Link
+                  to={getRiskSalesPointInventoryUrl(point)}
+                  aria-label={`${point.name} 재고 보기`}
+                  className="grid size-7 place-items-center rounded-full text-[color:var(--primary-strong)] hover:bg-[var(--primary-soft)]"
+                >
+                  <Icon icon={ArrowRight} size={14} aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+    </Card>
+  );
+}
+
+export function RiskSalesPointTable({ compact = false, points }) {
+  if (compact) return <CompactRiskSalesPointList points={points} />;
+
   return (
     <Card asChild padding="none" className="min-w-0 overflow-hidden shadow-[var(--shadow-soft)]">
       <section aria-labelledby="risk-sales-points-title">

@@ -386,6 +386,18 @@ export const offlineStoreInventories = Object.freeze(
   salesPointInventories.filter((point) => point.type === '오프라인' && point.active),
 );
 
+export const onlineSalesPointInventories = Object.freeze(
+  salesPointInventories
+    .filter((point) => point.type === '온라인' && point.active)
+    .map((point) => ({
+      ...point,
+      shortName: point.name,
+      storageWarehouseCount: 1,
+      x: point.code === 'GREETING' ? 34 : 66,
+      y: point.code === 'GREETING' ? 44 : 56,
+    })),
+);
+
 export const riskSalesPoints = offlineStoreInventories;
 
 export const urgentSkus = Object.freeze([

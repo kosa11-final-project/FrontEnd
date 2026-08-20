@@ -1,8 +1,8 @@
-import { AlertTriangle, Box, Clock, Warning } from 'reicon-react';
-import { formatQuantity } from '@/shared/lib/format';
-import { MetricCard } from '@/shared/ui';
+import { AlertTriangle, Box, Clock, Refresh, Warning } from 'reicon-react';
+import { formatDateTime, formatQuantity } from '@/shared/lib/format';
+import { Icon, MetricCard } from '@/shared/ui';
 
-export function DashboardSummary({ summary }) {
+export function DashboardSummary({ calculatedAt, summary }) {
   const metrics = [
     {
       label: '전체 판매 가능 재고',
@@ -50,9 +50,21 @@ export function DashboardSummary({ summary }) {
         핵심 재고 지표
       </h2>
 
-      <div className="grid grid-cols-1 gap-[var(--spacing-card-gap)] sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-2 flex justify-end">
+        <p className="inline-flex items-center gap-1.5 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+          <Icon icon={Refresh} size={13} aria-hidden="true" />
+          마지막 정상 동기화
+          <strong className="text-[color:var(--text-heading)]">{formatDateTime(calculatedAt)}</strong>
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
+          <MetricCard
+            key={metric.label}
+            {...metric}
+            className="p-3 shadow-[var(--shadow-soft)] [&>strong]:mt-2 [&>strong]:text-[length:var(--font-size-title)] [&>span:last-child]:mt-1"
+          />
         ))}
       </div>
     </section>

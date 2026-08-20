@@ -5,12 +5,42 @@ import { cn } from '@/shared/lib/cn';
 import { formatQuantity } from '@/shared/lib/format';
 import { Badge, Card, CardDescription, CardHeader, CardTitle, Icon, StateView } from '@/shared/ui';
 
-const centerToneClasses = Object.freeze({
+const locationToneClasses = Object.freeze({
   danger:
-    'border-[color:var(--danger)] bg-[var(--danger)] text-[color:var(--text-inverse)] shadow-[0_0_0_8px_color-mix(in_srgb,var(--danger)_14%,transparent)]',
+    'border-[color:var(--danger)] bg-[var(--danger)] text-[color:var(--text-inverse)] shadow-[0_0_0_9px_color-mix(in_srgb,var(--danger)_16%,transparent),var(--shadow-card)]',
   warning:
-    'border-[color:var(--warning)] bg-[var(--warning)] text-[color:var(--text-heading)] shadow-[0_0_0_8px_color-mix(in_srgb,var(--warning)_18%,transparent)]',
-  good: 'border-[color:var(--primary)] bg-[var(--primary)] text-[color:var(--text-inverse)] shadow-[0_0_0_8px_color-mix(in_srgb,var(--primary)_14%,transparent)]',
+    'border-[color:var(--warning)] bg-[var(--warning)] text-[color:var(--text-heading)] shadow-[0_0_0_9px_color-mix(in_srgb,var(--warning)_20%,transparent),var(--shadow-card)]',
+  good: 'border-[color:var(--primary)] bg-[var(--primary)] text-[color:var(--text-inverse)] shadow-[0_0_0_9px_color-mix(in_srgb,var(--primary)_16%,transparent),var(--shadow-card)]',
+});
+
+const viewMeta = Object.freeze({
+  centers: {
+    label: '물류센터 미할당',
+    shortLabel: '물류센터',
+    countUnit: '센터',
+    icon: Database,
+    description: '판매처가 정해지지 않은 물류센터 재고',
+    totalLabel: '판매처 미할당 재고 합계',
+    regionLabels: ['수도권', '영남권', '호남권'],
+  },
+  online: {
+    label: '온라인 판매처',
+    shortLabel: '온라인 판매처',
+    countUnit: '판매처',
+    icon: Store,
+    description: '물류센터에 보관 중인 온라인 판매처 할당 재고',
+    totalLabel: '온라인 판매처 재고 합계',
+    regionLabels: ['온라인 채널', '물류센터 보관', '판매처 할당'],
+  },
+  stores: {
+    label: '오프라인 매장',
+    shortLabel: '오프라인 매장',
+    countUnit: '매장',
+    icon: Building,
+    description: '각 매장에 실제 보관 중인 오프라인 재고',
+    totalLabel: '활성 오프라인 매장 합계',
+    regionLabels: ['서울·경기', '영남권', '충청권'],
+  },
 });
 
 function resolveLocationTone(location) {
@@ -24,7 +54,12 @@ function resolveLocationTone(location) {
 }
 
 function LocationDetail({ location, viewMode }) {
+  const meta = viewMeta[viewMode];
   const isCenterView = viewMode === 'centers';
+  const locationDescription =
+    viewMode === 'online'
+      ? `${formatQuantity(location.storageWarehouseCount)} 물류센터 보관`
+      : location.address || location.description || '주소 정보 없음';
   const detailItems = [
     { label: '현재고', value: formatQuantity(location.currentStock), tone: 'neutral' },
     { label: '판매 가능 재고', value: formatQuantity(location.availableStock), tone: 'good' },
@@ -43,38 +78,38 @@ function LocationDetail({ location, viewMode }) {
 
   return (
     <aside
-      className="border-t border-[var(--border)] bg-[var(--surface)] p-5 xl:border-l xl:border-t-0"
+      className="border-t border-[var(--border)] bg-[var(--surface)] p-4 xl:border-l xl:border-t-0"
       aria-live="polite"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] text-[color:var(--primary-strong)]">
-            선택 {isCenterView ? '물류센터' : '오프라인 매장'}
+            선택 {meta.shortLabel}
           </p>
-          <h3 className="mt-1 text-[length:var(--font-size-section-title)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
+          <h3 className="mt-1 truncate text-[length:var(--font-size-section-title)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
             {location.name}
           </h3>
-          <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-            {location.region} · {location.address || location.description || '주소 정보 없음'}
+          <p className="mt-1 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+            {location.region} · {locationDescription}
           </p>
         </div>
         <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
-          <Icon icon={isCenterView ? Building : Store} size={18} aria-hidden="true" />
+          <Icon icon={meta.icon} size={18} aria-hidden="true" />
         </span>
       </div>
 
-      <dl className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-1">
+      <dl className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-1">
         {detailItems.map((item) => (
           <div
             key={item.label}
-            className="flex min-h-14 items-center justify-between gap-3 rounded-[var(--radius-card)] bg-[var(--surface-subtle)] px-3 py-2.5"
+            className="flex min-h-12 items-center justify-between gap-3 rounded-[var(--radius-card)] bg-[var(--surface-subtle)] px-3 py-2"
           >
-            <dt className="text-[length:var(--font-size-body-sm)] font-[var(--font-weight-medium)] text-[color:var(--text-muted)]">
+            <dt className="text-[length:var(--font-size-meta)] font-[var(--font-weight-medium)] text-[color:var(--text-muted)]">
               {item.label}
             </dt>
             <dd
               className={cn(
-                'tabular-nums text-[length:var(--font-size-subtitle1)] font-[var(--font-weight-bold)]',
+                'tabular-nums text-[length:var(--font-size-body)] font-[var(--font-weight-bold)]',
                 toneClasses[item.tone],
               )}
             >
@@ -95,14 +130,14 @@ function ViewModeButton({ active, count, disabled = false, icon, label, onClick 
       aria-selected={active}
       disabled={disabled}
       className={cn(
-        'inline-flex min-h-9 items-center gap-2 rounded-[var(--radius-control)] px-3 text-[length:var(--font-size-body-sm)] font-[var(--font-weight-bold)] transition-colors',
+        'inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] transition-colors',
         active
-          ? 'bg-[var(--primary-strong)] text-[color:var(--text-inverse)]'
+          ? 'bg-[var(--primary-strong)] text-[color:var(--text-inverse)] shadow-[var(--shadow-soft)]'
           : 'text-[color:var(--text-body)] hover:bg-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent',
       )}
       onClick={onClick}
     >
-      <Icon icon={icon} size={15} aria-hidden="true" />
+      <Icon icon={icon} size={14} aria-hidden="true" />
       {label}
       <span
         className={cn(
@@ -116,26 +151,28 @@ function ViewModeButton({ active, count, disabled = false, icon, label, onClick 
   );
 }
 
-function MobileStoreList({ activeStoreId, onActivate, stores }) {
+function MobileLocationList({ activeLocationId, locations, onActivate, viewMode }) {
+  const meta = viewMeta[viewMode];
+
   return (
     <div className="overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] sm:hidden">
       <div className="border-b border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3">
         <strong className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
-          활성 오프라인 매장 {stores.length}곳
+          {meta.shortLabel} {locations.length}개
         </strong>
         <p className="mt-1 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-          매장을 선택하면 아래 상세 정보가 변경됩니다.
+          위치를 선택하면 아래 상세 정보가 변경됩니다.
         </p>
       </div>
 
-      <ul className="max-h-[480px] divide-y divide-[var(--border)] overflow-y-auto">
-        {stores.map((store) => {
-          const selected = store.id === activeStoreId;
-          const tone = resolveLocationTone(store);
+      <ul className="max-h-[420px] divide-y divide-[var(--border)] overflow-y-auto">
+        {locations.map((location) => {
+          const selected = location.id === activeLocationId;
+          const tone = resolveLocationTone(location);
           const statusLabel = tone === 'danger' ? '위험' : tone === 'warning' ? '주의' : '정상';
 
           return (
-            <li key={store.id}>
+            <li key={location.id}>
               <button
                 type="button"
                 aria-pressed={selected}
@@ -143,18 +180,18 @@ function MobileStoreList({ activeStoreId, onActivate, stores }) {
                   'grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors',
                   selected ? 'bg-[var(--primary-faint)]' : 'hover:bg-[var(--surface-subtle)]',
                 )}
-                onClick={() => onActivate(store.id)}
+                onClick={() => onActivate(location.id)}
               >
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-2">
                     <strong className="truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
-                      {store.name}
+                      {location.name}
                     </strong>
                     <Badge variant={tone}>{statusLabel}</Badge>
                   </span>
                   <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-                    {store.region} · 위험 SKU {formatQuantity(store.riskSkuCount)} · 임박{' '}
-                    <strong className="text-[color:var(--warning)]">{formatQuantity(store.nearExpiryStock)}</strong>
+                    {location.region} · 위험 SKU {formatQuantity(location.riskSkuCount)} · 임박{' '}
+                    <strong className="text-[color:var(--warning)]">{formatQuantity(location.nearExpiryStock)}</strong>
                   </span>
                 </span>
 
@@ -163,7 +200,7 @@ function MobileStoreList({ activeStoreId, onActivate, stores }) {
                     판매 가능
                   </span>
                   <strong className="mt-1 block tabular-nums text-[length:var(--font-size-body)] text-[color:var(--good)]">
-                    {formatQuantity(store.availableStock)}
+                    {formatQuantity(location.availableStock)}
                   </strong>
                 </span>
               </button>
@@ -175,36 +212,44 @@ function MobileStoreList({ activeStoreId, onActivate, stores }) {
   );
 }
 
-export function InventoryLocationOverview({ centers, stores }) {
-  const [viewMode, setViewMode] = useState(() => (centers.length > 0 ? 'centers' : 'stores'));
+function getInitialViewMode(centers, onlineSalesPoints) {
+  if (centers.length > 0) return 'centers';
+  if (onlineSalesPoints.length > 0) return 'online';
+  return 'stores';
+}
+
+export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }) {
+  const [viewMode, setViewMode] = useState(() => getInitialViewMode(centers, onlineSalesPoints));
   const [activeLocationIds, setActiveLocationIds] = useState({
-    centers: centers.find((center) => center.id === 'SEONGNAM')?.id ?? centers[0]?.id,
+    centers: centers.find((center) => center.id === 'SMART_FOOD' || center.id === 'SEONGNAM')?.id ?? centers[0]?.id,
+    online: onlineSalesPoints[0]?.id,
     stores: stores[0]?.id,
   });
-  const locations = viewMode === 'centers' ? centers : stores;
+  const locationGroups = { centers, online: onlineSalesPoints, stores };
+  const locations = locationGroups[viewMode];
+  const meta = viewMeta[viewMode];
   const activeLocation = locations.find((location) => location.id === activeLocationIds[viewMode]) ?? locations[0];
   const stockValues = locations.map((location) => location.availableStock);
   const minimumAvailableStock = stockValues.length > 0 ? Math.min(...stockValues) : 0;
   const maximumAvailableStock = stockValues.length > 0 ? Math.max(...stockValues) : 0;
   const totalAvailableStock = locations.reduce((sum, location) => sum + location.availableStock, 0);
   const totalNearExpiryStock = locations.reduce((sum, location) => sum + location.nearExpiryStock, 0);
-  const isCenterView = viewMode === 'centers';
 
   const handleLocationActivate = (locationId) => {
     setActiveLocationIds((current) => ({ ...current, [viewMode]: locationId }));
   };
 
   return (
-    <Card asChild padding="none" className="overflow-hidden shadow-[var(--shadow-soft)]">
+    <Card asChild padding="none" className="min-w-0 overflow-hidden shadow-[var(--shadow-card)]">
       <section aria-labelledby="inventory-location-title">
-        <CardHeader className="flex-col gap-4 border-b border-[var(--border)] p-5 lg:flex-row lg:items-start lg:justify-between">
+        <CardHeader className="flex-col gap-3 border-b border-[var(--border)] p-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <CardTitle id="inventory-location-title" className="flex items-center gap-2">
               <Icon icon={Database} size={18} className="text-[color:var(--primary)]" aria-hidden="true" />
               재고 위치별 현황
             </CardTitle>
             <CardDescription className="mt-1">
-              물류센터와 활성 오프라인 매장을 전환해 판매 가능 재고와 소비기한 임박 수량을 확인합니다.
+              미할당·온라인·오프라인 재고를 분리해 위험 위치를 빠르게 비교합니다.
             </CardDescription>
           </div>
 
@@ -213,60 +258,55 @@ export function InventoryLocationOverview({ centers, stores }) {
             aria-label="재고 위치 유형"
             className="flex w-fit max-w-full flex-wrap gap-1 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1"
           >
-            <ViewModeButton
-              active={isCenterView}
-              count={`${centers.length}개 센터`}
-              disabled={centers.length === 0}
-              icon={Database}
-              label="물류센터 재고"
-              onClick={() => setViewMode('centers')}
-            />
-            <ViewModeButton
-              active={!isCenterView}
-              count={`${stores.length}개 매장`}
-              disabled={stores.length === 0}
-              icon={Store}
-              label="오프라인 매장 재고"
-              onClick={() => setViewMode('stores')}
-            />
+            {Object.entries(locationGroups).map(([mode, group]) => (
+              <ViewModeButton
+                key={mode}
+                active={viewMode === mode}
+                count={`${group.length}개`}
+                disabled={group.length === 0}
+                icon={viewMeta[mode].icon}
+                label={viewMeta[mode].label}
+                onClick={() => setViewMode(mode)}
+              />
+            ))}
           </div>
         </CardHeader>
 
         {activeLocation ? (
-          <div className="grid xl:grid-cols-[minmax(0,1fr)_300px]">
-            <div className="p-4 sm:p-5">
-              {!isCenterView ? (
-                <MobileStoreList
-                  activeStoreId={activeLocation.id}
+          <div className="grid xl:grid-cols-[minmax(0,1fr)_260px]">
+            <div className="p-3 sm:p-4">
+              {viewMode !== 'centers' ? (
+                <MobileLocationList
+                  activeLocationId={activeLocation.id}
+                  locations={locations}
                   onActivate={handleLocationActivate}
-                  stores={stores}
+                  viewMode={viewMode}
                 />
               ) : null}
 
               <div
                 className={cn(
-                  'relative min-h-[520px] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface-subtle)] sm:min-h-[580px]',
-                  !isCenterView && 'hidden sm:block',
+                  'relative min-h-[430px] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-strong)] bg-[var(--surface-subtle)] sm:min-h-[500px]',
+                  viewMode !== 'centers' && 'hidden sm:block',
                 )}
                 style={{
                   backgroundImage:
-                    'linear-gradient(color-mix(in srgb, var(--border) 65%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--border) 65%, transparent) 1px, transparent 1px), radial-gradient(circle at 45% 35%, var(--primary-soft), transparent 42%)',
-                  backgroundSize: '48px 48px, 48px 48px, 100% 100%',
+                    'linear-gradient(color-mix(in srgb, var(--border) 72%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--border) 72%, transparent) 1px, transparent 1px), radial-gradient(circle at 46% 42%, color-mix(in srgb,var(--primary-soft) 90%,white), transparent 48%)',
+                  backgroundSize: '42px 42px, 42px 42px, 100% 100%',
                 }}
               >
-                <div className="absolute left-4 top-4 z-10 max-w-[90%] rounded-[var(--radius-card)] border border-[var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--text-body)] shadow-[var(--shadow-soft)]">
-                  {isCenterView ? `전국 ${centers.length}개 물류센터` : `활성 오프라인 매장 ${stores.length}곳`}의
-                  재고를 비교합니다.
+                <div className="absolute left-4 top-4 z-10 max-w-[90%] rounded-full border border-[var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--text-body)] shadow-[var(--shadow-soft)]">
+                  {meta.description} · {locations.length}개
                 </div>
 
-                <span className="absolute left-[10%] top-[17%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
-                  {isCenterView ? '수도권' : '서울·경기'}
+                <span className="absolute left-[10%] top-[18%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
+                  {meta.regionLabels[0]}
                 </span>
-                <span className="absolute bottom-[14%] right-[11%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
-                  영남권
+                <span className="absolute bottom-[15%] right-[10%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
+                  {meta.regionLabels[1]}
                 </span>
-                <span className="absolute bottom-[9%] left-[22%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
-                  {isCenterView ? '호남권' : '충청권'}
+                <span className="absolute bottom-[10%] left-[21%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
+                  {meta.regionLabels[2]}
                 </span>
 
                 <svg
@@ -276,11 +316,15 @@ export function InventoryLocationOverview({ centers, stores }) {
                   preserveAspectRatio="none"
                 >
                   <path
-                    d="M18 43 L24 24 L38 37 L49 20 L52 50 L70 37 L76 72 M52 50 L39 78"
+                    d={
+                      viewMode === 'online'
+                        ? 'M34 44 C45 32 55 68 66 56'
+                        : 'M18 43 L24 24 L38 37 L49 20 L52 50 L70 37 L76 72 M52 50 L39 78'
+                    }
                     fill="none"
                     stroke="var(--border-strong)"
-                    strokeWidth="0.55"
-                    strokeDasharray="2.5 2.5"
+                    strokeWidth="0.7"
+                    strokeDasharray="3 3"
                     vectorEffect="non-scaling-stroke"
                   />
                 </svg>
@@ -294,7 +338,6 @@ export function InventoryLocationOverview({ centers, stores }) {
                     viewMode,
                   );
                   const tone = resolveLocationTone(location);
-                  const shortName = location.shortName;
 
                   return (
                     <button
@@ -303,8 +346,8 @@ export function InventoryLocationOverview({ centers, stores }) {
                       aria-label={`${location.name}, 판매 가능 재고 ${formatQuantity(location.availableStock)}, 소비기한 임박 ${formatQuantity(location.nearExpiryStock)}`}
                       aria-pressed={selected}
                       className={cn(
-                        'group absolute z-[2] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[transform,box-shadow] duration-[var(--motion-fast)] hover:z-10 hover:-translate-x-1/2 hover:-translate-y-1/2 hover:scale-105 focus-visible:z-10',
-                        centerToneClasses[tone],
+                        'group absolute z-[2] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[transform,box-shadow] duration-[var(--motion-fast)] hover:z-10 hover:-translate-x-1/2 hover:-translate-y-1/2 hover:scale-110 focus-visible:z-10',
+                        locationToneClasses[tone],
                         selected && 'ring-4 ring-[var(--surface)] outline outline-2 outline-[var(--primary-strong)]',
                       )}
                       style={{
@@ -319,13 +362,13 @@ export function InventoryLocationOverview({ centers, stores }) {
                     >
                       <span className="flex h-full flex-col items-center justify-center leading-none">
                         <strong
-                          className={cn(
-                            isCenterView
+                          className={
+                            viewMode === 'centers'
                               ? 'text-[length:var(--font-size-body-sm)]'
-                              : 'text-[length:var(--font-size-meta)]',
-                          )}
+                              : 'text-[length:var(--font-size-meta)]'
+                          }
                         >
-                          {shortName}
+                          {location.shortName}
                         </strong>
                         <span className="mt-1 text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)]">
                           {location.availableStock.toLocaleString('ko-KR')}
@@ -341,7 +384,7 @@ export function InventoryLocationOverview({ centers, stores }) {
 
                 <div className="absolute bottom-4 left-4 right-4 z-[1] flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[color:var(--surface)] px-3 py-2.5 shadow-[var(--shadow-soft)]">
                   <span className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-                    {isCenterView ? '전국 물류센터 합계' : '활성 오프라인 매장 합계'}
+                    {meta.totalLabel}
                   </span>
                   <strong className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
                     판매 가능 {formatQuantity(totalAvailableStock)} · 임박 {formatQuantity(totalNearExpiryStock)}

@@ -26,6 +26,21 @@ const response = {
       riskSkuCount: 5,
     },
   ],
+  onlineSalesPoints: [
+    {
+      salesPointId: 10,
+      salesPointCode: 'GREETING',
+      salesPointName: '그리팅몰',
+      regionCode: 'ONLINE',
+      address: null,
+      storageWarehouseCount: 2,
+      currentStock: 912,
+      availableStock: 833,
+      nearExpiryStock: 74,
+      expectedDisposalQty: 118,
+      riskSkuCount: 2,
+    },
+  ],
   offlineStores: [
     {
       salesPointId: 13,
@@ -86,6 +101,12 @@ describe('dashboard response mapper', () => {
       expectedDisposal: 519,
     });
     expect(dashboard.warehouses[0]).toMatchObject({ id: 'SEONGNAM', shortName: '성남', x: 49, y: 20 });
+    expect(dashboard.onlineSalesPoints[0]).toMatchObject({
+      id: 'GREETING',
+      shortName: '그리팅몰',
+      storageWarehouseCount: 2,
+      expectedDisposal: 118,
+    });
     expect(dashboard.offlineStores[0]).toMatchObject({
       id: 'DEPT_PANGYO',
       shortName: '판교',
@@ -107,6 +128,7 @@ describe('dashboard response mapper', () => {
     const dashboard = mapDashboardResponse({ summary: {} });
 
     expect(dashboard.warehouses).toEqual([]);
+    expect(dashboard.onlineSalesPoints).toEqual([]);
     expect(dashboard.offlineStores).toEqual([]);
     expect(dashboard.riskSalesPointsTop10).toEqual([]);
     expect(dashboard.urgentSkusTop5).toEqual([]);

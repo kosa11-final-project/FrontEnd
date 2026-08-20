@@ -31,6 +31,7 @@ export {
   dashboardInventorySummary,
   distributionCenters,
   offlineStoreInventories,
+  onlineSalesPointInventories,
   rankRiskSalesPoints,
   rankUrgentSkus,
   riskSalesPoints,
