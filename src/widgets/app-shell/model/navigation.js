@@ -17,9 +17,9 @@ export const navigationItems = [
   },
   {
     path: '/execution',
-    label: 'AI 전략 기록 & 성과',
+    label: 'AI 전략 실행 관제',
     icon: Refresh,
-    description: 'AI 전략 기록과 실행 성과를 확인합니다.',
+    description: '다중 액션의 실행 상태와 성과를 관제합니다.',
   },
   { path: '/statistics', label: '통계', icon: ChartBar, description: '재고 운영 통계를 확인합니다.' },
 ];

@@ -5,7 +5,8 @@ import AuthGuard from './AuthGuard.jsx';
 import AiStrategyDetailPage from '@/pages/ai-strategy/AiStrategyDetailPage.jsx';
 import AiStrategyPage from '@/pages/ai-strategy/AiStrategyPage.jsx';
 import DashboardPage from '@/pages/dashboard/DashboardPage.jsx';
-import ExecutionPage from '@/pages/execution/ExecutionPage.jsx';
+import ExecutionListPage from '@/pages/execution/ExecutionListPage.jsx';
+import ExecutionDetailPage from '@/pages/execution/ExecutionDetailPage.jsx';
 import InventoryPage from '@/pages/inventory/InventoryPage.jsx';
 import LoginPage from '@/pages/login/LoginPage.jsx';
 import StatisticsPage from '@/pages/statistics/StatisticsPage.jsx';
@@ -63,7 +64,8 @@ export const router = createBrowserRouter([
               </LazyRoute>
             ),
           },
-          { path: 'execution', element: <ExecutionPage /> },
+          { path: 'execution', element: <ExecutionListPage /> },
+          { path: 'execution/:strategyId', element: <ExecutionDetailPage /> },
           { path: 'statistics', element: <StatisticsPage /> },
         ],
       },
