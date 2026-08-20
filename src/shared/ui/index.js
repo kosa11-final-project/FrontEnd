@@ -15,6 +15,7 @@ export { LoadingMedia } from './LoadingMedia.jsx';
 export { LottieLoader, defaultLottiePath } from './LottieLoader.jsx';
 export { MetricCard, metricIconVariants, metricValueVariants } from './MetricCard.jsx';
 export { Select, selectVariants } from './Select.jsx';
+export { SelectMenu } from './SelectMenu.jsx';
 export { Skeleton, skeletonVariants } from './Skeleton.jsx';
 export { StateView, stateIconVariants, stateViewVariants } from './StateView.jsx';
 export { Table, TableElement, tableElementVariants, tableVariants } from './Table.jsx';
