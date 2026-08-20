@@ -132,16 +132,36 @@ describe('strategy detail model', () => {
     };
     const defaults = getStrategyAdjustmentDefaults(option);
     const adjusted = buildAdjustedStrategyOption(strategyCase, option, {
-      ...defaults,
-      quantity: 15,
-      strategyPrice: 800,
+      actions: {
+        1: { ...defaults.actions[1], quantity: 15, strategyPrice: 800 },
+      },
     });
 
-    expect(defaults.discountPercent).toBe(10);
+    expect(defaults.actions[1].discountPercent).toBe(10);
     expect(adjusted.simulationSummary.expectedSalesQty).toBeLessThanOrEqual(15);
     expect(adjusted.simulationSummary.expectedRevenue).toBe(adjusted.simulationSummary.expectedSalesQty * 800);
     expect(adjusted.simulationDailySeries.at(-1).expectedRemainingQty).toBe(
       adjusted.simulationSummary.expectedRemainingQty,
     );
+  });
+
+  it('재할당 액션 기본값에는 할인 조건을 포함하지 않는다', () => {
+    const defaults = getStrategyAdjustmentDefaults({
+      actions: [
+        {
+          actionOrder: 1,
+          actionType: 'REALLOCATION',
+          actionQuantity: 20,
+          strategyPrice: 1000,
+          startDate: '2026-08-20',
+          endDate: '2026-08-27',
+          estimatedActionCost: 500,
+        },
+      ],
+    });
+
+    expect(defaults.actions[1]).toMatchObject({ actionType: 'REALLOCATION', quantity: 20, actionCost: 500 });
+    expect(defaults.actions[1]).not.toHaveProperty('discountPercent');
+    expect(defaults.actions[1]).not.toHaveProperty('strategyPrice');
   });
 });

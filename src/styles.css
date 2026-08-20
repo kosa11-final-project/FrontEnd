@@ -516,6 +516,58 @@ a:focus-visible {
   display: none;
 }
 
+.strategy-adjustment-range {
+  --range-progress: 0%;
+  height: 8px;
+  appearance: none;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--primary) 0%,
+    var(--primary) var(--range-progress),
+    var(--border-strong) var(--range-progress),
+    var(--border-strong) 100%
+  );
+  cursor: pointer;
+}
+
+.strategy-adjustment-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.strategy-adjustment-range::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -5px;
+  appearance: none;
+  border: 2px solid var(--primary);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+
+.strategy-adjustment-range::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.strategy-adjustment-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--primary);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow-soft);
+}
+
+.strategy-adjustment-range:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+
 /* PAGE: route-level content width, title hierarchy, and page spacing. */
 .content-wrap {
   width: min(100%, 1440px);

@@ -30,6 +30,7 @@ import {
   DetailLayout,
   Icon,
   Input,
+  Select,
   Table,
   TableElement,
   Tabs,
@@ -129,127 +130,242 @@ function StrategySwitcher({ strategyCase, options, activeOptionKey, finalOptionK
 }
 
 function EditableRange({ label, value, displayValue, min = 0, max = 100, onChange }) {
+  const numericValue = Math.min(Math.max(Number(value) || 0, min), max);
+  const progress = max === min ? 0 : ((numericValue - min) / (max - min)) * 100;
+
   return (
-    <label className="grid gap-2 text-sm font-semibold text-[color:var(--text-body)]">
-      <span className="flex items-center justify-between gap-3">
-        {label}
-        <strong className="tabular-nums text-[color:var(--text-heading)]">{displayValue}</strong>
+    <label className="grid min-w-0 gap-2 text-sm font-semibold text-[color:var(--text-body)]">
+      <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <span>{label}</span>
+        <strong className="shrink-0 tabular-nums text-[color:var(--text-heading)]">{displayValue}</strong>
       </span>
       <input
         type="range"
         min={min}
         max={max}
-        value={Math.min(Number(value) || 0, max)}
+        value={numericValue}
         onChange={(event) => onChange(Number(event.target.value))}
         aria-label={label}
-        className="h-2 w-full accent-[var(--primary)]"
+        className="strategy-adjustment-range w-full"
+        style={{ '--range-progress': `${progress}%` }}
       />
     </label>
   );
 }
 
-function ConditionPanel({ option, values, defaults, maxQuantity, saved, onChange, onReset, onSave }) {
-  const locations = [...new Set(option.actions.map((action) => action.targetLocation?.locationName).filter(Boolean))];
-  const lots = option.actions.flatMap((action) => action.lotAllocations ?? []);
+function getLocationOptions(strategyCase, action) {
+  const locations = new Map();
+  const addLocation = (location) => {
+    if (location?.locationId === null || location?.locationId === undefined) return;
+    locations.set(String(location.locationId), location);
+  };
+
+  addLocation(action.targetLocation);
+  strategyCase.requestConditions.candidateSalesPointIds?.forEach((locationId, index) => {
+    addLocation({
+      locationType: 'SALES_POINT',
+      locationId,
+      locationCode: `SP-${String(locationId).padStart(4, '0')}`,
+      locationName: strategyCase.requestConditions.candidateSalesPointNames?.[index] ?? `판매처 ${locationId}`,
+    });
+  });
+
+  return [...locations.values()];
+}
+
+function CurrencyInput({ label, ariaLabel, value, onChange }) {
+  return (
+    <label className="grid min-w-0 gap-2 text-sm font-semibold text-[color:var(--text-body)]">
+      {label}
+      <span className="relative min-w-0">
+        <Input
+          type="number"
+          min="0"
+          step="1000"
+          value={value}
+          onChange={(event) => onChange(Number(event.target.value))}
+          aria-label={ariaLabel}
+          className="min-w-0 pr-9 text-right font-semibold tabular-nums"
+        />
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[color:var(--text-muted)]">원</span>
+      </span>
+    </label>
+  );
+}
+
+function DateRangeFields({ actionOrder, values, onChange }) {
+  return (
+    <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+      <label className="grid min-w-0 gap-2 text-xs font-semibold text-[color:var(--text-body)]">
+        시작일
+        <Input
+          type="date"
+          value={values.startDate}
+          max={values.endDate || undefined}
+          onChange={(event) => onChange(actionOrder, 'startDate', event.target.value)}
+          aria-label={`액션 ${actionOrder} 시작일`}
+          className="min-w-0"
+        />
+      </label>
+      <label className="grid min-w-0 gap-2 text-xs font-semibold text-[color:var(--text-body)]">
+        종료일
+        <Input
+          type="date"
+          value={values.endDate}
+          min={values.startDate || undefined}
+          onChange={(event) => onChange(actionOrder, 'endDate', event.target.value)}
+          aria-label={`액션 ${actionOrder} 종료일`}
+          className="min-w-0"
+        />
+      </label>
+    </div>
+  );
+}
+
+function ActionConditionSection({ strategyCase, action, values, maxQuantity, onChange }) {
+  const meta = resolveStrategyActionType(action.actionType);
+  const locationOptions = getLocationOptions(strategyCase, action);
+  const isLocationAction = action.actionType === 'REALLOCATION' || action.actionType === 'RT_TRANSFER';
+  const isChannelAction = action.actionType === 'CHANNEL_EXPANSION' || action.actionType === 'CHANNEL_CONCENTRATION';
+  const isDiscountAction = action.actionType === 'PRICE_DISCOUNT';
+  const quantityLabel =
+    action.actionType === 'RT_TRANSFER'
+      ? '이동 수량'
+      : action.actionType === 'REALLOCATION'
+        ? '재할당 수량'
+        : isDiscountAction
+          ? '할인 적용 수량'
+          : '채널 적용 수량';
+  const targetLabel = isChannelAction
+    ? action.actionType === 'CHANNEL_EXPANSION'
+      ? '추가 판매 채널'
+      : '집중 판매 채널'
+    : '도착 판매처';
 
   return (
-    <Card padding="none" className="overflow-hidden">
+    <section className="grid min-w-0 gap-5 rounded-xl border border-[var(--border)] p-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--primary-soft)] text-xs font-bold text-[color:var(--primary)]">
+          {action.actionOrder}
+        </span>
+        <Badge variant={meta.variant}>{meta.label}</Badge>
+        <strong className="min-w-0 text-sm text-[color:var(--text-heading)]">액션 조건</strong>
+      </div>
+
+      <EditableRange
+        label={quantityLabel}
+        value={values.quantity}
+        max={maxQuantity}
+        displayValue={formatQuantity(values.quantity)}
+        onChange={(value) => onChange(action.actionOrder, 'quantity', value)}
+      />
+
+      {(isLocationAction || isChannelAction) && (
+        <div className="grid min-w-0 gap-3">
+          {isLocationAction && (
+            <dl className="grid min-w-0 gap-1 rounded-lg bg-[var(--surface-subtle)] p-3 text-xs">
+              <dt className="text-[color:var(--text-muted)]">출발 위치</dt>
+              <dd className="break-words font-semibold text-[color:var(--text-heading)]">
+                {values.sourceLocation?.locationName ?? '서버 자동 선택'}
+              </dd>
+            </dl>
+          )}
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[color:var(--text-body)]">
+            {targetLabel}
+            <Select
+              value={String(values.targetLocation?.locationId ?? '')}
+              onChange={(event) => {
+                const nextLocation = locationOptions.find(
+                  (location) => String(location.locationId) === event.target.value,
+                );
+                onChange(action.actionOrder, 'targetLocation', nextLocation ?? values.targetLocation);
+              }}
+              aria-label={`액션 ${action.actionOrder} ${targetLabel}`}
+              className="min-w-0"
+            >
+              {locationOptions.map((location) => (
+                <option key={location.locationId} value={location.locationId}>
+                  {location.locationName}
+                </option>
+              ))}
+            </Select>
+          </label>
+        </div>
+      )}
+
+      {isDiscountAction && (
+        <>
+          <EditableRange
+            label="할인율"
+            value={values.discountPercent}
+            max={50}
+            displayValue={`${formatNumber(values.discountPercent, { maximumFractionDigits: 0 })}%`}
+            onChange={(value) => onChange(action.actionOrder, 'discountPercent', value)}
+          />
+          <CurrencyInput
+            label="전략 판매가"
+            ariaLabel={`액션 ${action.actionOrder} 전략 판매가`}
+            value={values.strategyPrice}
+            onChange={(value) => onChange(action.actionOrder, 'strategyPrice', value)}
+          />
+        </>
+      )}
+
+      <DateRangeFields actionOrder={action.actionOrder} values={values} onChange={onChange} />
+
+      {!isDiscountAction && (
+        <CurrencyInput
+          label={isChannelAction ? '채널 운영 비용' : '이동·실행 비용'}
+          ariaLabel={`액션 ${action.actionOrder} 실행 비용`}
+          value={values.actionCost}
+          onChange={(value) => onChange(action.actionOrder, 'actionCost', value)}
+        />
+      )}
+
+      {action.lotAllocations?.length ? (
+        <dl className="grid min-w-0 gap-1 rounded-lg bg-[var(--surface-subtle)] p-3 text-xs">
+          <dt className="text-[color:var(--text-muted)]">적용 LOT</dt>
+          <dd className="break-all font-semibold leading-5 text-[color:var(--text-heading)]">
+            {action.lotAllocations.map((lot) => lot.lotCode ?? `LOT ${lot.lotId}`).join(', ')}
+          </dd>
+        </dl>
+      ) : null}
+    </section>
+  );
+}
+
+function ConditionPanel({ strategyCase, option, values, defaults, maxQuantity, saved, onChange, onReset, onSave }) {
+  return (
+    <Card padding="none" className="min-w-0 overflow-clip" data-testid="strategy-condition-panel">
       <div className="border-b border-[var(--border)] p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-[color:var(--text-heading)]">조건 조정</h2>
-            <p className="mt-1 text-xs text-[color:var(--text-muted)]">{option.optionName}</p>
+            <p className="mt-1 break-words text-xs leading-5 text-[color:var(--text-muted)]">{option.optionName}</p>
           </div>
           <Badge variant={saved ? 'good' : 'info'}>{saved ? '조정안 저장됨' : '데모 미리보기'}</Badge>
         </div>
       </div>
 
-      <div className="grid gap-6 p-5">
+      <div className="grid min-w-0 gap-5 p-5">
         <Alert variant="info" title="조건 조정 미리보기">
           값을 바꾸면 차트와 예상 결과가 즉시 갱신됩니다. 현재 계산은 화면 시연용입니다.
         </Alert>
 
-        <EditableRange
-          label="적용 상품수량"
-          value={values.quantity}
-          max={maxQuantity}
-          displayValue={formatQuantity(values.quantity)}
-          onChange={(value) => onChange('quantity', value)}
-        />
-        <EditableRange
-          label="할인율"
-          value={values.discountPercent}
-          max={50}
-          displayValue={`${formatNumber(values.discountPercent, { maximumFractionDigits: 0 })}%`}
-          onChange={(value) => onChange('discountPercent', value)}
-        />
-
-        <label className="grid gap-2 text-sm font-semibold text-[color:var(--text-body)]">
-          판매기간
-          <span className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-            <Input
-              type="date"
-              value={values.startDate}
-              onChange={(event) => onChange('startDate', event.target.value)}
-              aria-label="판매 시작일"
+        <div className="grid min-w-0 gap-4">
+          {option.actions.map((action) => (
+            <ActionConditionSection
+              key={action.actionOrder}
+              strategyCase={strategyCase}
+              action={action}
+              values={values.actions[action.actionOrder]}
+              maxQuantity={maxQuantity}
+              onChange={onChange}
             />
-            <span className="text-[color:var(--text-muted)]">—</span>
-            <Input
-              type="date"
-              value={values.endDate}
-              min={values.startDate}
-              onChange={(event) => onChange('endDate', event.target.value)}
-              aria-label="판매 종료일"
-            />
-          </span>
-        </label>
+          ))}
+        </div>
 
-        <label className="grid gap-2 text-sm font-semibold text-[color:var(--text-body)]">
-          전략 판매가
-          <span className="relative">
-            <Input
-              type="number"
-              min="0"
-              step="100"
-              value={values.strategyPrice}
-              onChange={(event) => onChange('strategyPrice', Number(event.target.value))}
-              aria-label="전략 판매가"
-              className="pr-9 text-right font-semibold tabular-nums"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[color:var(--text-muted)]">원</span>
-          </span>
-        </label>
-
-        <label className="grid gap-2 text-sm font-semibold text-[color:var(--text-body)]">
-          이동·실행 비용
-          <span className="relative">
-            <Input
-              type="number"
-              min="0"
-              step="1000"
-              value={values.actionCost}
-              onChange={(event) => onChange('actionCost', Number(event.target.value))}
-              aria-label="이동 실행 비용"
-              className="pr-9 text-right font-semibold tabular-nums"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[color:var(--text-muted)]">원</span>
-          </span>
-        </label>
-
-        <dl className="grid gap-3 rounded-xl bg-[var(--surface-subtle)] p-4 text-xs">
-          <div className="flex justify-between gap-3">
-            <dt className="text-[color:var(--text-muted)]">대상 판매처</dt>
-            <dd className="text-right font-semibold text-[color:var(--text-heading)]">{locations.join(', ') || '-'}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt className="text-[color:var(--text-muted)]">적용 LOT</dt>
-            <dd className="text-right font-semibold text-[color:var(--text-heading)]">
-              {lots.map((lot) => lot.lotCode ?? `LOT ${lot.lotId}`).join(', ') || '서버 자동 배정'}
-            </dd>
-          </div>
-        </dl>
-
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
             type="button"
             variant="secondary"
@@ -458,19 +574,22 @@ function ActionTimeline({ option }) {
 }
 
 export function StrategySimulationView({ strategyCase, activeOption, listPath, onActiveOptionChange }) {
-  const options = sortStrategyOptions(strategyCase.options);
+  const options = useMemo(() => sortStrategyOptions(strategyCase.options), [strategyCase.options]);
   const [finalOptionKey, setFinalOptionKey] = useState(null);
-  const adjustmentDefaults = useMemo(() => getStrategyAdjustmentDefaults(activeOption), [activeOption]);
-  const [adjustmentState, setAdjustmentState] = useState(() => ({
-    optionKey: activeOption.optionKey,
-    values: adjustmentDefaults,
-    saved: false,
-  }));
+  const adjustmentDefaultsByOption = useMemo(
+    () =>
+      Object.fromEntries(
+        options.map((option) => [option.optionKey, { values: getStrategyAdjustmentDefaults(option), saved: false }]),
+      ),
+    [options],
+  );
+  const [adjustmentStateByOption, setAdjustmentStateByOption] = useState(() => adjustmentDefaultsByOption);
   const comparePath = `/ai-strategy/${strategyCase.strategyCaseId}`;
   const maxQuantity = strategyCase.baselineSimulation.dailySeries[0]?.expectedRemainingQty ?? 100;
-  const hasCurrentAdjustment = adjustmentState.optionKey === activeOption.optionKey;
-  const adjustment = hasCurrentAdjustment ? adjustmentState.values : adjustmentDefaults;
-  const adjustmentSaved = hasCurrentAdjustment ? adjustmentState.saved : false;
+  const adjustmentDefaults = adjustmentDefaultsByOption[activeOption.optionKey];
+  const adjustmentState = adjustmentStateByOption[activeOption.optionKey] ?? adjustmentDefaults;
+  const adjustment = adjustmentState.values;
+  const adjustmentSaved = adjustmentState.saved;
 
   const adjustedOption = useMemo(
     () => buildAdjustedStrategyOption(strategyCase, activeOption, adjustment),
@@ -481,26 +600,33 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     [activeOption.optionKey, adjustedOption, options],
   );
 
-  function handleConditionChange(field, value) {
-    setAdjustmentState((current) => {
-      const currentValues = current.optionKey === activeOption.optionKey ? current.values : adjustmentDefaults;
-      if (field !== 'discountPercent') {
-        return {
-          optionKey: activeOption.optionKey,
-          values: { ...currentValues, [field]: value },
-          saved: false,
+  function handleConditionChange(actionOrder, field, value) {
+    setAdjustmentStateByOption((current) => {
+      const optionState = current[activeOption.optionKey] ?? adjustmentDefaults;
+      const actionValues = optionState.values.actions[actionOrder];
+      const defaultActionValues = adjustmentDefaults.values.actions[actionOrder];
+      let nextActionValues = { ...actionValues, [field]: value };
+
+      if (field === 'discountPercent') {
+        const listPrice =
+          defaultActionValues.discountPercent >= 100
+            ? defaultActionValues.strategyPrice
+            : defaultActionValues.strategyPrice / (1 - defaultActionValues.discountPercent / 100);
+        nextActionValues = {
+          ...nextActionValues,
+          strategyPrice: Math.max(0, Math.round((listPrice * (1 - value / 100)) / 100) * 100),
         };
       }
 
-      const listPrice =
-        adjustmentDefaults.discountPercent >= 100
-          ? adjustmentDefaults.strategyPrice
-          : adjustmentDefaults.strategyPrice / (1 - adjustmentDefaults.discountPercent / 100);
-      const strategyPrice = Math.max(0, Math.round((listPrice * (1 - value / 100)) / 100) * 100);
       return {
-        optionKey: activeOption.optionKey,
-        values: { ...currentValues, discountPercent: value, strategyPrice },
-        saved: false,
+        ...current,
+        [activeOption.optionKey]: {
+          values: {
+            ...optionState.values,
+            actions: { ...optionState.values.actions, [actionOrder]: nextActionValues },
+          },
+          saved: false,
+        },
       };
     });
   }
@@ -523,19 +649,28 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
 
       <DetailLayout
         aside="wide"
-        className="mt-4 lg:grid-cols-1 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]"
+        className="mt-4 lg:grid-cols-1 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]"
         asideContent={
           <ConditionPanel
+            strategyCase={strategyCase}
             option={adjustedOption}
             values={adjustment}
-            defaults={adjustmentDefaults}
+            defaults={adjustmentDefaults.values}
             maxQuantity={maxQuantity}
             saved={adjustmentSaved}
             onChange={handleConditionChange}
             onReset={() =>
-              setAdjustmentState({ optionKey: activeOption.optionKey, values: adjustmentDefaults, saved: false })
+              setAdjustmentStateByOption((current) => ({
+                ...current,
+                [activeOption.optionKey]: adjustmentDefaults,
+              }))
             }
-            onSave={() => setAdjustmentState({ optionKey: activeOption.optionKey, values: adjustment, saved: true })}
+            onSave={() =>
+              setAdjustmentStateByOption((current) => ({
+                ...current,
+                [activeOption.optionKey]: { values: adjustment, saved: true },
+              }))
+            }
           />
         }
       >
