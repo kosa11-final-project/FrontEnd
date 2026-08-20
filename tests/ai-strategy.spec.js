@@ -125,11 +125,11 @@ test.describe('AI 전략 생성 목록', () => {
 
     const chart = page.getByTestId('strategy-simulation-chart');
     const panel = page.getByTestId('strategy-condition-panel');
-    expect(await chart.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-    expect(await panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
-    ).toBe(true);
+    await expect.poll(() => chart.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await expect.poll(() => panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth))
+      .toBe(true);
   });
 
   test('생성중 Drawer를 열고 Escape로 닫은 뒤 화살표로 포커스를 복귀한다', async ({ page }) => {

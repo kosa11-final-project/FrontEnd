@@ -1,9 +1,13 @@
 import { ArrowLeft, Package } from 'reicon-react';
 import { Link } from 'react-router-dom';
 import { formatDateTime } from '@/shared/lib/format';
+import { resolveStrategyGenerationStatus, strategyGenerationStatusMeta } from '@/entities/strategy';
 import { Badge, Button, Card, Icon } from '@/shared/ui';
 
 export function StrategyDetailHeader({ strategyCase, backTo, backState, backLabel = '목록으로', actions }) {
+  const status = resolveStrategyGenerationStatus(strategyCase.caseStatus);
+  const statusMeta = strategyGenerationStatusMeta[status];
+
   return (
     <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div className="min-w-0">
@@ -13,10 +17,13 @@ export function StrategyDetailHeader({ strategyCase, backTo, backState, backLabe
           </Link>
         </Button>
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-[color:var(--text-heading)] sm:text-3xl">
+          <h1
+            id="page-title"
+            className="text-2xl font-bold tracking-tight text-[color:var(--text-heading)] sm:text-3xl"
+          >
             {strategyCase.caseName}
           </h1>
-          <Badge variant="good">AI 생성완료</Badge>
+          <Badge variant={statusMeta.variant}>AI {statusMeta.label}</Badge>
         </div>
         <p className="mt-2 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
           {strategyCase.caseCode} · {strategyCase.sku.skuName} · {strategyCase.sku.skuCode}

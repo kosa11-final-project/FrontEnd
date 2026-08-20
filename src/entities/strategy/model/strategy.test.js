@@ -27,4 +27,15 @@ describe('AI 전략 생성 상태 모델', () => {
       'complete',
     ]);
   });
+
+  it('빈 입력과 마지막 단계 실패를 안전하게 처리한다', () => {
+    expect(resolveStrategyGenerationStatus('')).toBe('UNKNOWN');
+    expect(resolveStrategyGenerationStatus(null)).toBe('UNKNOWN');
+    expect(resolveStrategyGenerationStage(undefined)).toBe('FORECASTING');
+    expect(getStrategyGenerationProgress('GENERATION_FAILED', 'COMPARISON_READY').map(({ state }) => state)).toEqual([
+      'complete',
+      'complete',
+      'error',
+    ]);
+  });
 });

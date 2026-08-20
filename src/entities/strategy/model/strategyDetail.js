@@ -27,6 +27,28 @@ function getInclusiveDays(startDate, endDate) {
   return Number.isFinite(days) && days > 0 ? days : 1;
 }
 
+function getStrategyDuration(actionItems, valueKey) {
+  const ranges = actionItems
+    .map((item) => item[valueKey])
+    .filter(({ startDate, endDate } = {}) => startDate && endDate);
+  if (ranges.length === 0) return 1;
+
+  const startDate = ranges.map((range) => range.startDate).sort()[0];
+  const endDate = ranges
+    .map((range) => range.endDate)
+    .sort()
+    .at(-1);
+  return getInclusiveDays(startDate, endDate);
+}
+
+function subtractOrNull(left, right) {
+  return Number.isFinite(left) && Number.isFinite(right) ? left - right : null;
+}
+
+function negateOrNull(value) {
+  return Number.isFinite(value) ? -value : null;
+}
+
 function clamp(value, min, max) {
   return Math.min(Math.max(Number(value) || 0, min), max);
 }
@@ -96,8 +118,8 @@ export function buildAdjustedStrategyOption(strategyCase, option, adjustment) {
   );
   const baseSales = option.simulationSummary.expectedSalesQty || 1;
   const baseQuantity = quantityAction?.defaults.quantity || 1;
-  const baseDuration = getInclusiveDays(quantityAction?.defaults.startDate, quantityAction?.defaults.endDate);
-  const adjustedDuration = getInclusiveDays(quantityAction?.values.startDate, quantityAction?.values.endDate);
+  const baseDuration = getStrategyDuration(quantityActions, 'defaults');
+  const adjustedDuration = getStrategyDuration(quantityActions, 'values');
   const discountLift = Math.max(0.5, 1 + ((discountPercent - defaultDiscountPercent) / 100) * 1.5);
   const durationLift = Math.sqrt(adjustedDuration / baseDuration);
   const quantityLift = Math.sqrt(quantity / baseQuantity);
@@ -119,7 +141,7 @@ export function buildAdjustedStrategyOption(strategyCase, option, adjustment) {
   const contributionMarginRate = expectedRevenue === 0 ? 0 : totalContributionMargin / expectedRevenue;
   const expectedSellThroughDays = expectedSalesQty >= quantity && quantity > 0 ? adjustedDuration : null;
   const salesRatio = expectedSalesQty / baseSales;
-  const baseline = strategyCase.baselineSimulation.summary;
+  const baseline = strategyCase.baselineSimulation?.summary ?? {};
   const avoidedHoldingCost = Math.max(0, Math.round(option.simulationSummary.avoidedHoldingCost * salesRatio));
   const avoidedDisposalCost = Math.max(0, Math.round(option.simulationSummary.avoidedDisposalCost * salesRatio));
 
@@ -136,20 +158,21 @@ export function buildAdjustedStrategyOption(strategyCase, option, adjustment) {
     avoidedDisposalCost,
     comparisonToBaseline: {
       ...option.simulationSummary.comparisonToBaseline,
-      incrementalSalesQty: expectedSalesQty - baseline.expectedSalesQty,
-      incrementalRevenue: expectedRevenue - baseline.expectedRevenue,
-      incrementalContributionMargin: totalContributionMargin - baseline.totalContributionMargin,
-      reducedRemainingQty: baseline.expectedRemainingQty - expectedRemainingQty,
+      incrementalSalesQty: subtractOrNull(expectedSalesQty, baseline.expectedSalesQty),
+      incrementalRevenue: subtractOrNull(expectedRevenue, baseline.expectedRevenue),
+      incrementalContributionMargin: subtractOrNull(totalContributionMargin, baseline.totalContributionMargin),
+      reducedRemainingQty: subtractOrNull(baseline.expectedRemainingQty, expectedRemainingQty),
       sellThroughDaysChange:
-        expectedSellThroughDays === null || baseline.expectedSellThroughDays === null
+        expectedSellThroughDays == null || baseline.expectedSellThroughDays == null
           ? null
           : expectedSellThroughDays - baseline.expectedSellThroughDays,
-      incrementalEconomicBenefit:
-        totalContributionMargin -
-        baseline.totalContributionMargin +
-        avoidedHoldingCost +
-        avoidedDisposalCost -
-        actionCost,
+      incrementalEconomicBenefit: Number.isFinite(baseline.totalContributionMargin)
+        ? totalContributionMargin -
+          baseline.totalContributionMargin +
+          avoidedHoldingCost +
+          avoidedDisposalCost -
+          actionCost
+        : null,
     },
   };
 
@@ -246,7 +269,7 @@ export function getSimulationComparisonRows(strategyCase, option) {
       kind: 'rate',
       value: summary.contributionMarginRate,
       baselineValue: baseline.contributionMarginRate,
-      change: summary.contributionMarginRate - baseline.contributionMarginRate,
+      change: subtractOrNull(summary.contributionMarginRate, baseline.contributionMarginRate),
     },
     {
       key: 'expectedSellThroughDays',
@@ -262,7 +285,7 @@ export function getSimulationComparisonRows(strategyCase, option) {
       kind: 'quantity',
       value: summary.expectedRemainingQty,
       baselineValue: baseline.expectedRemainingQty,
-      change: -comparison.reducedRemainingQty,
+      change: negateOrNull(comparison.reducedRemainingQty),
     },
     {
       key: 'movementCost',

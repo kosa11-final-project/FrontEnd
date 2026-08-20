@@ -7,14 +7,14 @@ import { StrategyCaseSummary, StrategyDetailHeader } from './StrategyDetailShare
 
 function ConditionItem({ icon, label, children }) {
   return (
-    <div className="flex min-w-0 gap-3 rounded-[var(--radius-card)] bg-[var(--surface-subtle)] p-3">
-      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--card)] text-[color:var(--primary)]">
-        <Icon icon={icon} size={16} />
-      </span>
-      <div className="min-w-0">
-        <dt className="text-xs text-[color:var(--text-muted)]">{label}</dt>
-        <dd className="mt-1 text-sm font-semibold leading-5 text-[color:var(--text-heading)]">{children}</dd>
-      </div>
+    <div className="min-w-0 rounded-[var(--radius-card)] bg-[var(--surface-subtle)] p-3">
+      <dt className="flex items-center gap-3 text-xs text-[color:var(--text-muted)]">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--card)] text-[color:var(--primary)]">
+          <Icon icon={icon} size={16} />
+        </span>
+        {label}
+      </dt>
+      <dd className="mt-1 pl-11 text-sm font-semibold leading-5 text-[color:var(--text-heading)]">{children}</dd>
     </div>
   );
 }
@@ -52,6 +52,8 @@ function RequestConditions({ conditions }) {
 function StrategyOptionSummaryCard({ option, strategyCaseId, listPath }) {
   const summary = option.simulationSummary;
   const effect = summary.comparisonToBaseline.incrementalEconomicBenefit;
+  const effectIsPositive = effect > 0;
+  const effectIsNegative = effect < 0;
 
   return (
     <Card padding="none" className="flex min-w-0 flex-col overflow-hidden">
@@ -96,9 +98,38 @@ function StrategyOptionSummaryCard({ option, strategyCaseId, listPath }) {
               {formatCurrency(summary.totalContributionMargin)}
             </strong>
           </div>
-          <div className="rounded-xl bg-[var(--good-soft)] p-3">
-            <span className="text-xs text-[color:var(--good)]">기준 대비 경제효과</span>
-            <strong className="mt-1 block text-lg text-[color:var(--good)]">+{formatCurrency(effect)}</strong>
+          <div
+            className={`rounded-xl p-3 ${
+              effectIsNegative
+                ? 'bg-[var(--danger-soft)]'
+                : effectIsPositive
+                  ? 'bg-[var(--good-soft)]'
+                  : 'bg-[var(--surface-subtle)]'
+            }`}
+          >
+            <span
+              className={`text-xs ${
+                effectIsNegative
+                  ? 'text-[color:var(--danger)]'
+                  : effectIsPositive
+                    ? 'text-[color:var(--good)]'
+                    : 'text-[color:var(--text-muted)]'
+              }`}
+            >
+              기준 대비 경제효과
+            </span>
+            <strong
+              className={`mt-1 block text-lg ${
+                effectIsNegative
+                  ? 'text-[color:var(--danger)]'
+                  : effectIsPositive
+                    ? 'text-[color:var(--good)]'
+                    : 'text-[color:var(--text-heading)]'
+              }`}
+            >
+              {effectIsPositive ? '+' : ''}
+              {formatCurrency(effect)}
+            </strong>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
 import { ArrowRight, ChevronLeft, ChevronRight, Package, SearchNormal } from 'reicon-react';
@@ -189,10 +189,10 @@ function StrategyFilterBar({ status, counts, query, from, to, onFilterChange }) 
 export function StrategyGenerationList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const latestSearchParamsRef = useRef(searchParams);
   const [selectedStrategy, setSelectedStrategy] = useState(null);
   const actionButtonRefs = useRef(new Map());
   const drawerTriggerStrategyIdRef = useRef(null);
-  const latestSearchParamsRef = useRef(searchParams);
 
   const requestedStatus = searchParams.get('status') ?? 'ALL';
   const status = validStatuses.has(requestedStatus) ? requestedStatus : 'ALL';
@@ -213,6 +213,10 @@ export function StrategyGenerationList() {
     () => paginateStrategies(filteredStrategies, requestedPage, PAGE_SIZE),
     [filteredStrategies, requestedPage],
   );
+
+  useLayoutEffect(() => {
+    latestSearchParamsRef.current = searchParams;
+  }, [searchParams]);
 
   function updateFilter(key, value, { resetPage = true } = {}) {
     const next = new URLSearchParams(latestSearchParamsRef.current);

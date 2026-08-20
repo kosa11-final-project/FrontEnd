@@ -218,7 +218,7 @@ const options = [
       contributionMarginRate: 0.28,
       expectedSellThroughDays: 8,
       expectedRemainingQty: 2,
-      movementCost: 0,
+      movementCost: 60000,
       avoidedHoldingCost: 52000,
       avoidedDisposalCost: 145000,
       comparisonToBaseline: {

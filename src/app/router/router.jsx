@@ -4,7 +4,6 @@ import AppLayout from '../layouts/AppLayout.jsx';
 import AuthGuard from './AuthGuard.jsx';
 import AiStrategyDetailPage from '@/pages/ai-strategy/AiStrategyDetailPage.jsx';
 import AiStrategyPage from '@/pages/ai-strategy/AiStrategyPage.jsx';
-import AiStrategySimulationPage from '@/pages/ai-strategy/AiStrategySimulationPage.jsx';
 import DashboardPage from '@/pages/dashboard/DashboardPage.jsx';
 import ExecutionPage from '@/pages/execution/ExecutionPage.jsx';
 import InventoryPage from '@/pages/inventory/InventoryPage.jsx';
@@ -13,6 +12,7 @@ import StatisticsPage from '@/pages/statistics/StatisticsPage.jsx';
 import { StateView } from '@/shared/ui';
 
 const HeendiLoaderPage = lazy(() => import('@/pages/heendi-loader/HeendiLoaderPage.jsx'));
+const AiStrategySimulationPage = lazy(() => import('@/pages/ai-strategy/AiStrategySimulationPage.jsx'));
 
 function LazyRoute({ children }) {
   return <Suspense fallback={<StateView state="loading" />}>{children}</Suspense>;
@@ -55,7 +55,14 @@ export const router = createBrowserRouter([
           { path: 'inventory', element: <InventoryPage /> },
           { path: 'ai-strategy', element: <AiStrategyPage /> },
           { path: 'ai-strategy/:strategyCaseId', element: <AiStrategyDetailPage /> },
-          { path: 'ai-strategy/:strategyCaseId/simulation', element: <AiStrategySimulationPage /> },
+          {
+            path: 'ai-strategy/:strategyCaseId/simulation',
+            element: (
+              <LazyRoute>
+                <AiStrategySimulationPage />
+              </LazyRoute>
+            ),
+          },
           { path: 'execution', element: <ExecutionPage /> },
           { path: 'statistics', element: <StatisticsPage /> },
         ],

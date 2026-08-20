@@ -38,7 +38,7 @@ import {
   TabsTrigger,
 } from '@/shared/ui';
 
-const chartColors = ['#0f5c48', '#2563eb', '#d97706', '#7c3aed'];
+const chartColors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)'];
 
 function formatRate(rate) {
   return `${formatNumber((rate ?? 0) * 100, { maximumFractionDigits: 1 })}%`;
@@ -59,6 +59,19 @@ function formatChange(kind, value) {
   if (kind === 'rate') return `${sign}${formatNumber(value * 100, { maximumFractionDigits: 1 })}%p`;
   if (kind === 'days') return `${sign}${formatNumber(value)}일`;
   return `${sign}${formatQuantity(value)}`;
+}
+
+function areAdjustmentValuesEqual(left, right) {
+  if (Object.is(left, right)) return true;
+  if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false;
+  if (Array.isArray(left) !== Array.isArray(right)) return false;
+
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every((key) => Object.hasOwn(right, key) && areAdjustmentValuesEqual(left[key], right[key]))
+  );
 }
 
 function StrategySwitcher({ strategyCase, options, activeOptionKey, finalOptionKey, onActivate }) {
@@ -83,7 +96,7 @@ function StrategySwitcher({ strategyCase, options, activeOptionKey, finalOptionK
             </span>
           </div>
         </div>
-        <div className="min-w-0 max-w-full overflow-x-auto pb-1" aria-label="시뮬레이션 전략 선택">
+        <div className="min-w-0 max-w-full overflow-x-auto pb-1" role="group" aria-label="시뮬레이션 전략 선택">
           <div className="flex w-max min-w-full gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-1">
             {options.map((option) => {
               const active = option.optionKey === activeOptionKey;
@@ -370,7 +383,7 @@ function ConditionPanel({ strategyCase, option, values, defaults, maxQuantity, s
             type="button"
             variant="secondary"
             onClick={onReset}
-            disabled={JSON.stringify(values) === JSON.stringify(defaults)}
+            disabled={areAdjustmentValuesEqual(values, defaults)}
           >
             <Icon icon={Refresh} size={15} /> 추천값 복원
           </Button>
@@ -430,7 +443,7 @@ function StrategyChart({ strategyCase, options, activeOption }) {
         <ResponsiveContainer width="100%" height="100%">
           {chartTab === 'inventory' ? (
             <LineChart data={chartData} margin={{ top: 8, right: 20, left: 4, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="4 4" stroke="#dbe4eb" />
+              <CartesianGrid strokeDasharray="4 4" stroke="var(--chart-grid)" />
               <XAxis dataKey="date" tickFormatter={(date) => date.slice(5).replace('-', '.')} tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} width={36} />
               <RechartsTooltip
@@ -442,7 +455,7 @@ function StrategyChart({ strategyCase, options, activeOption }) {
                 type="monotone"
                 dataKey="baselineRemainingQty"
                 name="무전략 기준"
-                stroke="#94a3b8"
+                stroke="var(--chart-baseline)"
                 strokeDasharray="5 5"
                 strokeWidth={2}
                 dot={false}
@@ -465,13 +478,13 @@ function StrategyChart({ strategyCase, options, activeOption }) {
             </LineChart>
           ) : (
             <BarChart data={financialData} margin={{ top: 8, right: 20, left: 16, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="4 4" stroke="#dbe4eb" />
+              <CartesianGrid strokeDasharray="4 4" stroke="var(--chart-grid)" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis tickFormatter={(value) => `${Math.round(value / 10000)}만`} tick={{ fontSize: 11 }} width={56} />
               <RechartsTooltip formatter={(value, name) => [formatCurrency(value), name]} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="revenue" name="예상 매출" fill="#2563eb" radius={[5, 5, 0, 0]} />
-              <Bar dataKey="contributionMargin" name="예상 공헌이익" fill="#0f5c48" radius={[5, 5, 0, 0]} />
+              <Bar dataKey="revenue" name="예상 매출" fill="var(--chart-2)" radius={[5, 5, 0, 0]} />
+              <Bar dataKey="contributionMargin" name="예상 공헌이익" fill="var(--chart-1)" radius={[5, 5, 0, 0]} />
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -493,11 +506,18 @@ function SimulationResultTable({ strategyCase, option }) {
       </div>
       <Table surface="bordered" density="default">
         <TableElement className="min-w-[640px]">
+          <caption className="sr-only">현재 전략 예상 결과와 기준 시나리오 비교</caption>
           <thead className="bg-[var(--surface-subtle)] text-left text-xs text-[color:var(--text-muted)]">
             <tr>
-              <th className="px-4 py-3">결과 항목</th>
-              <th className="px-4 py-3 text-right">AI 추천값</th>
-              <th className="px-4 py-3 text-right">기준 시나리오 대비</th>
+              <th scope="col" className="px-4 py-3">
+                결과 항목
+              </th>
+              <th scope="col" className="px-4 py-3 text-right">
+                AI 추천값
+              </th>
+              <th scope="col" className="px-4 py-3 text-right">
+                기준 시나리오 대비
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)] text-sm">
@@ -510,7 +530,9 @@ function SimulationResultTable({ strategyCase, option }) {
                     : row.change > 0;
               return (
                 <tr key={row.key}>
-                  <th className="px-4 py-3 text-left font-medium text-[color:var(--text-body)]">{row.label}</th>
+                  <th scope="row" className="px-4 py-3 text-left font-medium text-[color:var(--text-body)]">
+                    {row.label}
+                  </th>
                   <td className="px-4 py-3 text-right">
                     <strong className="tabular-nums text-[color:var(--text-heading)]">
                       {formatMetricValue(row.kind, row.value)}

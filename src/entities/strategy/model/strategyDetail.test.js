@@ -21,6 +21,12 @@ describe('strategy detail model', () => {
     expect(resolveStrategyOption(options, 'unknown')?.optionKey).toBe('first');
   });
 
+  it('대안이 없으면 빈 결과와 null을 반환한다', () => {
+    expect(sortStrategyOptions()).toEqual([]);
+    expect(resolveStrategyOption([], 'first')).toBeNull();
+    expect(resolveStrategyActionType(undefined)).toEqual({ label: '전략 액션', variant: 'neutral' });
+  });
+
   it('지원하지 않는 액션 타입도 안전한 표시 메타데이터를 반환한다', () => {
     expect(resolveStrategyActionType('RT_TRANSFER').label).toBe('재고 이동');
     expect(resolveStrategyActionType('UNKNOWN')).toEqual({ label: 'UNKNOWN', variant: 'neutral' });
@@ -138,11 +144,85 @@ describe('strategy detail model', () => {
     });
 
     expect(defaults.actions[1].discountPercent).toBe(10);
-    expect(adjusted.simulationSummary.expectedSalesQty).toBeLessThanOrEqual(15);
-    expect(adjusted.simulationSummary.expectedRevenue).toBe(adjusted.simulationSummary.expectedSalesQty * 800);
+    expect(adjusted.simulationSummary.expectedSalesQty).toBe(14);
+    expect(adjusted.simulationSummary.expectedRevenue).toBe(14 * 800);
+    expect(adjusted.simulationSummary.expectedRemainingQty).toBe(26);
     expect(adjusted.simulationDailySeries.at(-1).expectedRemainingQty).toBe(
       adjusted.simulationSummary.expectedRemainingQty,
     );
+  });
+
+  it('복합 전략의 모든 액션 기간을 재계산에 반영한다', () => {
+    const strategyCase = {
+      baselineSimulation: {
+        summary: {
+          expectedSalesQty: 10,
+          expectedRevenue: 1000,
+          totalContributionMargin: 300,
+          expectedSellThroughDays: 12,
+          expectedRemainingQty: 30,
+        },
+        dailySeries: [{ expectedRemainingQty: 40 }],
+      },
+    };
+    const option = {
+      actions: [
+        {
+          actionOrder: 1,
+          actionType: 'RT_TRANSFER',
+          actionQuantity: 30,
+          strategyPrice: 1000,
+          startDate: '2026-08-20',
+          endDate: '2026-08-27',
+          estimatedActionCost: 100,
+        },
+        {
+          actionOrder: 2,
+          actionType: 'PRICE_DISCOUNT',
+          actionQuantity: 30,
+          strategyPrice: 1000,
+          discountRate: 0,
+          startDate: '2026-08-20',
+          endDate: '2026-08-27',
+          estimatedActionCost: 0,
+        },
+      ],
+      simulationSummary: {
+        expectedSalesQty: 20,
+        expectedRevenue: 20000,
+        totalContributionMargin: 6000,
+        expectedRemainingQty: 20,
+        avoidedHoldingCost: 100,
+        avoidedDisposalCost: 200,
+        comparisonToBaseline: {},
+      },
+      simulationDailySeries: [],
+    };
+    const defaults = getStrategyAdjustmentDefaults(option);
+    const adjusted = buildAdjustedStrategyOption(strategyCase, option, {
+      actions: {
+        ...defaults.actions,
+        2: { ...defaults.actions[2], endDate: '2026-08-31' },
+      },
+    });
+
+    expect(adjusted.simulationSummary.expectedSalesQty).toBe(24);
+  });
+
+  it('비교 기준값이 없으면 NaN 대신 null을 반환한다', () => {
+    const rows = getSimulationComparisonRows(
+      { baselineSimulation: null },
+      {
+        simulationSummary: {
+          contributionMarginRate: 0.3,
+          expectedRemainingQty: 10,
+          comparisonToBaseline: {},
+        },
+      },
+    );
+
+    expect(rows.find(({ key }) => key === 'contributionMarginRate')?.change).toBeNull();
+    expect(rows.find(({ key }) => key === 'expectedRemainingQty')?.change).toBeNull();
   });
 
   it('재할당 액션 기본값에는 할인 조건을 포함하지 않는다', () => {

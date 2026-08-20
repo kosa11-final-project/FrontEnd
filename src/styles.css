@@ -78,6 +78,12 @@
   --warning-soft: var(--color-sub-orange-soft);
   --good-soft: var(--color-sub-mint-soft);
   --info-soft: var(--color-sub-cyan-soft);
+  --chart-1: var(--primary);
+  --chart-2: var(--info);
+  --chart-3: color-mix(in srgb, var(--warning) 75%, var(--color-gray-900));
+  --chart-4: color-mix(in srgb, var(--info) 55%, var(--danger));
+  --chart-grid: var(--border);
+  --chart-baseline: var(--text-muted);
   --tooltip-bg: var(--color-gray-900);
   --tooltip-fg: var(--color-white);
   --overlay: color-mix(in srgb, var(--color-gray-900) 20%, transparent);
@@ -518,6 +524,7 @@ a:focus-visible {
 
 .strategy-adjustment-range {
   --range-progress: 0%;
+
   height: 8px;
   appearance: none;
   border-radius: 999px;
@@ -538,9 +545,9 @@ a:focus-visible {
 }
 
 .strategy-adjustment-range::-webkit-slider-thumb {
-  width: 18px;
-  height: 18px;
-  margin-top: -5px;
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;
   appearance: none;
   border: 2px solid var(--primary);
   border-radius: 999px;
@@ -555,8 +562,8 @@ a:focus-visible {
 }
 
 .strategy-adjustment-range::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   border: 2px solid var(--primary);
   border-radius: 999px;
   background: var(--card);

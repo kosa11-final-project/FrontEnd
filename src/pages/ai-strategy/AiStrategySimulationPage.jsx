@@ -22,12 +22,15 @@ export default function AiStrategySimulationPage() {
 
   if (!strategyCase) {
     return (
-      <main className="page-shell">
+      <main className="page-shell grid gap-4">
         <StateView
           state="error"
           title="AI 전략 결과를 찾을 수 없습니다."
           description="전략 번호를 확인하거나 목록에서 다시 선택해 주세요."
         />
+        <Button asChild variant="secondary" className="mx-auto">
+          <Link to={listPath}>목록으로 돌아가기</Link>
+        </Button>
       </main>
     );
   }
@@ -47,8 +50,15 @@ export default function AiStrategySimulationPage() {
     );
   }
 
-  if (!activeOption) {
-    return <StateView state="empty" title="표시할 전략 대안이 없습니다." description="새 AI 전략을 생성해 주세요." />;
+  if (strategyCase.caseStatus !== 'GENERATED' || !activeOption) {
+    return (
+      <main className="page-shell grid gap-4">
+        <StateView state="empty" title="표시할 전략 대안이 없습니다." description="새 AI 전략을 생성해 주세요." />
+        <Button asChild variant="secondary" className="mx-auto">
+          <Link to={listPath}>목록으로 돌아가기</Link>
+        </Button>
+      </main>
+    );
   }
 
   function handleActiveOptionChange(optionKey) {
@@ -59,6 +69,7 @@ export default function AiStrategySimulationPage() {
 
   return (
     <StrategySimulationView
+      key={strategyCase.strategyCaseId}
       strategyCase={strategyCase}
       activeOption={activeOption}
       listPath={listPath}

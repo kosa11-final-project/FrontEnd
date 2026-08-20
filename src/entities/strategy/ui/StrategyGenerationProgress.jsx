@@ -10,6 +10,13 @@ const dotStateClasses = Object.freeze({
   upcoming: 'border-[var(--border-strong)] bg-[var(--card)] text-transparent',
 });
 
+const stageStateLabels = Object.freeze({
+  complete: '완료',
+  current: '진행 중',
+  error: '오류',
+  upcoming: '예정',
+});
+
 export function StrategyGenerationProgress({ status, currentStage, compact = false, className }) {
   const progress = getStrategyGenerationProgress(status, currentStage);
 
@@ -24,7 +31,7 @@ export function StrategyGenerationProgress({ status, currentStage, compact = fal
         const label = strategyGenerationStageMeta[stage].label;
 
         return (
-          <li key={stage} className="relative min-w-0">
+          <li key={stage} className="relative min-w-0" aria-current={state === 'current' ? 'step' : undefined}>
             <div className="relative flex items-center">
               <span
                 className={cn(
@@ -56,6 +63,7 @@ export function StrategyGenerationProgress({ status, currentStage, compact = fal
               )}
             >
               {label}
+              <span className="sr-only"> ({stageStateLabels[state]})</span>
             </span>
           </li>
         );

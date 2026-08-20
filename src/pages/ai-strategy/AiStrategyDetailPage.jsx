@@ -39,13 +39,18 @@ export default function AiStrategyDetailPage() {
     );
   }
 
-  if (strategyCase.caseStatus !== 'GENERATED' || strategyCase.options.length === 0) {
+  if (strategyCase.caseStatus !== 'GENERATED' || !strategyCase.options?.length) {
     return (
-      <StateView
-        state="empty"
-        title="표시할 전략 대안이 없습니다."
-        description="전략 생성 상태를 확인하거나 새 AI 전략을 생성해 주세요."
-      />
+      <main className="page-shell grid gap-4">
+        <StateView
+          state="empty"
+          title="표시할 전략 대안이 없습니다."
+          description="전략 생성 상태를 확인하거나 새 AI 전략을 생성해 주세요."
+        />
+        <Button asChild variant="secondary" className="mx-auto">
+          <Link to={listPath}>목록으로 돌아가기</Link>
+        </Button>
+      </main>
     );
   }
 

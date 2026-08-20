@@ -30,4 +30,14 @@ describe('AI 전략 생성 목록 규칙', () => {
     expect(paginateStrategies(strategyGenerationFixtures, 2).items).toHaveLength(2);
     expect(paginateStrategies(strategyGenerationFixtures, 99).page).toBe(2);
   });
+
+  it('빈 결과와 잘못된 페이지 입력을 보정한다', () => {
+    expect(filterStrategies(strategyGenerationFixtures, { query: '없는 전략' })).toEqual([]);
+    expect(paginateStrategies([], 'invalid')).toMatchObject({
+      items: [],
+      page: 1,
+      totalItems: 0,
+      totalPages: 1,
+    });
+  });
 });
