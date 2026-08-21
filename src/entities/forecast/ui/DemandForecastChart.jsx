@@ -3,7 +3,6 @@ import {
   CartesianGrid,
   ComposedChart,
   Legend,
-  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -63,7 +62,7 @@ export function DemandForecastChart({ data, height = 300 }) {
     );
   }
 
-  const renderablePoints = data.chartPoints?.filter((point) => point.forecastQty != null || point.projectedQty != null);
+  const renderablePoints = data.chartPoints?.filter((point) => point.projectedQty != null);
 
   if (data.status === 'ERROR' || data.status === 'NO_DATA' || !renderablePoints || renderablePoints.length === 0) {
     return (
@@ -133,19 +132,6 @@ export function DemandForecastChart({ data, height = 300 }) {
             strokeWidth={2}
             fillOpacity={1}
             fill="url(#projectedGradient)"
-            connectNulls={false}
-          />
-
-          {/* 누적 수요예측 (기준일~D+90 점선) */}
-          <Line
-            type="monotone"
-            dataKey="forecastQty"
-            name="누적 수요예측"
-            stroke="#F59E0B"
-            strokeWidth={2}
-            strokeDasharray="4 4"
-            dot={{ r: 3, fill: '#F59E0B' }}
-            activeDot={{ r: 5 }}
             connectNulls={false}
           />
         </ComposedChart>

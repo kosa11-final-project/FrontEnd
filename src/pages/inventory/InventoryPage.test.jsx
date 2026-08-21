@@ -240,6 +240,20 @@ describe('InventoryPage Integration', () => {
     expect(inventoryApiMock.getInventoryLots).not.toHaveBeenCalled();
   });
 
+  it('automatically defaults to the top sales point when opening detail drawer without sales point parameter', async () => {
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_001_105'],
+    });
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect((await screen.findAllByText(/FEFO 1순위/)).length).toBeGreaterThanOrEqual(1);
+    expect(inventoryApiMock.getInventoryLots).toHaveBeenCalledWith(
+      'SKU_MANDU_001_105',
+      expect.any(String),
+      expect.anything(),
+    );
+  });
+
   it('does not request forecasts when __ALL__ summary is chosen', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=__ALL__&detailTab=FORECAST'],

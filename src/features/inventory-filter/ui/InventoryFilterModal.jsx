@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { CloseCircle, Refresh, TickCircle, ChevronRight, Filter } from 'reicon-react';
-import { RISK_GRADE_META, STORAGE_NAMES, REGION_NAMES } from '@/entities/inventory';
+import { RISK_GRADE_META, STORAGE_NAMES } from '@/entities/inventory';
 
 const STORAGE_BADGE_COLORS = {
   FROZEN: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
@@ -34,7 +34,6 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
   const riskOptions = filterOptions?.riskGrades || [];
   const warehouseOptions = filterOptions?.warehouses || [];
   const salesPointOptions = filterOptions?.salesPoints || [];
-  const regionOptions = filterOptions?.regions || [];
   const assessmentStatuses = filterOptions?.assessmentStatuses;
   const assessmentStatusOptions = useMemo(
     () =>
@@ -89,9 +88,6 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
   const [draftSalesPointCode, setDraftSalesPointCode] = useState(
     Array.isArray(filters.salesPointCode) ? filters.salesPointCode[0] || '' : filters.salesPointCode || '',
   );
-  const [draftRegionCode, setDraftRegionCode] = useState(
-    Array.isArray(filters.regionCode) ? filters.regionCode[0] || '' : filters.regionCode || '',
-  );
 
   // 카테고리 계층 선택 탐색 상태
   const [selectedL1, setSelectedL1] = useState(initialCategoryHierarchy.l1);
@@ -100,7 +96,6 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
   const warehouseSelectId = useId();
   const salesPointSelectId = useId();
-  const regionSelectId = useId();
 
   const selectedWarehouseOption = warehouseOptions.find((option) => {
     const code = typeof option === 'string' ? option : option.code || option.warehouseCode;
@@ -244,7 +239,6 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
     setDraftAssessmentStatuses([]);
     setDraftWarehouseCode('');
     setDraftSalesPointCode('');
-    setDraftRegionCode('');
     setSelectedL1(null);
     setSelectedL2(null);
     setSelectedL3(null);
@@ -258,7 +252,6 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
       storageType: draftStorageTypes,
       riskGrade: draftRiskGrades,
       assessmentStatus: draftAssessmentStatuses,
-      regionCode: draftRegionCode ? [draftRegionCode] : [],
       warehouseCode: draftWarehouseCode ? [draftWarehouseCode] : [],
       salesPointCode: draftSalesPointCode ? [draftSalesPointCode] : [],
     });
@@ -271,7 +264,6 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
     draftStorageTypes.length +
     draftRiskGrades.length +
     draftAssessmentStatuses.length +
-    (draftRegionCode ? 1 : 0) +
     (draftWarehouseCode ? 1 : 0) +
     (draftSalesPointCode ? 1 : 0);
 
@@ -563,8 +555,8 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
             </div>
           </div>
 
-          {/* 4. 거점 및 권역 (물류센터 & 상세 판매처 & 지역권역) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-100">
+          {/* 4. 거점 (물류센터 & 상세 판매처) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
             {/* 물류센터 */}
             <div>
               <label htmlFor={warehouseSelectId} className="text-xs font-bold text-gray-800 mb-1.5 block">
@@ -614,32 +606,6 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                 {salesPointOptions.map((opt) => {
                   const code = typeof opt === 'string' ? opt : opt.code || opt.salesPointCode;
                   const name = typeof opt === 'string' ? opt : opt.name || opt.salesPointName || code;
-                  return (
-                    <option key={code} value={code}>
-                      {name}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            {/* 지역 권역 */}
-            <div>
-              <label htmlFor={regionSelectId} className="text-xs font-bold text-gray-800 mb-1.5 block">
-                지역 권역
-              </label>
-              <select
-                id={regionSelectId}
-                value={draftRegionCode}
-                disabled={isFilterOptionsLoading}
-                onChange={(e) => setDraftRegionCode(e.target.value)}
-                className="w-full h-9 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-700 focus:border-[#27B06E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#27B06E]/20"
-              >
-                <option value="">전체 권역</option>
-                {regionOptions.map((opt) => {
-                  const code = typeof opt === 'string' ? opt : opt.code || opt.regionCode;
-                  const rawName = typeof opt === 'string' ? opt : opt.name || opt.regionName || code;
-                  const name = REGION_NAMES[code] || rawName || code;
                   return (
                     <option key={code} value={code}>
                       {name}

@@ -365,7 +365,7 @@ a:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 0 36px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   backdrop-filter: blur(8px);
@@ -518,9 +518,9 @@ a:focus-visible {
 
 /* PAGE: route-level content width, title hierarchy, and page spacing. */
 .content-wrap {
-  width: min(100%, 1440px);
+  width: min(100%, 1800px);
   margin: 0 auto;
-  padding: 36px 36px 48px;
+  padding: 28px 20px 48px;
 }
 
 .page-shell {

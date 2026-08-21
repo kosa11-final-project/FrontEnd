@@ -77,7 +77,7 @@ export const CHANNEL_NAMES = Object.freeze({
   GREETING: '그리팅',
   ECOMMERCE: '모두의맛집',
   HYUNDAI_DEPT: '현대백화점',
-  HMART: 'H마트',
+  HMART: '직영점',
 });
 
 /** 보관유형 코드별 이름 */

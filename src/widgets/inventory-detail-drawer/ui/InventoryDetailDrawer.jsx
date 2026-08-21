@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Danger, Refresh } from 'reicon-react';
-import { inventoryDetailQueryOptions, inventoryLotsQueryOptions, SkuChannelPriceTable } from '@/entities/inventory';
+import { inventoryDetailQueryOptions, inventoryLotsQueryOptions } from '@/entities/inventory';
 import {
   demandForecastQueryOptions,
   DemandForecastChart,
@@ -12,7 +12,6 @@ import { formatQuantity } from '@/shared/lib/format';
 import { Button, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
 import { InventoryDetailHeader } from './InventoryDetailHeader.jsx';
 import { InventoryDetailKpiRibbon } from './InventoryDetailKpiRibbon.jsx';
-import { InventoryStorageLocationSection } from './InventoryStorageLocationSection.jsx';
 import { InventorySalesPointsSection } from './InventorySalesPointsSection.jsx';
 import { InventoryLotsSection } from './InventoryLotsSection.jsx';
 import { CHANNEL_BADGE_LABELS, CHANNEL_BADGE_STYLES } from './constants.js';
@@ -48,11 +47,36 @@ export function InventoryDetailDrawer({
     [initialItem],
   );
 
-  // 1) 재고 개요 탭 전용 판매처 선택 상태 (URL 및 부모 상태와 연동)
+  const initialLocations = initialItem?.locations?.length ? initialItem.locations : [];
+  const initialUnassignedInventory = initialItem?.unassignedInventory || {
+    currentQuantity: null,
+    availableQuantity: null,
+    reservedQuantity: null,
+    locations: initialLocations,
+    locationCount: initialLocations.length,
+  };
+  const hasInitialUnassignedInventory = Boolean(
+    initialUnassignedInventory?.hasStock ||
+    initialUnassignedInventory?.currentQuantity != null ||
+    initialUnassignedInventory?.availableQuantity != null ||
+    initialUnassignedInventory?.reservedQuantity != null,
+  );
+
+  const topOverviewSalesPointCode = useMemo(() => {
+    if (hasInitialUnassignedInventory) return 'UNASSIGNED';
+    return allSalesPoints[0]?.salesPointCode || '';
+  }, [hasInitialUnassignedInventory, allSalesPoints]);
+
+  const topForecastSalesPointCode = useMemo(() => {
+    return allSalesPoints[0]?.salesPointCode || '';
+  }, [allSalesPoints]);
+
+  // 1) 재고 개요 탭 전용 판매처 선택 상태 (URL 및 부모 상태와 연동, 미지정 시 최상단 기본 선택)
   const effectiveOverviewSalesPointCode = useMemo(() => {
-    if (!selectedSalesPointCode || selectedSalesPointCode === '__ALL__') return '';
-    return selectedSalesPointCode;
-  }, [selectedSalesPointCode]);
+    if (selectedSalesPointCode === '__ALL__') return '';
+    if (selectedSalesPointCode) return selectedSalesPointCode;
+    return topOverviewSalesPointCode;
+  }, [selectedSalesPointCode, topOverviewSalesPointCode]);
 
   // 2) 수요예측 탭 전용 판매처 선택 상태 (SKU 변경 시 자동 동기화 및 URL 상태 동기화)
   const [forecastSelection, setForecastSelection] = useState({
@@ -75,9 +99,12 @@ export function InventoryDetailDrawer({
   };
 
   const effectiveForecastSalesPointCode = useMemo(() => {
-    if (!currentForecastSalesPointCode || currentForecastSalesPointCode === '__ALL__') return '';
-    return currentForecastSalesPointCode;
-  }, [currentForecastSalesPointCode]);
+    if (currentForecastSalesPointCode === '__ALL__') return '';
+    if (currentForecastSalesPointCode && currentForecastSalesPointCode !== 'UNASSIGNED') {
+      return currentForecastSalesPointCode;
+    }
+    return topForecastSalesPointCode;
+  }, [currentForecastSalesPointCode, topForecastSalesPointCode]);
 
   // 1. 판매처 상세 헤더 쿼리: 개요 탭 기준
   const detailQuery = useQuery({
@@ -127,19 +154,17 @@ export function InventoryDetailDrawer({
       ? detailQuery.data.locations
       : [];
 
+  const unassignedInventory = item?.unassignedInventory ||
+    initialItem?.unassignedInventory || {
+      currentQuantity: null,
+      availableQuantity: null,
+      reservedQuantity: null,
+      locations,
+      locationCount: locations.length,
+    };
   const ownerSalesPointCount =
     initialItem?.ownerSalesPointCount ??
     (allSalesPoints.length > 0 ? allSalesPoints.length : (item?.ownerSalesPointCount ?? 0));
-
-  const selectedSalesPointWarehouseName =
-    selectedOverviewSalesPoint?.warehouseName || detailQuery.data?.locations?.[0]?.warehouseName || '';
-  const selectedSalesPointWarehouseCode =
-    selectedOverviewSalesPoint?.warehouseCode || detailQuery.data?.locations?.[0]?.warehouseCode || '';
-
-  const skuTotalStockQty =
-    initialItem?.currentQuantity != null
-      ? Number(initialItem.currentQuantity)
-      : locations.reduce((sum, loc) => sum + (Number(loc.quantity) || 0), 0);
 
   // ESC 키로 닫기, Body Scroll Lock, Focus Trap 및 닫기 후 포커스 복원
   useEffect(() => {
@@ -228,6 +253,7 @@ export function InventoryDetailDrawer({
         <InventoryDetailHeader
           item={item}
           allSalesPoints={allSalesPoints}
+          unassignedInventory={unassignedInventory}
           selectedSalesPointCode={
             currentTab === 'FORECAST' ? effectiveForecastSalesPointCode : effectiveOverviewSalesPointCode
           }
@@ -299,16 +325,9 @@ export function InventoryDetailDrawer({
               className="grid grid-cols-1 lg:grid-cols-12 h-full min-h-0"
             >
               <div className="lg:col-span-5 flex flex-col border-r border-gray-200 bg-white h-full min-h-0 overflow-hidden">
-                <InventoryStorageLocationSection
-                  locations={locations}
-                  skuTotalStockQty={skuTotalStockQty}
-                  selectedSalesPointCode={effectiveOverviewSalesPointCode}
-                  selectedSalesPointWarehouseCode={selectedSalesPointWarehouseCode}
-                  selectedSalesPointWarehouseName={selectedSalesPointWarehouseName}
-                  selectedSalesPointName={selectedOverviewSalesPoint?.salesPointName}
-                />
                 <InventorySalesPointsSection
                   allSalesPoints={allSalesPoints}
+                  unassignedInventory={unassignedInventory}
                   ownerSalesPointCount={ownerSalesPointCount}
                   selectedSalesPointCode={effectiveOverviewSalesPointCode}
                   channelPrices={item?.channelPrices || []}
@@ -323,21 +342,6 @@ export function InventoryDetailDrawer({
                   lotsQuery={lotsQuery}
                   onNavigateToOverview={() => onTabChange?.('OVERVIEW')}
                 />
-
-                <section
-                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
-                  aria-labelledby="price-title"
-                >
-                  <div className="mb-3">
-                    <h3 id="price-title" className="text-sm font-bold text-slate-900">
-                      판매처별 SKU 판매가
-                    </h3>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      현재 적용 중인 판매가, 정가, 최저 판매가와 유효 상태입니다.
-                    </p>
-                  </div>
-                  <SkuChannelPriceTable channelPrices={item?.channelPrices || []} isUnassigned={isOverviewUnassigned} />
-                </section>
               </div>
             </div>
           )}
@@ -402,7 +406,7 @@ export function InventoryDetailDrawer({
                         : '수요예측 & 예상 잔고 추이'}
                     </h3>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      D+7~D+90 누적 수요예측과 예상 가용재고, 안전재고 기준선을 시각화합니다.
+                      D+7~D+90 예상 가용재고와 안전재고 기준선을 시각화합니다.
                     </p>
                   </div>
 
