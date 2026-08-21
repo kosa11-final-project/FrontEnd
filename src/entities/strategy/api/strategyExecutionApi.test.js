@@ -1,0 +1,86 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { getJson } = vi.hoisted(() => ({ getJson: vi.fn() }));
+
+vi.mock('@/shared/api', () => ({ getJson }));
+
+import { getStrategyExecution, getStrategyExecutions, mapStrategyExecutionResponse } from './strategyExecutionApi.js';
+
+const backendExecution = {
+  id: 721,
+  number: 'SC-20260820-001',
+  status: 'EXECUTING',
+  product: { skuId: 1297, name: '테스트 상품', sku: 'SKU-001', imageUrl: null },
+  establishedAt: '2026-08-20',
+  progress: null,
+  goal: null,
+  resultSummary: null,
+  actions: [
+    {
+      id: 81,
+      type: 'REALLOCATION',
+      title: '재고 재할당',
+      target: '광주센터 → 그리팅몰',
+      relationship: null,
+      dependsOn: null,
+      status: null,
+      progress: null,
+      sourceSalesPoint: null,
+      targetSalesPoint: { id: 3, code: 'GREETING', name: '그리팅몰', type: 'SALES_POINT' },
+      sourceWarehouse: { id: 7, code: 'WH-GJ', name: '광주센터', type: 'WAREHOUSE' },
+      destinationWarehouse: null,
+      kpis: [{ label: '요청 수량', value: 0, unit: '개', representative: true, emptyLabel: '미수집' }],
+    },
+    { id: 82, type: 'PRICE_DISCOUNT', kpis: [] },
+  ],
+  inventoryResults: null,
+  channelResults: [],
+  salesDaily: [],
+  salesPointComparison: [],
+  performance: null,
+  lastSyncedAt: null,
+};
+
+describe('strategy execution API', () => {
+  beforeEach(() => getJson.mockReset());
+
+  it('unwraps ApiResponse data for the execution list', async () => {
+    getJson.mockResolvedValue({ data: [backendExecution], timestamp: '2026-08-20T00:00:00Z' });
+
+    const result = await getStrategyExecutions();
+
+    expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions', signal: undefined });
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(721);
+    expect(result[0].actions).toHaveLength(1);
+    expect(result[0].actions[0].kpis[0].value).toBe(0);
+  });
+
+  it('uses strategyCaseId for detail and preserves nullable fields', async () => {
+    const signal = new AbortController().signal;
+    getJson.mockResolvedValue({ data: backendExecution });
+
+    const result = await getStrategyExecution(721, signal);
+
+    expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions/721', signal });
+    expect(result.progress).toBeNull();
+    expect(result.inventoryResults).toEqual([]);
+    expect(result.actions[0].dependsOn).toEqual([]);
+    expect(result).not.toHaveProperty('sync');
+    expect(result).not.toHaveProperty('warnings');
+    expect(result).not.toHaveProperty('recommendations');
+  });
+
+  it('normalizes empty backend collections without inventing performance data', () => {
+    expect(mapStrategyExecutionResponse({ id: 1, product: null })).toMatchObject({
+      id: 1,
+      actions: [],
+      inventoryResults: [],
+      channelResults: [],
+      salesDaily: [],
+      salesPointComparison: [],
+      performance: null,
+      lastSyncedAt: null,
+    });
+  });
+});

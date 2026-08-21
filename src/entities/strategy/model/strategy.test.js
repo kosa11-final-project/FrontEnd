@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { strategyExecutionFixtures } from '../testing/fixtures.js';
 import {
+  filterStrategies,
+  formatKpiValue,
+  getExecutionSummary,
   getStrategyGenerationProgress,
   resolveStrategyGenerationStage,
   resolveStrategyGenerationStatus,
@@ -37,5 +41,25 @@ describe('AI 전략 생성 상태 모델', () => {
       'complete',
       'error',
     ]);
+  });
+});
+
+const filters = { strategyStatus: 'ALL', actionType: 'ALL', query: '' };
+describe('strategy execution model', () => {
+  it('filters by supported action type and search query', () => {
+    expect(filterStrategies(strategyExecutionFixtures, { ...filters, actionType: 'RT_TRANSFER' })).toHaveLength(1);
+    expect(filterStrategies(strategyExecutionFixtures, { ...filters, query: '도시락' })[0].id).toBe(103);
+  });
+  it('distinguishes zero from missing KPI data', () => {
+    expect(formatKpiValue({ value: 0, unit: '개' })).toBe('0개');
+    expect(formatKpiValue({ value: null })).toBe('미수집');
+  });
+  it('summarizes known strategy and action data', () => {
+    expect(getExecutionSummary(strategyExecutionFixtures)).toEqual({
+      strategyCount: 3,
+      actionCount: 9,
+      inProgressActionCount: 1,
+      attentionActionCount: 3,
+    });
   });
 });

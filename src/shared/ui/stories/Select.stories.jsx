@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Select } from '@/shared/ui/Select.jsx';
+import { SelectMenu } from '@/shared/ui/SelectMenu.jsx';
 
 const options = (
   <>
@@ -83,4 +85,28 @@ export const ErrorState = {
 
 export const Disabled = {
   args: { disabled: true },
+};
+
+function ShadcnSelectMenuPreview() {
+  const [value, setValue] = useState('ALL');
+
+  return (
+    <div className="w-40">
+      <SelectMenu
+        value={value}
+        onValueChange={setValue}
+        aria-label="전략 전체 상태"
+        options={[
+          { value: 'ALL', label: '전체 상태' },
+          { value: 'READY', label: '실행 대기' },
+          { value: 'EXECUTING', label: '실행 중' },
+          { value: 'COMPLETED', label: '완료' },
+        ]}
+      />
+    </div>
+  );
+}
+
+export const ShadcnDropdownMenu = {
+  render: () => <ShadcnSelectMenuPreview />,
 };
