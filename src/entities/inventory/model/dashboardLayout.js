@@ -16,21 +16,21 @@ const onlineSalesPointLayoutByCode = Object.freeze({
 });
 
 const storeLayoutByCode = Object.freeze({
-  DEPT_THEHYUNDAI_SEOUL: { shortName: '더현대서울', x: 25, y: 17 },
-  DEPT_APGUJEONG: { shortName: '압구정', x: 39, y: 24 },
-  DEPT_TRADE_CENTER: { shortName: '무역', x: 53, y: 19 },
-  DEPT_CHEONHO: { shortName: '천호', x: 66, y: 28 },
-  DEPT_SINCHON: { shortName: '신촌', x: 25, y: 34 },
-  DEPT_MIA: { shortName: '미아', x: 56, y: 8 },
-  DEPT_MOKDONG: { shortName: '목동', x: 16, y: 46 },
-  DEPT_JUNGDONG: { shortName: '중동', x: 24, y: 55 },
-  DEPT_KINTEX: { shortName: '킨텍스', x: 11, y: 27 },
-  DEPT_PANGYO: { shortName: '판교', x: 48, y: 41 },
-  DEPT_BUSAN: { shortName: '부산', x: 82, y: 78 },
-  DEPT_DAEGU: { shortName: '대구', x: 71, y: 63 },
-  DEPT_ULSAN: { shortName: '울산', x: 88, y: 61 },
-  DEPT_CHUNGCHEONG: { shortName: '충청', x: 51, y: 58 },
-  HMART_ASAN_HOSPITAL: { shortName: 'Hmart', x: 70, y: 12 },
+  DEPT_THEHYUNDAI_SEOUL: { shortName: '더현대서울', x: 27, y: 14 },
+  DEPT_APGUJEONG: { shortName: '압구정', x: 46, y: 36 },
+  DEPT_TRADE_CENTER: { shortName: '무역', x: 62, y: 31 },
+  DEPT_CHEONHO: { shortName: '천호', x: 79, y: 40 },
+  DEPT_SINCHON: { shortName: '신촌', x: 29, y: 36 },
+  DEPT_MIA: { shortName: '미아', x: 44, y: 16 },
+  DEPT_MOKDONG: { shortName: '목동', x: 14, y: 42 },
+  DEPT_JUNGDONG: { shortName: '중동', x: 22, y: 62 },
+  DEPT_KINTEX: { shortName: '킨텍스', x: 11, y: 22 },
+  DEPT_PANGYO: { shortName: '판교', x: 43, y: 56 },
+  DEPT_BUSAN: { shortName: '부산', x: 80, y: 80 },
+  DEPT_DAEGU: { shortName: '대구', x: 70, y: 63 },
+  DEPT_ULSAN: { shortName: '울산', x: 86, y: 59 },
+  DEPT_CHUNGCHEONG: { shortName: '충청', x: 53, y: 75 },
+  HMART_ASAN_HOSPITAL: { shortName: 'Hmart', x: 67, y: 14 },
 });
 
 const regionLabels = Object.freeze({
@@ -70,8 +70,12 @@ export function getRegionLabel(code) {
 }
 
 export function getHeatmapMarkerSize(availableStock, minimumStock, maximumStock, viewMode) {
-  const minimumSize = viewMode === 'centers' ? 58 : 44;
-  const maximumSize = viewMode === 'centers' ? 94 : 66;
+  const sizeRange = {
+    centers: [58, 94],
+    online: [50, 76],
+    stores: [48, 64],
+  }[viewMode] ?? [48, 64];
+  const [minimumSize, maximumSize] = sizeRange;
   const value = Number(availableStock);
   const minimum = Number(minimumStock);
   const maximum = Number(maximumStock);

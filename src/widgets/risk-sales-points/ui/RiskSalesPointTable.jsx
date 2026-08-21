@@ -84,32 +84,40 @@ function CompactRiskSalesPointList({ points }) {
             위험재고를 보유한 판매처가 없습니다.
           </p>
         ) : (
-          <ol className="max-h-[282px] divide-y divide-[var(--border)] overflow-y-auto px-4">
-            {points.map((point) => (
-              <li key={point.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 py-2.5">
-                <span className="grid size-6 place-items-center rounded-full bg-[var(--danger-soft)] text-[length:var(--font-size-tiny)] font-[var(--font-weight-bold)] text-[color:var(--danger)]">
-                  {point.rank}
-                </span>
-                <span className="min-w-0">
-                  <strong className="block truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
-                    {point.name}
-                  </strong>
-                  <span className="mt-0.5 block text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
-                    {point.type} · 위험 SKU{' '}
-                    <strong className="text-[color:var(--danger)]">{formatQuantity(point.riskSkuCount)}</strong> · 폐기{' '}
-                    <strong className="text-[color:var(--danger)]">{formatQuantity(point.expectedDisposal)}</strong>
+          <>
+            <ol className="max-h-[218px] divide-y divide-[var(--border)] overflow-y-auto px-4 pr-2">
+              {points.map((point) => (
+                <li key={point.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 py-2">
+                  <span className="grid size-6 place-items-center rounded-full bg-[var(--danger-soft)] text-[length:var(--font-size-tiny)] font-[var(--font-weight-bold)] text-[color:var(--danger)]">
+                    {point.rank}
                   </span>
-                </span>
-                <Link
-                  to={getRiskSalesPointInventoryUrl(point)}
-                  aria-label={`${point.name} 재고 보기`}
-                  className="grid size-7 place-items-center rounded-full text-[color:var(--primary-strong)] hover:bg-[var(--primary-soft)]"
-                >
-                  <Icon icon={ArrowRight} size={14} aria-hidden="true" />
-                </Link>
-              </li>
-            ))}
-          </ol>
+                  <span className="min-w-0">
+                    <strong className="block truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
+                      {point.name}
+                    </strong>
+                    <span className="mt-0.5 block text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
+                      {point.type} · 위험 SKU{' '}
+                      <strong className="text-[color:var(--danger)]">{formatQuantity(point.riskSkuCount)}</strong> ·
+                      폐기{' '}
+                      <strong className="text-[color:var(--danger)]">{formatQuantity(point.expectedDisposal)}</strong>
+                    </span>
+                  </span>
+                  <Link
+                    to={getRiskSalesPointInventoryUrl(point)}
+                    aria-label={`${point.name} 재고 보기`}
+                    className="grid size-7 place-items-center rounded-full text-[color:var(--primary-strong)] hover:bg-[var(--primary-soft)]"
+                  >
+                    <Icon icon={ArrowRight} size={14} aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ol>
+            {points.length > 5 ? (
+              <p className="border-t border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-2 text-center text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
+                목록 안에서 스크롤해 전체 {points.length}개 판매처를 확인할 수 있습니다.
+              </p>
+            ) : null}
+          </>
         )}
       </section>
     </Card>

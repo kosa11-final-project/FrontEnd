@@ -1,13 +1,18 @@
 import { AlertTriangle, Box, Clock, Refresh, Warning } from 'reicon-react';
-import { formatDateTime, formatQuantity } from '@/shared/lib/format';
+import { formatDateTime, formatPercent, formatQuantity } from '@/shared/lib/format';
 import { Icon, MetricCard } from '@/shared/ui';
 
 export function DashboardSummary({ calculatedAt, summary }) {
+  const availabilityRate =
+    summary.totalCurrentStock > 0 ? (summary.totalAvailableStock / summary.totalCurrentStock) * 100 : null;
   const metrics = [
     {
       label: '전체 판매 가능 재고',
       value: formatQuantity(summary.totalAvailableStock),
-      helper: '전국 온·오프라인 재고 기준',
+      helper:
+        availabilityRate === null
+          ? '총현재고 기준 가용률 산정 불가'
+          : `총현재고 ${formatQuantity(summary.totalCurrentStock)} 중 ${formatPercent(availabilityRate)}`,
       icon: Box,
       tone: 'good',
     },

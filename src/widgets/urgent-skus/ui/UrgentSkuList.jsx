@@ -19,9 +19,9 @@ function CompactUrgentSkuList({ skus }) {
         {skus.length === 0 ? (
           <StateView state="empty" compact title="긴급 처리 대상 SKU가 없습니다." className="m-4" />
         ) : (
-          <ol className="max-h-[282px] divide-y divide-[var(--border)] overflow-y-auto px-4">
+          <ol className="divide-y divide-[var(--border)] px-4">
             {skus.map((sku) => (
-              <li key={sku.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 py-2.5">
+              <li key={sku.id} className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 py-2">
                 <span className="grid size-6 place-items-center rounded-full bg-[var(--danger-soft)] text-[length:var(--font-size-tiny)] font-[var(--font-weight-bold)] text-[color:var(--danger)]">
                   {sku.rank}
                 </span>

@@ -111,6 +111,7 @@ export function mapDashboardResponse(response) {
 
   return {
     summary: {
+      totalCurrentStock: toNumber(summary.totalCurrentStock ?? summary.totalAvailableStock),
       totalAvailableStock: toNumber(summary.totalAvailableStock),
       criticalSkuCount: toNumber(summary.criticalSkuCount),
       warningSkuCount: toNumber(summary.warningSkuCount),

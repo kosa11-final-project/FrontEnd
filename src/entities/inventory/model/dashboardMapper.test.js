@@ -5,6 +5,7 @@ import { mapDashboardResponse } from './dashboardMapper.js';
 
 const response = {
   summary: {
+    totalCurrentStock: 4800,
     totalAvailableStock: 4062,
     criticalSkuCount: 5,
     warningSkuCount: 7,
@@ -95,6 +96,8 @@ describe('dashboard response mapper', () => {
     const dashboard = mapDashboardResponse(response);
 
     expect(dashboard.summary).toMatchObject({
+      totalCurrentStock: 4800,
+      totalAvailableStock: 4062,
       criticalSkuCount: 5,
       warningSkuCount: 7,
       riskAndCautionSkuCount: 12,
@@ -132,6 +135,12 @@ describe('dashboard response mapper', () => {
     expect(dashboard.offlineStores).toEqual([]);
     expect(dashboard.riskSalesPointsTop10).toEqual([]);
     expect(dashboard.urgentSkusTop5).toEqual([]);
+  });
+
+  it('uses available stock as the current-stock fallback for an older snapshot', () => {
+    const dashboard = mapDashboardResponse({ summary: { totalAvailableStock: 120 } });
+
+    expect(dashboard.summary.totalCurrentStock).toBe(120);
   });
 });
 
@@ -174,6 +183,6 @@ describe('heatmap marker size', () => {
   });
 
   it('uses a stable middle size when all locations have the same stock', () => {
-    expect(getHeatmapMarkerSize(300, 300, 300, 'stores')).toBe(55);
+    expect(getHeatmapMarkerSize(300, 300, 300, 'stores')).toBe(56);
   });
 });

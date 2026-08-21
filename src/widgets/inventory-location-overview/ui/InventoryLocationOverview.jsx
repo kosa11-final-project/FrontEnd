@@ -15,16 +15,16 @@ const locationToneClasses = Object.freeze({
 
 const viewMeta = Object.freeze({
   centers: {
-    label: '물류센터 미할당',
-    shortLabel: '물류센터',
+    label: '판매처 미할당',
+    shortLabel: '보관 물류센터',
     countUnit: '센터',
     icon: Database,
-    description: '판매처가 정해지지 않은 물류센터 재고',
+    description: '물류센터에 보관 중이며 판매처가 지정되지 않은 재고',
     totalLabel: '판매처 미할당 재고 합계',
     regionLabels: ['수도권', '영남권', '호남권'],
   },
   online: {
-    label: '온라인 판매처',
+    label: '온라인 판매처 할당',
     shortLabel: '온라인 판매처',
     countUnit: '판매처',
     icon: Store,
@@ -33,15 +33,35 @@ const viewMeta = Object.freeze({
     regionLabels: ['온라인 채널', '물류센터 보관', '판매처 할당'],
   },
   stores: {
-    label: '오프라인 매장',
-    shortLabel: '오프라인 매장',
-    countUnit: '매장',
+    label: '오프라인 판매처 할당',
+    shortLabel: '오프라인 판매처',
+    countUnit: '판매처',
     icon: Building,
-    description: '각 매장에 실제 보관 중인 오프라인 재고',
-    totalLabel: '활성 오프라인 매장 합계',
+    description: '오프라인 판매처에 할당된 재고',
+    totalLabel: '활성 오프라인 판매처 재고 합계',
     regionLabels: ['서울·경기', '영남권', '충청권'],
   },
 });
+
+const backdropRegionClasses = Object.freeze({
+  centers: [
+    'left-[3%] top-[10%] h-[56%] w-[62%] rotate-[-4deg] bg-[var(--primary-faint)]',
+    'right-[3%] top-[19%] h-[47%] w-[42%] rotate-[6deg] bg-[var(--surface)]',
+    'bottom-[4%] left-[22%] h-[35%] w-[51%] rotate-[2deg] bg-[var(--primary-soft)]/45',
+  ],
+  online: [
+    'left-[9%] top-[15%] h-[63%] w-[43%] rotate-[-5deg] bg-[var(--primary-faint)]',
+    'right-[9%] top-[24%] h-[57%] w-[43%] rotate-[5deg] bg-[var(--primary-soft)]/55',
+    'bottom-[8%] left-[37%] h-[27%] w-[26%] bg-[var(--surface)]',
+  ],
+  stores: [
+    'left-[2%] top-[8%] h-[59%] w-[64%] rotate-[-3deg] bg-[var(--primary-faint)]',
+    'right-[2%] top-[11%] h-[42%] w-[36%] rotate-[5deg] bg-[var(--surface)]',
+    'bottom-[2%] left-[17%] h-[39%] w-[69%] rotate-[1deg] bg-[var(--primary-soft)]/45',
+  ],
+});
+
+const regionLabelClasses = ['left-[7%] top-[17%]', 'bottom-[14%] right-[8%]', 'bottom-[9%] left-[35%]'];
 
 function resolveLocationTone(location) {
   if (location.riskSkuCount >= 5 || location.nearExpiryStock >= 50 || location.expectedDisposal >= 40) {
@@ -212,6 +232,43 @@ function MobileLocationList({ activeLocationId, locations, onActivate, viewMode 
   );
 }
 
+function HeatmapBackdrop({ meta, viewMode }) {
+  return (
+    <div aria-hidden="true" className="absolute inset-0 overflow-hidden bg-[var(--surface-subtle)]">
+      <div
+        className="absolute inset-0 opacity-80"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 28% 24%, color-mix(in srgb, var(--primary-soft) 78%, white), transparent 42%), radial-gradient(circle at 76% 72%, color-mix(in srgb, var(--warning-soft) 24%, white), transparent 38%), linear-gradient(145deg, color-mix(in srgb, var(--surface) 88%, var(--primary-soft)), var(--surface-subtle))',
+        }}
+      />
+
+      {backdropRegionClasses[viewMode].map((className) => (
+        <span
+          key={className}
+          className={cn(
+            'absolute rounded-[44%] border border-white/80 opacity-70 shadow-[inset_0_0_30px_color-mix(in_srgb,var(--primary)_5%,transparent)]',
+            className,
+          )}
+        />
+      ))}
+
+      {meta.regionLabels.map((label, index) => (
+        <span
+          key={label}
+          className={cn(
+            'absolute inline-flex items-center gap-1.5 rounded-full border border-white/90 bg-white/75 px-2.5 py-1 text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.08em] text-[color:var(--text-muted)] shadow-[var(--shadow-soft)] backdrop-blur-sm',
+            regionLabelClasses[index],
+          )}
+        >
+          <span className="size-1.5 rounded-full bg-[var(--primary)]/55" />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function getInitialViewMode(centers, onlineSalesPoints) {
   if (centers.length > 0) return 'centers';
   if (onlineSalesPoints.length > 0) return 'online';
@@ -221,7 +278,7 @@ function getInitialViewMode(centers, onlineSalesPoints) {
 export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }) {
   const [viewMode, setViewMode] = useState(() => getInitialViewMode(centers, onlineSalesPoints));
   const [activeLocationIds, setActiveLocationIds] = useState({
-    centers: centers.find((center) => center.id === 'SMART_FOOD' || center.id === 'SEONGNAM')?.id ?? centers[0]?.id,
+    centers: centers[0]?.id,
     online: onlineSalesPoints[0]?.id,
     stores: stores[0]?.id,
   });
@@ -249,7 +306,7 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
               재고 위치별 현황
             </CardTitle>
             <CardDescription className="mt-1">
-              미할당·온라인·오프라인 재고를 분리해 위험 위치를 빠르게 비교합니다.
+              판매처 미할당·온라인 할당·오프라인 할당 재고를 분리해 위험 위치를 빠르게 비교합니다.
             </CardDescription>
           </div>
 
@@ -286,48 +343,15 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
 
               <div
                 className={cn(
-                  'relative min-h-[430px] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-strong)] bg-[var(--surface-subtle)] sm:min-h-[500px]',
+                  'relative min-h-[430px] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-strong)] bg-[var(--surface-subtle)] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:min-h-[500px]',
                   viewMode !== 'centers' && 'hidden sm:block',
                 )}
-                style={{
-                  backgroundImage:
-                    'linear-gradient(color-mix(in srgb, var(--border) 72%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--border) 72%, transparent) 1px, transparent 1px), radial-gradient(circle at 46% 42%, color-mix(in srgb,var(--primary-soft) 90%,white), transparent 48%)',
-                  backgroundSize: '42px 42px, 42px 42px, 100% 100%',
-                }}
               >
+                <HeatmapBackdrop meta={meta} viewMode={viewMode} />
+
                 <div className="absolute left-4 top-4 z-10 max-w-[90%] rounded-full border border-[var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--text-body)] shadow-[var(--shadow-soft)]">
                   {meta.description} · {locations.length}개
                 </div>
-
-                <span className="absolute left-[10%] top-[18%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
-                  {meta.regionLabels[0]}
-                </span>
-                <span className="absolute bottom-[15%] right-[10%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
-                  {meta.regionLabels[1]}
-                </span>
-                <span className="absolute bottom-[10%] left-[21%] text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.16em] text-[color:var(--text-muted)]">
-                  {meta.regionLabels[2]}
-                </span>
-
-                <svg
-                  aria-hidden="true"
-                  className="absolute inset-0 size-full"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                >
-                  <path
-                    d={
-                      viewMode === 'online'
-                        ? 'M34 44 C45 32 55 68 66 56'
-                        : 'M18 43 L24 24 L38 37 L49 20 L52 50 L70 37 L76 72 M52 50 L39 78'
-                    }
-                    fill="none"
-                    stroke="var(--border-strong)"
-                    strokeWidth="0.7"
-                    strokeDasharray="3 3"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                </svg>
 
                 {locations.map((location) => {
                   const selected = location.id === activeLocation.id;
@@ -346,7 +370,7 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
                       aria-label={`${location.name}, 판매 가능 재고 ${formatQuantity(location.availableStock)}, 소비기한 임박 ${formatQuantity(location.nearExpiryStock)}`}
                       aria-pressed={selected}
                       className={cn(
-                        'group absolute z-[2] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[transform,box-shadow] duration-[var(--motion-fast)] hover:z-10 hover:-translate-x-1/2 hover:-translate-y-1/2 hover:scale-110 focus-visible:z-10',
+                        'group absolute z-[2] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[transform,box-shadow] duration-[var(--motion-fast)] hover:z-10 hover:-translate-x-1/2 hover:-translate-y-1/2 hover:scale-[1.14] hover:shadow-[0_12px_28px_rgba(15,76,59,0.24)] focus-visible:z-10',
                         locationToneClasses[tone],
                         selected && 'ring-4 ring-[var(--surface)] outline outline-2 outline-[var(--primary-strong)]',
                       )}
