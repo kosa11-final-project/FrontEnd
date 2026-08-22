@@ -1,76 +1,59 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChartBar } from 'reicon-react';
-import { inventoryStatisticsQueryOptions } from '@/entities/statistics';
-import { formatDateTime } from '@/shared/lib/format';
-import { Badge, Card, Icon, StateView, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
-import { getStatisticsInventoryUrl } from './model/statisticsLinks.js';
+import { inventoryStatisticsQueryOptions, strategyStatisticsQueryOptions } from '@/entities/statistics';
+import { StateView, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
+import { strategyStatisticsFixture } from './model/strategyStatisticsFixtures.js';
+import { buildStrategyStatisticsView } from './model/strategyStatisticsModel.js';
 import {
   buildStatisticsQueryParams,
   getScopeLocations,
   getSelectedStatisticsSummary,
-  getStatisticsGranularity,
   getStatisticsPeriodRange,
   scaleStatisticsTrend,
   selectStatisticsTrend,
 } from './model/statisticsModel.js';
 import { InventoryStatisticsSummary } from './ui/InventoryStatisticsSummary.jsx';
-import { LocationComparisonCard } from './ui/LocationComparisonCard.jsx';
-import { RiskDistributionCard } from './ui/RiskDistributionCard.jsx';
+import { InventoryRiskCompositionCard } from './ui/InventoryRiskCompositionCard.jsx';
 import { RiskTrendCard } from './ui/RiskTrendCard.jsx';
 import { StatisticsFilters } from './ui/StatisticsFilters.jsx';
-import { StatisticsDataQualityNotice } from './ui/StatisticsDataQualityNotice.jsx';
+import { StrategyStatisticsPanel } from './ui/StrategyStatisticsPanel.jsx';
 
-export function StatisticsPageShell({ calculatedAt, children }) {
+export function StatisticsPageShell({ children }) {
   return (
     <main className="page-shell" aria-labelledby="statistics-page-title">
-      <Card asChild padding="lg" className="mb-6 shadow-[var(--shadow-soft)]">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-card)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
-              <Icon icon={ChartBar} size={22} aria-hidden="true" />
-            </span>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1
-                  id="statistics-page-title"
-                  className="m-0 text-[length:var(--font-size-page-title)] font-[var(--font-weight-headline1)] leading-[var(--line-height-heading)] tracking-[-0.05em] text-[color:var(--text-heading)]"
-                >
-                  운영 통계
-                </h1>
-                <Badge variant="good">동기화 기준 집계</Badge>
-              </div>
-              <p className="mt-2 max-w-3xl text-[length:var(--font-size-body)] text-[color:var(--text-muted)]">
-                재고 위험 수준과 위치별 변화를 비교하고 조치가 필요한 영역을 확인합니다.
-              </p>
-            </div>
-          </div>
-
-          {calculatedAt ? (
-            <div className="shrink-0 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-              마지막 정상 집계
-              <strong className="ml-2 text-[color:var(--text-heading)]">{formatDateTime(calculatedAt)}</strong>
-            </div>
-          ) : null}
-        </section>
-      </Card>
+      <h1 id="statistics-page-title" className="sr-only">
+        운영 성과 통계
+      </h1>
       {children}
     </main>
   );
 }
 
-export function StatisticsPageContent({ statistics, isRefreshing = false, onQueryParamsChange }) {
-  const [activeTab, setActiveTab] = useState('inventory');
+export function StatisticsPageContent({
+  statistics,
+  strategyStatistics,
+  strategyState = 'success',
+  isRefreshing = false,
+  onQueryParamsChange,
+  onRetryStrategy,
+}) {
+  const [activeTab, setActiveTab] = useState('strategy');
   const [period, setPeriod] = useState('30D');
   const [customRange, setCustomRange] = useState(() => getStatisticsPeriodRange('30D', statistics.asOfDate));
   const [scopeType, setScopeType] = useState('NATIONAL');
   const [locationId, setLocationId] = useState('ALL');
-  const [comparisonScope, setComparisonScope] = useState('WAREHOUSE');
 
   const range = getStatisticsPeriodRange(period, statistics.asOfDate, customRange);
-  const granularity = getStatisticsGranularity(range);
   const locationOptions = getScopeLocations(statistics.locations, scopeType);
   const summary = getSelectedStatisticsSummary(statistics, scopeType, locationId);
+  const strategyView = strategyStatistics
+    ? {
+        range,
+        current: strategyStatistics.summary,
+        trend: strategyStatistics.dailyTrend,
+        actionCombinationBreakdown: strategyStatistics.actionCombinationBreakdown,
+      }
+    : buildStrategyStatisticsView(strategyStatisticsFixture, range, scopeType);
   const selectedTrend = selectStatisticsTrend(statistics.dailyTrend, range);
   const selectedScopeCode = scopeType === 'UNASSIGNED' ? 'UNASSIGNED' : locationId;
   const usesServerTrend = Boolean(statistics.trendScopeType);
@@ -81,17 +64,16 @@ export function StatisticsPageContent({ statistics, isRefreshing = false, onQuer
       ? selectedTrend
       : []
     : scaleStatisticsTrend(selectedTrend, summary, statistics.scopeSummaries.NATIONAL);
-  const inventoryLinkContext = {
-    scopeType,
-    locationId,
-    locations: statistics.locations,
-  };
-  const inventoryUrl = getStatisticsInventoryUrl(inventoryLinkContext);
-  const riskInventoryUrl = getStatisticsInventoryUrl({ ...inventoryLinkContext, riskGrade: 'CRITICAL' });
-  const unassessedInventoryUrl = getStatisticsInventoryUrl({
-    ...inventoryLinkContext,
-    assessmentStatus: 'UNASSESSED',
-  });
+  const selectedLocation = locationOptions.find((location) => location.id === locationId);
+  const scopeName =
+    selectedLocation?.name ??
+    {
+      NATIONAL: '전체',
+      WAREHOUSE: '전체 물류센터',
+      OFFLINE_STORE: '전체 오프라인 매장',
+      ONLINE_STORE: '전체 온라인 판매처',
+      UNASSIGNED: '공용 미할당 재고',
+    }[scopeType];
 
   function requestStatistics(nextPeriod, nextCustomRange, nextScopeType, nextLocationId) {
     const nextRange = getStatisticsPeriodRange(nextPeriod, statistics.asOfDate, nextCustomRange);
@@ -118,7 +100,6 @@ export function StatisticsPageContent({ statistics, isRefreshing = false, onQuer
   function changeScopeType(nextScopeType) {
     setScopeType(nextScopeType);
     setLocationId('ALL');
-    if (nextScopeType !== 'NATIONAL') setComparisonScope(nextScopeType);
     requestStatistics(period, customRange, nextScopeType, 'ALL');
   }
 
@@ -128,20 +109,33 @@ export function StatisticsPageContent({ statistics, isRefreshing = false, onQuer
   }
 
   return (
-    <StatisticsPageShell calculatedAt={statistics.calculatedAt}>
+    <StatisticsPageShell>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-4">
         {({ value, setValue }) => (
           <>
-            <Card padding="sm">
-              <TabsList aria-label="통계 유형" size="lg">
-                <TabsTrigger value="inventory" activeValue={value} onSelect={setValue} size="lg">
-                  재고 통계
+            <div className="border-b border-[var(--border)]">
+              <TabsList aria-label="통계 유형" size="lg" className="h-12 gap-6">
+                <TabsTrigger value="strategy" activeValue={value} onSelect={setValue} size="lg" className="h-12 px-1">
+                  AI 전략 성과
                 </TabsTrigger>
-                <TabsTrigger value="strategy" activeValue={value} onSelect={setValue} size="lg">
-                  AI 전략 통계
+                <TabsTrigger value="inventory" activeValue={value} onSelect={setValue} size="lg" className="h-12 px-1">
+                  위험재고 추이
                 </TabsTrigger>
               </TabsList>
-            </Card>
+            </div>
+
+            <StatisticsFilters
+              period={period}
+              range={range}
+              scopeType={scopeType}
+              locationId={locationId}
+              locationOptions={locationOptions}
+              maxDate={statistics.asOfDate}
+              onPeriodChange={changePeriod}
+              onCustomRangeChange={changeCustomRange}
+              onScopeTypeChange={changeScopeType}
+              onLocationChange={changeLocation}
+            />
 
             {value === 'inventory' ? (
               <div className="space-y-4" aria-busy={isRefreshing}>
@@ -150,59 +144,35 @@ export function StatisticsPageContent({ statistics, isRefreshing = false, onQuer
                     통계 데이터를 갱신하고 있습니다.
                   </p>
                 ) : null}
-                <StatisticsFilters
-                  period={period}
-                  range={range}
-                  granularity={granularity}
-                  scopeType={scopeType}
-                  locationId={locationId}
-                  locationOptions={locationOptions}
-                  onPeriodChange={changePeriod}
-                  onCustomRangeChange={changeCustomRange}
-                  onScopeTypeChange={changeScopeType}
-                  onLocationChange={changeLocation}
-                />
-
-                <InventoryStatisticsSummary
-                  summary={summary}
-                  canViewFinancials={statistics.canViewFinancials}
-                  inventoryUrl={inventoryUrl}
-                  riskInventoryUrl={riskInventoryUrl}
-                />
-
-                <StatisticsDataQualityNotice summary={summary} unassessedInventoryUrl={unassessedInventoryUrl} />
-
-                <section className="grid min-w-0 grid-cols-1 gap-4 2xl:grid-cols-[minmax(360px,0.85fr)_minmax(0,1.6fr)]">
-                  <RiskDistributionCard
-                    distribution={summary.riskDistribution}
-                    getInventoryUrl={(riskGrade) =>
-                      riskGrade === 'UNASSESSED'
-                        ? unassessedInventoryUrl
-                        : getStatisticsInventoryUrl({ ...inventoryLinkContext, riskGrade })
-                    }
+                {trend.length >= 2 ? (
+                  <>
+                    <InventoryStatisticsSummary trend={trend} scopeName={scopeName} />
+                    <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.75fr)]">
+                      <RiskTrendCard trend={trend} scopeName={scopeName} />
+                      <InventoryRiskCompositionCard trend={trend} />
+                    </div>
+                  </>
+                ) : (
+                  <StateView
+                    state="empty"
+                    title="위험재고 변화를 비교할 집계가 부족합니다."
+                    description="선택 기간에는 정상 스냅샷이 2개 이상 필요합니다. 기간이나 위치를 변경해 주세요."
                   />
-                  <RiskTrendCard trend={trend} />
-                </section>
-
-                <LocationComparisonCard
-                  locations={statistics.locations}
-                  scopeType={comparisonScope}
-                  onScopeTypeChange={setComparisonScope}
-                  getInventoryUrl={(location) =>
-                    getStatisticsInventoryUrl({
-                      scopeType: location.scopeType,
-                      locationId: location.id,
-                      locations: statistics.locations,
-                      riskGrade: 'CRITICAL',
-                    })
-                  }
-                />
+                )}
               </div>
+            ) : strategyState === 'success' ? (
+              <StrategyStatisticsPanel view={strategyView} isPreview={!strategyStatistics} />
             ) : (
               <StateView
-                state="empty"
-                title="AI 전략 통계는 지표를 설계하고 있습니다."
-                description="재고 통계 UI와 API 기준을 확정한 뒤 전략 목표·실적 지표를 연결할 예정입니다."
+                state={strategyState}
+                title={strategyState === 'empty' ? '조회 기간에 종료된 AI 전략이 없습니다.' : undefined}
+                description={
+                  strategyState === 'empty'
+                    ? '기간이나 위치를 변경하거나 전략 실행 결과 확정 여부를 확인해 주세요.'
+                    : undefined
+                }
+                actionLabel={strategyState === 'error' ? '다시 시도' : undefined}
+                onAction={strategyState === 'error' ? onRetryStrategy : undefined}
               />
             )}
           </>
@@ -215,6 +185,7 @@ export function StatisticsPageContent({ statistics, isRefreshing = false, onQuer
 export default function StatisticsPage() {
   const [queryParams, setQueryParams] = useState({});
   const statisticsQuery = useQuery(inventoryStatisticsQueryOptions(queryParams));
+  const strategyQuery = useQuery(strategyStatisticsQueryOptions(queryParams));
 
   if (statisticsQuery.isPending) {
     return (
@@ -247,7 +218,7 @@ export default function StatisticsPage() {
 
   if (!statisticsQuery.data?.scopeSummaries?.NATIONAL) {
     return (
-      <StatisticsPageShell calculatedAt={statisticsQuery.data?.calculatedAt}>
+      <StatisticsPageShell>
         <StateView
           state="empty"
           title="표시할 재고 통계가 없습니다."
@@ -259,11 +230,24 @@ export default function StatisticsPage() {
     );
   }
 
+  const strategyState = strategyQuery.isPending
+    ? 'loading'
+    : strategyQuery.isError
+      ? strategyQuery.error?.status === 403
+        ? 'forbidden'
+        : 'error'
+      : strategyQuery.data?.summary?.completedCount > 0
+        ? 'success'
+        : 'empty';
+
   return (
     <StatisticsPageContent
       statistics={statisticsQuery.data}
-      isRefreshing={statisticsQuery.isFetching}
+      strategyStatistics={strategyQuery.data}
+      strategyState={strategyState}
+      isRefreshing={statisticsQuery.isFetching || strategyQuery.isFetching}
       onQueryParamsChange={setQueryParams}
+      onRetryStrategy={() => strategyQuery.refetch()}
     />
   );
 }

@@ -1,147 +1,187 @@
-import { Link } from 'react-router-dom';
-import { AlertTriangle, Box, CheckCircle, Clock, Danger, Warning } from 'reicon-react';
-import { formatCurrency, formatNumber, formatQuantity } from '@/shared/lib/format';
-import { Alert, Card, Icon, MetricCard } from '@/shared/ui';
+import { AlertTriangle, Clock, Danger, InfoCircle, Package, Warning } from 'reicon-react';
+import { formatDate, formatNumber, formatPercent, formatQuantity } from '@/shared/lib/format';
+import { Alert, Badge, Icon, MetricCard, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui';
 
-export function InventoryStatisticsSummary({ summary, canViewFinancials, inventoryUrl, riskInventoryUrl }) {
+function MetricLabel({ label, calculation }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>{label}</span>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={`${label} 계산 기준`}
+              className="grid size-5 place-items-center rounded-full text-[color:var(--text-muted)] outline-none transition-colors hover:bg-[var(--surface-subtle)] hover:text-[color:var(--text-heading)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            >
+              <Icon icon={InfoCircle} size={13} aria-hidden="true" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent tone="light" side="top" className="max-w-[320px] leading-relaxed">
+            {calculation}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </span>
+  );
+}
+
+function getChangeRate(start, end) {
+  if (!start) return null;
+  return ((end - start) / start) * 100;
+}
+
+function formatNetChange(start, end) {
+  const difference = end - start;
+  if (difference === 0) return '변화 없음';
+  return `${difference < 0 ? '↓' : '↑'} ${formatQuantity(Math.abs(difference))}`;
+}
+
+function getRiskRatio(point) {
+  if (!point?.totalStockQty) return null;
+  return ((point.riskStockQty ?? 0) / point.totalStockQty) * 100;
+}
+
+function getRiskSkuCount(point) {
+  return (point?.criticalSkuCount ?? 0) + (point?.warningSkuCount ?? 0);
+}
+
+function buildRiskInsight(firstPoint, lastPoint) {
+  const totalChange = lastPoint.riskStockQty - firstPoint.riskStockQty;
+  const startRatio = getRiskRatio(firstPoint);
+  const endRatio = getRiskRatio(lastPoint);
+  const changeText =
+    totalChange === 0
+      ? '기간 시작과 동일합니다.'
+      : `기간 시작보다 ${formatQuantity(Math.abs(totalChange))} ${totalChange < 0 ? '순감했습니다.' : '순증했습니다.'}`;
+  const ratioText =
+    Number.isFinite(startRatio) && Number.isFinite(endRatio)
+      ? `위험재고 비율은 ${formatPercent(startRatio)}에서 ${formatPercent(endRatio)}로 변했습니다.`
+      : '위험재고 비율은 API 연결 후 함께 표시됩니다.';
+
+  return {
+    title: `기간 종료 위험재고는 ${formatQuantity(lastPoint.riskStockQty)}로, ${changeText}`,
+    description: `${ratioText} 신규 입고·판매·이동·폐기가 모두 반영된 전체 재고 상태이며 AI 전략만의 성과를 의미하지 않습니다.`,
+  };
+}
+
+export function InventoryStatisticsSummary({ trend, scopeName = '전체' }) {
+  const firstPoint = trend[0] ?? {};
+  const lastPoint = trend.at(-1) ?? {};
+  const startRiskStockQty = firstPoint.riskStockQty ?? 0;
+  const endRiskStockQty = lastPoint.riskStockQty ?? 0;
+  const riskChangeRate = getChangeRate(startRiskStockQty, endRiskStockQty);
+  const startRiskRatio = getRiskRatio(firstPoint);
+  const endRiskRatio = getRiskRatio(lastPoint);
+  const startRiskSkuCount = getRiskSkuCount(firstPoint);
+  const endRiskSkuCount = getRiskSkuCount(lastPoint);
+  const riskSkuDifference = endRiskSkuCount - startRiskSkuCount;
+  const riskSkuChangeText =
+    riskSkuDifference === 0
+      ? '변화 없음'
+      : `${formatNumber(Math.abs(riskSkuDifference))}종 ${riskSkuDifference < 0 ? '감소' : '증가'}`;
+  const insight = buildRiskInsight(firstPoint, lastPoint);
+
   const metrics = [
     {
-      label: '전체 재고수량',
-      value: formatQuantity(summary.totalStockQty),
-      helper: `고유 SKU ${formatNumber(summary.totalSkuCount)}종`,
-      icon: Box,
-      tone: 'good',
-      href: inventoryUrl,
+      label: (
+        <MetricLabel
+          label="기간 시작 위험재고"
+          calculation="선택 기간 안에서 가장 먼저 생성된 정상 스냅샷의 CRITICAL 재고와 WARNING 재고를 더한 값입니다."
+        />
+      ),
+      id: 'start-risk-stock',
+      value: formatQuantity(startRiskStockQty),
+      helper: formatDate(firstPoint.date),
+      icon: Clock,
+      tone: 'neutral',
     },
     {
-      label: '판매 가능 재고',
-      value: formatQuantity(summary.availableStockQty),
-      helper: '판매중지·소비기한 경과 제외',
-      icon: CheckCircle,
-      tone: 'good',
-    },
-    {
-      label: '위험 SKU',
-      value: formatQuantity(summary.criticalSkuCount),
-      helper: 'CRITICAL 대표등급 기준',
-      icon: AlertTriangle,
+      label: (
+        <MetricLabel
+          label="기간 종료 위험재고"
+          calculation="선택 기간 안에서 가장 마지막에 생성된 정상 스냅샷의 CRITICAL 재고와 WARNING 재고를 더한 값입니다."
+        />
+      ),
+      id: 'end-risk-stock',
+      value: formatQuantity(endRiskStockQty),
+      helper: formatDate(lastPoint.date),
+      icon: Package,
       tone: 'danger',
-      href: riskInventoryUrl,
     },
     {
-      label: '위험재고 수량',
-      value: formatQuantity(summary.criticalStockQty),
-      helper: 'CRITICAL 재고수량 합계',
+      label: (
+        <MetricLabel
+          label="위험재고 순변화"
+          calculation="기간 종료 위험재고에서 기간 시작 위험재고를 뺀 순변화입니다. 신규 입고·판매·이동·폐기가 모두 포함되며 AI 전략 성과를 의미하지 않습니다."
+        />
+      ),
+      id: 'net-risk-stock-change',
+      value: formatNetChange(startRiskStockQty, endRiskStockQty),
+      helper: Number.isFinite(riskChangeRate)
+        ? `시작 대비 ${riskChangeRate > 0 ? '+' : ''}${riskChangeRate.toFixed(1)}% · 입출고 포함`
+        : '변화율 계산 불가',
+      icon: Warning,
+      tone: 'neutral',
+    },
+    {
+      label: (
+        <MetricLabel
+          label="위험재고 비율"
+          calculation="각 시점의 전체 재고수량 중 CRITICAL과 WARNING 재고수량이 차지하는 비율입니다. 재고 규모가 변해도 위험 수준을 함께 판단할 수 있습니다."
+        />
+      ),
+      id: 'risk-stock-ratio-change',
+      value:
+        Number.isFinite(startRiskRatio) && Number.isFinite(endRiskRatio)
+          ? `${formatPercent(startRiskRatio)} → ${formatPercent(endRiskRatio)}`
+          : '집계 준비 중',
+      helper: '기간 시작 → 기간 종료',
       icon: Danger,
       tone: 'danger',
-      href: riskInventoryUrl,
     },
     {
-      label: '부족 SKU',
-      value: formatQuantity(summary.shortageSkuCount),
-      helper: '안전재고 미만 기준',
-      icon: Warning,
-      tone: 'danger',
-    },
-    {
-      label: '향후 30일 예상 폐기',
-      value: formatQuantity(summary.expectedDisposalQty30d),
-      helper: '수요예측·LOT 소비기한 기준',
-      icon: Clock,
-      tone: 'danger',
+      label: (
+        <MetricLabel
+          label="위험 SKU 수"
+          calculation="각 시점에서 대표 위험등급이 CRITICAL 또는 WARNING인 고유 SKU 수입니다. 같은 SKU는 한 번만 집계합니다."
+        />
+      ),
+      id: 'risk-sku-count-change',
+      value: formatQuantity(endRiskSkuCount, { unit: '종' }),
+      helper: `시작 ${formatQuantity(startRiskSkuCount, { unit: '종' })} · ${riskSkuChangeText}`,
+      icon: AlertTriangle,
+      tone: 'warning',
     },
   ];
 
-  const financial = summary.financialSummary;
-  const hasMissingCost = financial.missingCostSkuCount > 0 || financial.missingCostStockQty > 0;
-
   return (
-    <div className="space-y-4">
-      <section aria-labelledby="inventory-statistics-summary-title">
-        <div className="mb-3">
+    <section aria-labelledby="inventory-statistics-summary-title">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+        <div>
           <h2
             id="inventory-statistics-summary-title"
             className="m-0 text-[length:var(--font-size-section-title)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]"
           >
-            핵심 재고 지표
+            {scopeName} 위험재고 핵심 변화
           </h2>
           <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-            선택한 범위의 마지막 정상 집계 결과입니다.
+            선택 기간의 첫 집계와 마지막 집계를 비교해 전체 위험재고 상태의 순변화를 확인합니다.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-[var(--spacing-card-gap)] sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-          {metrics.map(({ href, ...metric }) => {
-            const card = (
-              <MetricCard
-                {...metric}
-                helper={href ? `${metric.helper} · 재고 보기 →` : metric.helper}
-                className="h-full"
-              />
-            );
-
-            return href ? (
-              <Link
-                key={metric.label}
-                to={href}
-                aria-label={`${metric.label} 통합 재고에서 보기`}
-                className="block rounded-[var(--radius-panel)] transition-transform duration-[var(--motion-fast)] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-              >
-                {card}
-              </Link>
-            ) : (
-              <div key={metric.label}>{card}</div>
-            );
-          })}
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="neutral">입고·판매·이동·폐기 포함</Badge>
+          <Badge variant="warning">API 연결 전 화면 검토용</Badge>
         </div>
-      </section>
-
-      {canViewFinancials ? (
-        <Card asChild padding="md">
-          <section aria-labelledby="inventory-financial-summary-title">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <h2
-                  id="inventory-financial-summary-title"
-                  className="m-0 text-[length:var(--font-size-section-title)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]"
-                >
-                  원가 기준 재고 금액
-                </h2>
-                <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-                  기준일에 유효한 SKU 단위 원가로 계산합니다.
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--primary-strong)]">
-                <Icon icon={CheckCircle} size={14} aria-hidden="true" />
-                원가 조회 권한
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {[
-                ['전체 재고 원가액', financial.totalInventoryCostAmount],
-                ['위험재고 원가액', financial.criticalInventoryCostAmount],
-                ['예상 폐기 손실액', financial.expectedDisposalLossAmount30d],
-              ].map(([label, value], index) => (
-                <div key={label} className="rounded-[var(--radius-card)] bg-[var(--surface-subtle)] p-4">
-                  <span className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">{label}</span>
-                  <strong
-                    className={`mt-2 block text-[length:var(--font-size-headline2)] font-[var(--font-weight-bold)] ${index === 0 ? 'text-[color:var(--text-heading)]' : 'text-[color:var(--danger)]'}`}
-                  >
-                    {formatCurrency(value)}
-                  </strong>
-                </div>
-              ))}
-            </div>
-
-            {hasMissingCost ? (
-              <Alert className="mt-3" variant="warning" title="일부 SKU 원가가 등록되지 않았습니다.">
-                원가 미등록 {formatQuantity(financial.missingCostSkuCount)} · 재고{' '}
-                {formatQuantity(financial.missingCostStockQty)}는 금액 합계에서 제외했습니다.
-              </Alert>
-            ) : null}
-          </section>
-        </Card>
-      ) : null}
-    </div>
+      </div>
+      <Alert variant="info" title={insight.title} className="mb-3">
+        {insight.description}
+      </Alert>
+      <div className="grid grid-cols-1 gap-[var(--spacing-card-gap)] sm:grid-cols-2 lg:grid-cols-5">
+        {metrics.map((metric) => (
+          <MetricCard key={metric.id} {...metric} className="h-full" />
+        ))}
+      </div>
+    </section>
   );
 }

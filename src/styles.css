@@ -614,6 +614,62 @@ a:focus-visible {
   line-height: var(--line-height-body);
 }
 
+/* PAGE / STATISTICS: range calendar integrates DayPicker with the product tokens. */
+.statistics-range-calendar.rdp-root {
+  --rdp-accent-color: var(--primary);
+  --rdp-accent-background-color: color-mix(in srgb, var(--primary-soft) 76%, var(--card));
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  --rdp-day_button-height: 34px;
+  --rdp-day_button-width: 34px;
+  --rdp-day_button-border-radius: var(--radius-control);
+  --rdp-selected-border: 0;
+  --rdp-range_start-date-background-color: var(--primary);
+  --rdp-range_end-date-background-color: var(--primary);
+  --rdp-months-gap: 24px;
+  margin: 0;
+  color: var(--text-body);
+  font-size: var(--font-size-meta);
+}
+
+.statistics-range-calendar .rdp-month_caption {
+  align-items: center;
+  color: var(--text-heading);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+}
+
+.statistics-range-calendar .rdp-button_previous,
+.statistics-range-calendar .rdp-button_next {
+  border-radius: var(--radius-control);
+}
+
+.statistics-range-calendar .rdp-button_previous:hover,
+.statistics-range-calendar .rdp-button_next:hover,
+.statistics-range-calendar .rdp-day_button:hover:not(:disabled) {
+  background: var(--surface-subtle);
+}
+
+.statistics-range-calendar .rdp-selected {
+  font-size: inherit;
+  font-weight: var(--font-weight-semibold);
+}
+
+.statistics-range-calendar .rdp-weekday {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.statistics-range-calendar .rdp-outside {
+  color: var(--text-muted);
+  opacity: 0.45;
+}
+
+.statistics-range-calendar .rdp-today:not(.rdp-selected) .rdp-day_button {
+  border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
+}
+
 /* WIDGET: Mesh Forecast surface and setup-card composition used by the initial pages. */
 .mesh-hero {
   display: flex;
@@ -812,6 +868,14 @@ code {
 }
 
 @media (max-width: 560px) {
+  .statistics-range-calendar .rdp-month:nth-child(2) {
+    display: none;
+  }
+
+  .statistics-range-calendar.rdp-root {
+    --rdp-months-gap: 0;
+  }
+
   .topbar {
     min-height: 60px;
     padding: 0 12px;
