@@ -1,0 +1,67 @@
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { ChevronDown, TickCircle } from 'reicon-react';
+import { cn } from '@/shared/lib/cn';
+import { Icon } from './Icon.jsx';
+
+export function SelectMenu({
+  value,
+  onValueChange,
+  options,
+  'aria-label': ariaLabel,
+  className,
+  contentClassName,
+  disabled = false,
+}) {
+  return (
+    <SelectPrimitive.Root value={value} onValueChange={onValueChange} disabled={disabled}>
+      <SelectPrimitive.Trigger
+        aria-label={ariaLabel}
+        className={cn(
+          'flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 text-xs font-semibold text-gray-700 outline-none transition-colors',
+          'hover:bg-white focus:border-[#27B06E] focus:ring-2 focus:ring-[#27B06E]/20',
+          'disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-[#27B06E] data-[state=open]:bg-white data-[state=open]:ring-2 data-[state=open]:ring-[#27B06E]/20',
+          className,
+        )}
+      >
+        <SelectPrimitive.Value />
+        <SelectPrimitive.Icon asChild>
+          <Icon icon={ChevronDown} size={15} className="shrink-0 text-gray-400" aria-hidden="true" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Content
+          position="popper"
+          sideOffset={6}
+          collisionPadding={8}
+          className={cn(
+            'z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-lg',
+            'data-[state=closed]:animate-out data-[state=open]:animate-in',
+            contentClassName,
+          )}
+        >
+          <SelectPrimitive.Viewport>
+            {options.map((option) => (
+              <SelectPrimitive.Item
+                key={option.value}
+                value={option.value}
+                disabled={option.disabled}
+                className={cn(
+                  'relative flex h-8 cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-xs font-medium text-gray-700 outline-none',
+                  'data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-[#F0FDF4] data-[highlighted]:text-[#166534]',
+                )}
+              >
+                <span className="absolute left-2 grid size-4 place-items-center">
+                  <SelectPrimitive.ItemIndicator>
+                    <Icon icon={TickCircle} size={14} className="text-[#27B06E]" aria-hidden="true" />
+                  </SelectPrimitive.ItemIndicator>
+                </span>
+                <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+              </SelectPrimitive.Item>
+            ))}
+          </SelectPrimitive.Viewport>
+        </SelectPrimitive.Content>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
+  );
+}

@@ -2,15 +2,18 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout.jsx';
 import AuthGuard from './AuthGuard.jsx';
+import AiStrategyDetailPage from '@/pages/ai-strategy/AiStrategyDetailPage.jsx';
 import AiStrategyPage from '@/pages/ai-strategy/AiStrategyPage.jsx';
 import DashboardPage from '@/pages/dashboard/DashboardPage.jsx';
-import ExecutionPage from '@/pages/execution/ExecutionPage.jsx';
+import ExecutionListPage from '@/pages/execution/ExecutionListPage.jsx';
+import ExecutionDetailPage from '@/pages/execution/ExecutionDetailPage.jsx';
 import InventoryPage from '@/pages/inventory/InventoryPage.jsx';
 import LoginPage from '@/pages/login/LoginPage.jsx';
 import StatisticsPage from '@/pages/statistics/StatisticsPage.jsx';
 import { StateView } from '@/shared/ui';
 
 const HeendiLoaderPage = lazy(() => import('@/pages/heendi-loader/HeendiLoaderPage.jsx'));
+const AiStrategySimulationPage = lazy(() => import('@/pages/ai-strategy/AiStrategySimulationPage.jsx'));
 
 function LazyRoute({ children }) {
   return <Suspense fallback={<StateView state="loading" />}>{children}</Suspense>;
@@ -52,7 +55,17 @@ export const router = createBrowserRouter([
           { path: 'dashboard', element: <DashboardPage /> },
           { path: 'inventory', element: <InventoryPage /> },
           { path: 'ai-strategy', element: <AiStrategyPage /> },
-          { path: 'execution', element: <ExecutionPage /> },
+          { path: 'ai-strategy/:strategyCaseId', element: <AiStrategyDetailPage /> },
+          {
+            path: 'ai-strategy/:strategyCaseId/simulation',
+            element: (
+              <LazyRoute>
+                <AiStrategySimulationPage />
+              </LazyRoute>
+            ),
+          },
+          { path: 'execution', element: <ExecutionListPage /> },
+          { path: 'execution/:strategyId', element: <ExecutionDetailPage /> },
           { path: 'statistics', element: <StatisticsPage /> },
         ],
       },
