@@ -2,6 +2,11 @@
 
 현대그린푸드의 다중 판매채널 재고를 통합 조회하고 위험 재고와 AI 실행 전략을 관리하기 위한 B2B 운영 플랫폼의 프론트엔드 기반입니다.
 
+## 최근 통계 작업
+
+- AI 전략 성과와 위험재고 추이를 실제 통계 API에 연결했습니다.
+- 기간·재고 위치 필터와 성과 지표·추이 차트를 제공합니다.
+
 통합 재고 조회의 로컬 feature 범위는 구현되어 있습니다. 앱 셸, 라우터, FSD-lite 폴더 구조, HTTP 통신 경계, 디자인 토큰, 재사용 UI, Storybook, 테스트와 CI 기반이 구성되어 있으며, 실제 source sync·Oracle 반영은 별도 후속 범위입니다.
 
 통합 재고의 물리 스키마는 BackEnd Flyway V1~V16이 우선합니다. 화면에서는 `on_hand_qty` 집계를 가용재고, `reserved_qty` 집계를 예약재고, 두 값의 합인 `total_qty`를 총재고로 표시하며 FrontEnd가 예약수량을 다시 차감하지 않습니다. 세부 정합성 작업은 workspace의 `../docs/integrated-inventory/SCHEMA-FLYWAY-WORKLIST.md`를 기준으로 합니다.

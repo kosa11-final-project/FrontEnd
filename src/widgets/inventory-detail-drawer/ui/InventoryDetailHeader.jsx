@@ -13,6 +13,7 @@ function getCategoryPathLabel(item) {
  * @param {object} props
  * @param {import('@/entities/inventory').InventoryItem} props.item
  * @param {Array<any>} [props.allSalesPoints=[]]
+ * @param {any} [props.unassignedInventory]
  * @param {string} [props.selectedSalesPointCode='']
  * @param {boolean} [props.copiedSku=false]
  * @param {React.RefObject<HTMLButtonElement>} [props.closeButtonRef]
@@ -23,6 +24,7 @@ function getCategoryPathLabel(item) {
 export function InventoryDetailHeader({
   item,
   allSalesPoints = [],
+  unassignedInventory = null,
   selectedSalesPointCode = '',
   copiedSku = false,
   closeButtonRef,
@@ -88,6 +90,11 @@ export function InventoryDetailHeader({
                 (상품명: {item.productName})
               </span>
             )}
+            {item.supplierName && (
+              <span className="truncate text-xs text-gray-500 font-medium" title={`공급사: ${item.supplierName}`}>
+                (공급사: {item.supplierName})
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -120,6 +127,10 @@ export function InventoryDetailHeader({
               {point.salesPointName} ({point.salesPointCode})
             </option>
           ))}
+          {(unassignedInventory?.hasStock ||
+            unassignedInventory?.currentQuantity != null ||
+            unassignedInventory?.availableQuantity != null ||
+            unassignedInventory?.reservedQuantity != null) && <option value="UNASSIGNED">물류센터 미할당</option>}
         </select>
 
         <button

@@ -116,6 +116,14 @@ function mapSalesPoint(dto = {}, fallback = {}) {
   };
 }
 
+function isUnassignedSalesPoint(salesPoint = {}) {
+  const salesPointCode = String(salesPoint.salesPointCode || '').toUpperCase();
+  const channelType = String(salesPoint.channelType || '').toUpperCase();
+  const salesPointState = String(salesPoint.salesPointState || '').toUpperCase();
+
+  return salesPointCode === 'UNASSIGNED' || channelType === 'CENTER' || salesPointState === 'CENTER_ONLY';
+}
+
 /**
  * 백엔드 단일 재고 DTO를 프론트엔드 전용 View Model로 정규화합니다.
  * 목록 grain: SKU (rowId = skuCode), salesPoints에 소유 판매처를 중첩합니다.
@@ -127,6 +135,7 @@ export function mapInventoryItem(response = {}) {
   const dto = unwrapApiResponse(response) || {};
   const productCode = dto.productCode || dto.product_code || '';
   const productName = dto.productName || dto.product_name || '상품명 미지정';
+  const supplierName = dto.supplierName || dto.supplier_name || '';
   const skuCode = dto.skuCode || dto.sku_code || '';
   const skuName = dto.skuName || dto.sku_name || '';
   const salesPointCode = dto.salesPointCode || dto.sales_point_code || '';
@@ -173,10 +182,24 @@ export function mapInventoryItem(response = {}) {
         : null;
   const riskReason = dto.riskReason || dto.risk_reason || riskObj.reason || '';
 
-  // 보관 물류센터 목록
+  // 보관 물류센터 목록은 판매처에 귀속되지 않은 미할당 재고만 담습니다.
+  // 새 API는 unassignedInventory.locations를 함께 제공하지만, 목록/상세 하위 호환을 위해
+  // 기존 locations도 동일한 미할당 위치 목록으로 정규화합니다.
   const locations = Array.isArray(dto.locations) ? dto.locations.map(mapLocation) : [];
+  const rawUnassignedInventory = dto.unassignedInventory ?? dto.unassigned_inventory ?? null;
+  const nestedUnassignedLocations = Array.isArray(rawUnassignedInventory?.locations)
+    ? rawUnassignedInventory.locations.map(mapLocation)
+    : [];
+  const unassignedLocations = nestedUnassignedLocations.length > 0 ? nestedUnassignedLocations : locations;
   const locationCount = nullableNumber(dto.locationCount, dto.location_count) ?? locations.length;
-  const primaryWarehouseName = locations[0]?.warehouseName || dto.warehouseName || dto.warehouse_name || '-';
+  const unassignedLocationCount =
+    nullableNumber(
+      rawUnassignedInventory?.locationCount,
+      rawUnassignedInventory?.location_count,
+      dto.unassignedLocationCount,
+      dto.unassigned_location_count,
+    ) ?? unassignedLocations.length;
+  const primaryWarehouseName = unassignedLocations[0]?.warehouseName || dto.warehouseName || dto.warehouse_name || '-';
 
   // 소비기한 정보 (null 보존)
   const nearestExpiryDays = nullableNumber(dto.nearestExpiryDays, dto.nearest_expiry_days);
@@ -200,7 +223,7 @@ export function mapInventoryItem(response = {}) {
         ]
       : [];
 
-  const salesPoints = rawSalesPoints.map((sp) =>
+  const mappedSalesPoints = rawSalesPoints.map((sp) =>
     mapSalesPoint(sp, {
       salesPointCode,
       salesPointName,
@@ -212,6 +235,75 @@ export function mapInventoryItem(response = {}) {
       warehouseName: primaryWarehouseName,
     }),
   );
+  const centerSalesPoint = mappedSalesPoints.find(isUnassignedSalesPoint) || null;
+  const salesPoints = mappedSalesPoints
+    .filter((sp) => !isUnassignedSalesPoint(sp))
+    .map((sp) => ({ ...sp, warehouseName: '' }));
+
+  const unassignedCurrentQuantity = nullableNumber(
+    rawUnassignedInventory?.currentQuantity,
+    rawUnassignedInventory?.current_quantity,
+    dto.unassignedCurrentQty,
+    dto.unassigned_current_qty,
+    centerSalesPoint?.currentQuantity,
+  );
+  const unassignedAvailableQuantity = nullableNumber(
+    rawUnassignedInventory?.availableQuantity,
+    rawUnassignedInventory?.available_quantity,
+    dto.unassignedAvailableQty,
+    dto.unassigned_available_qty,
+    centerSalesPoint?.availableQuantity,
+  );
+  const unassignedReservedQuantity = nullableNumber(
+    rawUnassignedInventory?.reservedQuantity,
+    rawUnassignedInventory?.reserved_quantity,
+    dto.unassignedReservedQty,
+    dto.unassigned_reserved_qty,
+    centerSalesPoint?.reservedQuantity,
+  );
+  const unassignedFactState =
+    rawUnassignedInventory?.inventoryFactState ??
+    rawUnassignedInventory?.inventory_fact_state ??
+    dto.unassignedInventoryFactState ??
+    dto.unassigned_inventory_fact_state ??
+    null;
+  const unassignedRiskGrade =
+    rawUnassignedInventory?.riskGrade ??
+    rawUnassignedInventory?.risk_grade ??
+    dto.unassignedRiskGrade ??
+    dto.unassigned_risk_grade ??
+    centerSalesPoint?.riskGrade ??
+    null;
+  const unassignedAssessmentStatus =
+    rawUnassignedInventory?.assessmentStatus ??
+    rawUnassignedInventory?.assessment_status ??
+    dto.unassignedAssessmentStatus ??
+    dto.unassigned_assessment_status ??
+    (unassignedRiskGrade ? RISK_ASSESSMENT_STATUS.ASSESSED : RISK_ASSESSMENT_STATUS.UNASSESSED);
+  const unassignedRiskReason =
+    rawUnassignedInventory?.riskReason ??
+    rawUnassignedInventory?.risk_reason ??
+    dto.unassignedRiskReason ??
+    dto.unassigned_risk_reason ??
+    '';
+  const unassignedInventory = {
+    currentQuantity: unassignedCurrentQuantity,
+    availableQuantity: unassignedAvailableQuantity,
+    reservedQuantity: unassignedReservedQuantity,
+    inventoryFactState: unassignedFactState,
+    riskGrade: unassignedRiskGrade,
+    assessmentStatus: unassignedAssessmentStatus,
+    riskReason: unassignedRiskReason,
+    locations: unassignedLocations,
+    locationCount: unassignedLocationCount,
+    hasStock: Boolean(
+      centerSalesPoint ||
+      unassignedCurrentQuantity != null ||
+      unassignedAvailableQuantity != null ||
+      unassignedReservedQuantity != null ||
+      nestedUnassignedLocations.length > 0,
+    ),
+  };
 
   // 채널별 지점 수 요약
   const channelCountMap = {};
@@ -247,6 +339,7 @@ export function mapInventoryItem(response = {}) {
     rowId,
     productCode,
     productName,
+    supplierName,
     skuCode,
     skuName,
     categoryId,
@@ -276,6 +369,7 @@ export function mapInventoryItem(response = {}) {
     riskReason,
     locations,
     locationCount,
+    unassignedInventory,
     primaryWarehouseName,
     salesPoints,
     salesPointCount: salesPoints.length,

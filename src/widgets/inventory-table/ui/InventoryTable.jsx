@@ -13,6 +13,11 @@ export function InventoryTable({
   sort = 'updatedAt,desc',
   totalPages = 1,
   selectedItem = null,
+  selectedSkuCodes = [],
+  onToggleSelectSku,
+  onSelectAllSkus,
+  onClearSelectedSkus,
+  maxSelection = 5,
   resultState = RESULT_STATE.HAS_DATA,
   isLoading = false,
   isError = false,
@@ -73,18 +78,43 @@ export function InventoryTable({
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-xs">
       {/* 표 상단 메타 바 */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-white px-6 py-4">
-        <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-white px-6 py-3.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <span className="text-sm font-bold text-gray-900">통합 재고 현황 목록</span>
           <span className="inline-flex items-center rounded-full bg-[#F3F4F6] px-2.5 py-0.5 text-xs font-semibold text-gray-700 tabular-nums">
             총 {formatNumber(totalCount)}건
           </span>
+          <span className="text-xs text-gray-500 tabular-nums">
+            {startIdx} - {endIdx}건 표시 중
+          </span>
+          {selectedSkuCodes.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--primary)]/30 bg-[#F4FAF6] px-2.5 py-0.5 text-xs font-bold text-[color:var(--primary-strong)]">
+              <span>
+                {selectedSkuCodes.length}/{maxSelection}개 선택됨
+              </span>
+              {onClearSelectedSkus && (
+                <button
+                  type="button"
+                  onClick={onClearSelectedSkus}
+                  className="ml-0.5 text-[11px] font-medium text-gray-400 hover:text-gray-700 underline cursor-pointer"
+                >
+                  선택 해제
+                </button>
+              )}
+            </span>
+          )}
           <span className="text-xs text-gray-400">
-            (행을 클릭하거나 선택 후 Enter를 누르면 우측에서 상세 재고 및 LOT 관제 드로어가 열립니다)
+            (체크박스로 최대 {maxSelection}개 선택 또는 행 클릭 시 상세 드로어 열림)
           </span>
         </div>
-        <div className="text-xs text-gray-500 tabular-nums">
-          {startIdx} - {endIdx}건 표시 중
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[color:var(--primary-strong)] active:translate-y-px transition-all cursor-pointer"
+          >
+            전략 생성하기
+          </button>
         </div>
       </div>
 
@@ -93,12 +123,23 @@ export function InventoryTable({
         items={items}
         sort={sort}
         selectedItem={selectedItem}
+        selectedSkuCodes={selectedSkuCodes}
+        onToggleSelectSku={onToggleSelectSku}
+        onSelectAllSkus={onSelectAllSkus}
+        maxSelection={maxSelection}
         onSortChange={onSortChange}
         onRowClick={onRowClick}
       />
 
       {/* 2. 모바일/태블릿 반응형 카드 뷰 (lg 미만) */}
-      <InventoryTableMobile items={items} selectedItem={selectedItem} onRowClick={onRowClick} />
+      <InventoryTableMobile
+        items={items}
+        selectedItem={selectedItem}
+        selectedSkuCodes={selectedSkuCodes}
+        onToggleSelectSku={onToggleSelectSku}
+        maxSelection={maxSelection}
+        onRowClick={onRowClick}
+      />
 
       {/* 3. 하단 페이지네이션 및 단위 선택 */}
       <InventoryPagination

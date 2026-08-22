@@ -16,6 +16,8 @@ export function InventoryLotsSection({
   lotsQuery,
   onNavigateToOverview,
 }) {
+  const showWarehouse = selectedSalesPointCode === 'UNASSIGNED';
+
   return (
     <div className="flex-1 flex flex-col bg-[#F9FAFB] overflow-y-auto">
       {/* LOT 패널 헤더 */}
@@ -116,12 +118,14 @@ export function InventoryLotsSection({
 
               {/* 소비기한, 판매중지일시, 보관센터, 입고일자 상세 그리드 */}
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-[11px] bg-[#F9FAFB] rounded-lg p-2 border border-gray-100">
-                <div className="flex items-center justify-between text-gray-600">
-                  <span className="text-gray-400">보관센터</span>
-                  <span className="font-semibold text-gray-800 truncate ml-1">
-                    {lot.warehouseName || lot.warehouseCode || '미지정'}
-                  </span>
-                </div>
+                {showWarehouse && (
+                  <div className="flex items-center justify-between text-gray-600">
+                    <span className="text-gray-400">보관센터</span>
+                    <span className="font-semibold text-gray-800 truncate ml-1">
+                      {lot.warehouseName || lot.warehouseCode || '미지정'}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between text-gray-600">
                   <span className="text-gray-400">입고일자</span>

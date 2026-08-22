@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildInventoryImprovementInsight,
   buildStatisticsQueryParams,
   getScopeLocations,
   getStatisticsGranularity,
@@ -9,6 +10,47 @@ import {
 } from './statisticsModel.js';
 
 describe('statisticsModel', () => {
+  function createInventorySummary({ riskStockQty, disposalRiskQty, shortageSkuCount }) {
+    return {
+      expectedDisposalQty30d: disposalRiskQty,
+      shortageSkuCount,
+      riskDistribution: [
+        { riskGrade: 'CRITICAL', stockQty: Math.round(riskStockQty * 0.3) },
+        { riskGrade: 'WARNING', stockQty: riskStockQty - Math.round(riskStockQty * 0.3) },
+      ],
+    };
+  }
+
+  it('위험재고·폐기위험·부족 SKU가 모두 줄면 전반적 개선으로 판정한다', () => {
+    const insight = buildInventoryImprovementInsight(
+      createInventorySummary({ riskStockQty: 900, disposalRiskQty: 80, shortageSkuCount: 95 }),
+      createInventorySummary({ riskStockQty: 1_000, disposalRiskQty: 100, shortageSkuCount: 100 }),
+    );
+
+    expect(insight.status).toBe('IMPROVED');
+    expect(insight.description).toBe(
+      '직전 동일 기간 대비 위험재고는 10.0% 감소, 폐기위험은 20.0% 감소, 부족 SKU는 5.0% 감소했습니다.',
+    );
+  });
+
+  it('위험재고는 줄고 부족 SKU가 늘면 일부 개선으로 판정한다', () => {
+    const insight = buildInventoryImprovementInsight(
+      createInventorySummary({ riskStockQty: 900, disposalRiskQty: 80, shortageSkuCount: 110 }),
+      createInventorySummary({ riskStockQty: 1_000, disposalRiskQty: 100, shortageSkuCount: 100 }),
+    );
+
+    expect(insight.status).toBe('MIXED');
+  });
+
+  it('직전 기간 데이터가 없으면 비교 불가로 판정한다', () => {
+    const insight = buildInventoryImprovementInsight(
+      createInventorySummary({ riskStockQty: 900, disposalRiskQty: 80, shortageSkuCount: 95 }),
+      null,
+    );
+
+    expect(insight.status).toBe('NOT_COMPARABLE');
+  });
+
   it('최근 30일을 기준일 포함 범위로 계산한다', () => {
     expect(getStatisticsPeriodRange('30D', '2026-08-16')).toEqual({
       from: '2026-07-18',
@@ -16,9 +58,23 @@ describe('statisticsModel', () => {
     });
   });
 
+  it('최근 1년을 기준일 포함 365일 범위로 계산한다', () => {
+    expect(getStatisticsPeriodRange('1Y', '2026-08-16')).toEqual({
+      from: '2025-08-17',
+      to: '2026-08-16',
+    });
+  });
+
   it('직접 선택 날짜가 역순이면 올바른 범위로 정렬한다', () => {
     expect(getStatisticsPeriodRange('CUSTOM', '2026-08-16', { from: '2026-08-16', to: '2026-08-01' })).toEqual({
       from: '2026-08-01',
+      to: '2026-08-16',
+    });
+  });
+
+  it('직접 선택 기간이 1년을 넘으면 종료일 기준 최근 365일로 제한한다', () => {
+    expect(getStatisticsPeriodRange('CUSTOM', '2026-08-16', { from: '2024-01-01', to: '2026-08-16' })).toEqual({
+      from: '2025-08-17',
       to: '2026-08-16',
     });
   });

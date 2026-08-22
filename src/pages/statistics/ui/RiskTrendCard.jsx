@@ -1,11 +1,18 @@
 import { useId, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { formatDate, formatNumber, formatQuantity } from '@/shared/lib/format';
+import { formatDate, formatNumber, formatPercent, formatQuantity } from '@/shared/lib/format';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui';
 
 const trendMetrics = Object.freeze({
-  criticalSkuCount: { label: '위험 SKU 수', color: 'var(--danger)', format: formatQuantity },
-  criticalStockQty: { label: '위험재고 수량', color: 'var(--warning)', format: formatQuantity },
+  riskStockQty: { label: '위험 수량', color: 'var(--primary)', format: formatQuantity },
+  riskStockRatio: { label: '위험 비율', color: 'var(--info)', format: formatPercent },
+  criticalStockQty: { label: '심각 재고', color: 'var(--danger)', format: formatQuantity },
+  warningStockQty: { label: '경고 재고', color: 'var(--warning)', format: formatQuantity },
+  riskSkuCount: {
+    label: '위험 SKU',
+    color: 'var(--warning)',
+    format: (value) => formatQuantity(value, { unit: '종' }),
+  },
 });
 
 function formatAxisDate(value) {
@@ -28,9 +35,9 @@ function TrendTooltip({ active, payload, metric }) {
   );
 }
 
-export function RiskTrendCard({ trend }) {
-  const [metric, setMetric] = useState('criticalStockQty');
-  const gradientId = `risk-trend-${useId().replaceAll(':', '')}`;
+export function RiskTrendCard({ trend, scopeName = '전체' }) {
+  const [metric, setMetric] = useState('riskStockQty');
+  const gradientId = `risk-inventory-${useId().replaceAll(':', '')}`;
   const meta = trendMetrics[metric];
   const firstPoint = trend[0];
   const lastPoint = trend.at(-1);
@@ -44,23 +51,26 @@ export function RiskTrendCard({ trend }) {
     : [0, 'auto'];
 
   return (
-    <Card asChild padding="none" className="min-w-0">
-      <section aria-labelledby="risk-trend-title">
+    <Card asChild padding="none" className="min-w-0 shadow-[var(--shadow-soft)]">
+      <section aria-labelledby="risk-inventory-trend-title">
         <CardHeader className="border-b border-[var(--border)] p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div>
-              <CardTitle id="risk-trend-title">위험재고 추이</CardTitle>
-              <CardDescription className="mt-1">동기화 완료 시점별 위험 규모 변화를 확인합니다.</CardDescription>
+              <CardTitle id="risk-inventory-trend-title">{scopeName} 위험재고 추이</CardTitle>
+              <CardDescription className="mt-1">
+                입고·판매·이동·폐기를 포함한 전체 위험재고 상태가 언제 어떻게 변했는지 확인합니다.
+              </CardDescription>
             </div>
             <div
-              className="flex items-center gap-1 rounded-[var(--radius-control)] bg-[var(--surface-subtle)] p-1"
-              aria-label="추이 지표 선택"
+              className="flex max-w-full shrink-0 flex-nowrap justify-end gap-0.5 rounded-[var(--radius-control)] bg-[var(--surface-subtle)] p-1"
+              aria-label="위험재고 추이 지표 선택"
             >
               {Object.entries(trendMetrics).map(([value, option]) => (
                 <Button
                   key={value}
                   type="button"
                   size="sm"
+                  className="whitespace-nowrap px-1.5 text-[length:var(--font-size-meta)]"
                   variant={metric === value ? 'primary' : 'ghost'}
                   aria-pressed={metric === value}
                   onClick={() => setMetric(value)}
@@ -88,9 +98,9 @@ export function RiskTrendCard({ trend }) {
             </span>
           </div>
 
-          <div className="h-[280px] w-full" role="img" aria-label={`${meta.label} 기간별 영역 차트`}>
+          <div className="h-[310px] w-full" role="img" aria-label={`${meta.label} 기간별 영역 차트`}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trend} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+              <AreaChart data={trend} margin={{ top: 12, right: 8, left: 4, bottom: 0 }}>
                 <defs>
                   <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={meta.color} stopOpacity={0.3} />
@@ -107,7 +117,7 @@ export function RiskTrendCard({ trend }) {
                   minTickGap={30}
                 />
                 <YAxis
-                  width={56}
+                  width={64}
                   domain={yAxisDomain}
                   tickFormatter={(value) => formatNumber(value)}
                   tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
@@ -122,16 +132,11 @@ export function RiskTrendCard({ trend }) {
                   strokeWidth={2.5}
                   fill={`url(#${gradientId})`}
                   activeDot={{ r: 5, strokeWidth: 2, fill: 'var(--card)' }}
+                  connectNulls
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-          {firstPoint && lastPoint ? (
-            <p className="sr-only">
-              {formatDate(firstPoint.date)} {meta.format(firstPoint[metric])}에서 {formatDate(lastPoint.date)}{' '}
-              {meta.format(lastPoint[metric])}로 변경되었습니다.
-            </p>
-          ) : null}
         </CardContent>
       </section>
     </Card>
