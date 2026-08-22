@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -21,6 +21,7 @@ import { InventoryDetailDrawer } from '@/widgets/inventory-detail-drawer';
 
 export default function InventoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedSkuCodes, setSelectedSkuCodes] = useState([]);
 
   // 1. URL searchParams로부터 필터 상태 파싱 (SSOT)
   const filters = useMemo(() => parseInventoryFilters(searchParams), [searchParams]);
@@ -103,13 +104,20 @@ export default function InventoryPage() {
     );
   }, [isDrawerOpen, listData?.items, filters.detailSkuCode, filters.detailSalesPointCode]);
 
-  // 행 클릭 시 우측 드로어 열기
+  // 행 클릭 시 우측 드로어 열기 (최상단 판매처 또는 미할당 재고 기본 선택)
   const handleRowClick = useCallback(
     (item) => {
+      const hasUnassigned = Boolean(
+        item.unassignedInventory?.hasStock ||
+        item.unassignedInventory?.currentQuantity != null ||
+        item.unassignedInventory?.availableQuantity != null ||
+        item.unassignedInventory?.reservedQuantity != null,
+      );
+      const topSalesPointCode = hasUnassigned ? 'UNASSIGNED' : item.salesPoints?.[0]?.salesPointCode || '';
+
       handleFilterChange({
         detailSkuCode: item.skuCode,
-        // 다른 SKU를 열 때 이전 SKU의 판매처 문맥을 재사용하지 않습니다.
-        detailSalesPointCode: '',
+        detailSalesPointCode: topSalesPointCode,
         detailTab: filters.detailTab || 'OVERVIEW',
       });
     },
@@ -139,6 +147,31 @@ export default function InventoryPage() {
       detailSalesPointCode: '',
     });
   }, [handleFilterChange]);
+
+  // 체크박스 다중 선택 핸들러 (최대 5개 제한)
+  const handleToggleSelectSku = useCallback((skuCode) => {
+    setSelectedSkuCodes((prev) => {
+      if (prev.includes(skuCode)) {
+        return prev.filter((code) => code !== skuCode);
+      }
+      if (prev.length >= 5) {
+        return prev;
+      }
+      return [...prev, skuCode];
+    });
+  }, []);
+
+  const handleSelectAllSkus = useCallback((skuCodesToSelect) => {
+    if (Array.isArray(skuCodesToSelect)) {
+      setSelectedSkuCodes(skuCodesToSelect.slice(0, 5));
+    } else {
+      setSelectedSkuCodes([]);
+    }
+  }, []);
+
+  const handleClearSelectedSkus = useCallback(() => {
+    setSelectedSkuCodes([]);
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">
@@ -210,6 +243,10 @@ export default function InventoryPage() {
         sort={filters.sort}
         totalPages={listData?.totalPages || 1}
         selectedItem={selectedItem}
+        selectedSkuCodes={selectedSkuCodes}
+        onToggleSelectSku={handleToggleSelectSku}
+        onSelectAllSkus={handleSelectAllSkus}
+        onClearSelectedSkus={handleClearSelectedSkus}
         resultState={listData?.resultState || RESULT_STATE.HAS_DATA}
         isLoading={isListLoading}
         isError={isListError}

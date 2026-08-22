@@ -4,28 +4,106 @@ import { InventoryStatusBadge } from '@/entities/inventory';
 import { SortHeaderButton } from './SortHeaderButton.jsx';
 import { CHANNEL_BADGE_STYLES, STORAGE_BADGE_STYLES, ASSESSMENT_STATUS_LABELS } from './constants.js';
 
+function categorizeSalesPoints(salesPoints = []) {
+  let dangerPoints = 0;
+  let cautionPoints = 0;
+  const hyundaiDeptStores = [];
+  const onlineGreeting = [];
+  const ecommerceStores = [];
+  const hmartStores = [];
+
+  for (let i = 0; i < salesPoints.length; i++) {
+    const sp = salesPoints[i];
+    if (sp.riskGrade === 'DANGER') dangerPoints++;
+    else if (sp.riskGrade === 'CAUTION') cautionPoints++;
+
+    switch (sp.channelType) {
+      case 'HYUNDAI_DEPT':
+        hyundaiDeptStores.push(sp);
+        break;
+      case 'GREETING':
+        onlineGreeting.push(sp);
+        break;
+      case 'ECOMMERCE':
+        ecommerceStores.push(sp);
+        break;
+      case 'HMART':
+        hmartStores.push(sp);
+        break;
+    }
+  }
+
+  return {
+    hyundaiDeptStores,
+    onlineGreeting,
+    ecommerceStores,
+    hmartStores,
+    dangerPoints,
+    cautionPoints,
+  };
+}
+
 export function InventoryTableDesktop({
   items = [],
   sort = 'updatedAt,desc',
   selectedItem = null,
+  selectedSkuCodes = [],
+  onToggleSelectSku,
+  onSelectAllSkus,
+  maxSelection = 5,
   onSortChange,
   onRowClick,
 }) {
+  const currentItemSkuCodes = items.map((i) => i.skuCode).filter(Boolean);
+  const selectedInCurrentPage = currentItemSkuCodes.filter((code) => selectedSkuCodes.includes(code));
+  const isAllSelected =
+    currentItemSkuCodes.length > 0 &&
+    selectedInCurrentPage.length === Math.min(currentItemSkuCodes.length, maxSelection);
+  const isSomeSelected = selectedInCurrentPage.length > 0 && !isAllSelected;
+
+  const handleHeaderCheckboxChange = () => {
+    if (isAllSelected || isSomeSelected || selectedSkuCodes.length > 0) {
+      onSelectAllSkus?.([]);
+    } else {
+      onSelectAllSkus?.(currentItemSkuCodes.slice(0, maxSelection));
+    }
+  };
+
   return (
     <div className="hidden lg:block overflow-x-auto">
-      <table className="w-full text-left text-sm">
+      <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
         <thead className="border-b border-[var(--border)] bg-[#F8F9FA] text-[11px] font-bold tracking-wider text-gray-500 uppercase">
           <tr>
-            <th scope="col" className="px-5 py-3.5">
+            <th scope="col" className="w-11 min-w-[44px] px-3 py-3.5 text-center">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = isSomeSelected;
+                }}
+                onChange={handleHeaderCheckboxChange}
+                aria-label={`현재 페이지 항목 최대 ${maxSelection}개 선택 토글`}
+                title={
+                  isAllSelected || isSomeSelected || selectedSkuCodes.length > 0
+                    ? '일괄 선택 해제'
+                    : `현재 페이지 항목 최대 ${maxSelection}개 선택`
+                }
+                className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
+              />
+            </th>
+            <th scope="col" className="w-[26%] min-w-[240px] px-4 py-3.5">
               SKU 및 상품 정보
             </th>
-            <th scope="col" className="px-4 py-3.5">
-              소유 판매처 현황
+            <th scope="col" className="w-[18%] min-w-[180px] px-4 py-3.5">
+              판매처
             </th>
-            <th scope="col" className="px-3 py-3.5">
+            <th scope="col" className="w-[8%] min-w-[80px] px-3 py-3.5 text-right">
+              미할당 재고
+            </th>
+            <th scope="col" className="w-[7%] min-w-[75px] px-3 py-3.5">
               보관유형
             </th>
-            <th scope="col" className="px-4 py-3.5 text-right">
+            <th scope="col" className="w-[8%] min-w-[80px] px-4 py-3.5 text-right">
               <div className="flex justify-end">
                 <SortHeaderButton
                   label="현재고"
@@ -36,7 +114,7 @@ export function InventoryTableDesktop({
                 />
               </div>
             </th>
-            <th scope="col" className="px-4 py-3.5 text-right">
+            <th scope="col" className="w-[9%] min-w-[90px] px-4 py-3.5 text-right">
               <div className="flex justify-end">
                 <SortHeaderButton
                   label="가용수량"
@@ -47,7 +125,7 @@ export function InventoryTableDesktop({
                 />
               </div>
             </th>
-            <th scope="col" className="px-4 py-3.5 text-center">
+            <th scope="col" className="w-[10%] min-w-[100px] px-4 py-3.5 text-center">
               <div className="flex justify-center">
                 <SortHeaderButton
                   label="종합 위험도"
@@ -58,7 +136,7 @@ export function InventoryTableDesktop({
                 />
               </div>
             </th>
-            <th scope="col" className="px-5 py-3.5 text-center">
+            <th scope="col" className="w-[8%] min-w-[80px] px-4 py-3.5 text-center">
               <div className="flex justify-center">
                 <SortHeaderButton
                   label="소비기한"
@@ -69,35 +147,37 @@ export function InventoryTableDesktop({
                 />
               </div>
             </th>
-            <th scope="col" className="w-10 px-3 py-3.5 text-center"></th>
+            <th scope="col" className="w-10 min-w-[40px] px-2 py-3.5 text-center"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#F3F4F6]">
           {items.map((item) => {
             const isSelected = selectedItem?.rowId === item.rowId;
+            const isSelectedSku = selectedSkuCodes.includes(item.skuCode);
+            const isMaxReached = selectedSkuCodes.length >= maxSelection;
             const storageBadgeClass = STORAGE_BADGE_STYLES[item.storageType] || 'bg-gray-100 text-gray-700';
 
-            // 판매처 지점 목록
+            // 판매처 지점 목록 및 채널/위험도 분류 (1회 순회)
             const salesPoints = item.salesPoints || [];
-            const hyundaiDeptStores = salesPoints.filter((sp) => sp.channelType === 'HYUNDAI_DEPT');
-            const onlineGreeting = salesPoints.filter((sp) => sp.channelType === 'GREETING');
-            const ecommerceStores = salesPoints.filter((sp) => sp.channelType === 'ECOMMERCE');
-            const hmartStores = salesPoints.filter((sp) => sp.channelType === 'HMART');
-
-            // 위험 지점 카운트
-            const dangerPoints = salesPoints.filter((sp) => sp.riskGrade === 'DANGER').length;
-            const cautionPoints = salesPoints.filter((sp) => sp.riskGrade === 'CAUTION').length;
+            const { hyundaiDeptStores, onlineGreeting, ecommerceStores, hmartStores, dangerPoints, cautionPoints } =
+              categorizeSalesPoints(salesPoints);
             const skuLabel = item.skuName || item.productName || 'SKU명 미지정';
             const categoryLeafName = item.category?.leaf?.name || item.categoryName || '';
             const categoryPathLabel = item.categoryPathLabel || categoryLeafName;
             const ownerSalesPointCount = item.ownerSalesPointCount ?? salesPoints.length;
+            const unassignedInventory = item.unassignedInventory || {};
+            const hasUnassignedInventory =
+              unassignedInventory.hasStock ||
+              unassignedInventory.currentQuantity != null ||
+              unassignedInventory.availableQuantity != null ||
+              unassignedInventory.reservedQuantity != null;
 
             return (
               <tr
                 key={item.rowId}
                 tabIndex={0}
                 role="button"
-                aria-label={`${item.skuCode} ${skuLabel} ${ownerSalesPointCount}개 판매처 재고 상세 보기`}
+                aria-label={`${item.skuCode} ${skuLabel} ${ownerSalesPointCount}개 판매처 재고, 물류센터 미할당 재고 상세 보기`}
                 onClick={() => onRowClick?.(item)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -106,13 +186,34 @@ export function InventoryTableDesktop({
                   }
                 }}
                 className={`group cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 ${
-                  isSelected
+                  isSelected || isSelectedSku
                     ? 'bg-[#F4FAF6] border-l-4 border-l-[var(--primary)] shadow-2xs'
                     : 'hover:bg-[#F8FDF9] border-l-4 border-l-transparent'
                 }`}
               >
+                {/* 0. 체크박스 (최대 5개 다중 선택) */}
+                <td
+                  className="w-11 min-w-[44px] px-3 py-4 text-center"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelectedSku}
+                    disabled={!isSelectedSku && isMaxReached}
+                    onChange={() => onToggleSelectSku?.(item.skuCode)}
+                    aria-label={`${skuLabel} 선택`}
+                    title={
+                      !isSelectedSku && isMaxReached
+                        ? `최대 ${maxSelection}개까지 선택 가능합니다`
+                        : `${skuLabel} 선택 (${selectedSkuCodes.length}/${maxSelection})`
+                    }
+                    className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  />
+                </td>
+
                 {/* 1. SKU 정보 및 소분류 */}
-                <td className="px-5 py-4">
+                <td className="px-4 py-4">
                   <div className="flex items-center gap-3.5">
                     {item.imageUrl ? (
                       <img
@@ -153,13 +254,21 @@ export function InventoryTableDesktop({
                           </span>
                         )}
                       </div>
+                      {item.supplierName && (
+                        <span
+                          className="mt-1 block truncate text-[11px] font-medium text-gray-500"
+                          title={`공급사: ${item.supplierName}`}
+                        >
+                          공급사: {item.supplierName}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </td>
 
-                {/* 2. 소유 판매처 현황 (채널별 요약 뱃지) */}
+                {/* 2. 판매처 요약 */}
                 <td className="px-4 py-4">
-                  <div className="flex flex-wrap items-center gap-1.5 max-w-[280px]">
+                  <div className="flex flex-wrap items-center gap-1.5 w-full">
                     {hyundaiDeptStores.length > 0 && (
                       <span
                         className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${CHANNEL_BADGE_STYLES.HYUNDAI_DEPT}`}
@@ -189,7 +298,7 @@ export function InventoryTableDesktop({
                         className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${CHANNEL_BADGE_STYLES.HMART}`}
                       >
                         <Store size={11} />
-                        H마트
+                        직영점
                       </span>
                     )}
                     {salesPoints.length === 0 && <span className="text-xs text-gray-400">판매처 정보 없음</span>}
@@ -203,7 +312,18 @@ export function InventoryTableDesktop({
                   </div>
                 </td>
 
-                {/* 3. 보관유형 */}
+                {/* 3. 미할당 재고 */}
+                <td className="px-4 py-4 text-right">
+                  {hasUnassignedInventory && unassignedInventory.currentQuantity != null ? (
+                    <span className="font-semibold text-gray-800 tabular-nums">
+                      {formatQuantity(unassignedInventory.currentQuantity)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">-</span>
+                  )}
+                </td>
+
+                {/* 4. 보관유형 */}
                 <td className="px-3 py-4">
                   <span
                     className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${storageBadgeClass}`}
@@ -212,14 +332,14 @@ export function InventoryTableDesktop({
                   </span>
                 </td>
 
-                {/* 4. 총 현재고 */}
+                {/* 5. 총 현재고 */}
                 <td className="px-4 py-4 text-right">
                   <span className="font-semibold text-gray-800 tabular-nums">
                     {formatQuantity(item.currentQuantity)}
                   </span>
                 </td>
 
-                {/* 5. 가용수량 */}
+                {/* 6. 가용수량 */}
                 <td className="px-4 py-4 text-right">
                   <div className="flex flex-col items-end">
                     <span className="text-base font-bold text-[color:var(--primary)] tabular-nums">
@@ -231,11 +351,11 @@ export function InventoryTableDesktop({
                   </div>
                 </td>
 
-                {/* 6. 종합 위험도 */}
+                {/* 7. 종합 위험도 */}
                 <td className="px-4 py-4 text-center">
                   <div className="flex flex-col items-center gap-1">
                     <InventoryStatusBadge status={item.riskGrade} />
-                    {item.assessmentStatus && (
+                    {item.assessmentStatus && item.assessmentStatus !== 'ASSESSED' && (
                       <span className="text-[10px] font-medium text-gray-500">
                         {ASSESSMENT_STATUS_LABELS[item.assessmentStatus] || item.assessmentStatus}
                       </span>

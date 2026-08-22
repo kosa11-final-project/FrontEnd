@@ -13,6 +13,7 @@ describe('Inventory Mapper', () => {
     const rawDto = {
       product_code: 'PROD_MANDU_01',
       product_name: '비비고 왕교자 1.05kg',
+      supplier_name: 'CJ제일제당',
       sku_code: 'SKU_MANDU_01_105',
       sku_name: '1.05kg 단품',
       sales_point_code: 'STORE_THE_HYUNDAI_SEOUL',
@@ -44,6 +45,7 @@ describe('Inventory Mapper', () => {
 
     expect(mapped.rowId).toBe('SKU_MANDU_01_105:STORE_THE_HYUNDAI_SEOUL');
     expect(mapped.productName).toBe('비비고 왕교자 1.05kg');
+    expect(mapped.supplierName).toBe('CJ제일제당');
     expect(mapped.currentQuantity).toBe(450);
     expect(mapped.availableQuantity).toBe(420);
     expect(mapped.reservedQuantity).toBe(30);
@@ -149,6 +151,55 @@ describe('Inventory Mapper', () => {
     expect(mapped.ownerSalesPointCount).toBe(5);
     expect(mapped.salesPoints.map((point) => point.salesPointCode)).toEqual(['STORE-A', 'STORE-B']);
     expect(mapped.currentQuantity).toBe(30);
+  });
+
+  it('separates center-only stock from sales points and does not expose a seller warehouse', () => {
+    const mapped = mapInventoryItem({
+      skuCode: 'SKU-OWNERSHIP-1',
+      currentQuantity: 100,
+      availableQuantity: 90,
+      reservedQuantity: 10,
+      locations: [{ warehouseCode: 'DC-A', warehouseName: '센터 A', quantity: 40 }],
+      salesPoints: [
+        {
+          salesPointCode: 'STORE-A',
+          salesPointName: 'A점',
+          channelType: 'HYUNDAI_DEPT',
+          currentQuantity: 60,
+          availableQuantity: 55,
+          reservedQuantity: 5,
+          warehouseName: '센터 A',
+          salesPointState: 'OWNED',
+        },
+        {
+          salesPointCode: 'UNASSIGNED',
+          salesPointName: '판매처 미할당',
+          channelType: 'CENTER',
+          currentQuantity: 40,
+          availableQuantity: 35,
+          reservedQuantity: 5,
+          salesPointState: 'CENTER_ONLY',
+        },
+      ],
+      unassignedRiskGrade: 'CAUTION',
+      unassignedAssessmentStatus: 'ASSESSED',
+      unassignedRiskReason: '미할당 공용재고의 예측 데이터 없음',
+    });
+
+    expect(mapped.salesPoints.map((point) => point.salesPointCode)).toEqual(['STORE-A']);
+    expect(mapped.salesPoints[0].warehouseName).toBe('');
+    expect(mapped.unassignedInventory).toMatchObject({
+      currentQuantity: 40,
+      availableQuantity: 35,
+      reservedQuantity: 5,
+      locationCount: 1,
+      riskGrade: 'CAUTION',
+      assessmentStatus: 'ASSESSED',
+      riskReason: '미할당 공용재고의 예측 데이터 없음',
+    });
+    expect(mapped.unassignedInventory.locations).toEqual([
+      { warehouseCode: 'DC-A', warehouseName: '센터 A', quantity: 40 },
+    ]);
   });
 
   it('maps empty inventory list response with NO_DATA state', () => {
