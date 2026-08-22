@@ -1,67 +1,52 @@
-import { useState } from 'react';
-import { Building, Database, Store, Warning } from 'reicon-react';
-import { getHeatmapMarkerSize } from '@/entities/inventory';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { Building, Database, Store } from 'reicon-react';
 import { cn } from '@/shared/lib/cn';
 import { formatQuantity } from '@/shared/lib/format';
 import { Badge, Card, CardDescription, CardHeader, CardTitle, Icon, StateView } from '@/shared/ui';
 
-const locationToneClasses = Object.freeze({
-  danger:
-    'border-[color:var(--danger)] bg-[var(--danger)] text-[color:var(--text-inverse)] shadow-[0_0_0_9px_color-mix(in_srgb,var(--danger)_16%,transparent),var(--shadow-card)]',
-  warning:
-    'border-[color:var(--warning)] bg-[var(--warning)] text-[color:var(--text-heading)] shadow-[0_0_0_9px_color-mix(in_srgb,var(--warning)_20%,transparent),var(--shadow-card)]',
-  good: 'border-[color:var(--primary)] bg-[var(--primary)] text-[color:var(--text-inverse)] shadow-[0_0_0_9px_color-mix(in_srgb,var(--primary)_16%,transparent),var(--shadow-card)]',
-});
+const InventoryLocationScene = lazy(() =>
+  import('./InventoryLocationScene.jsx').then((module) => ({ default: module.InventoryLocationScene })),
+);
 
 const viewMeta = Object.freeze({
   centers: {
     label: '판매처 미할당',
+    tabLabel: '미할당',
     shortLabel: '보관 물류센터',
     countUnit: '센터',
     icon: Database,
-    description: '물류센터에 보관 중이며 판매처가 지정되지 않은 재고',
+    description: '판매처가 지정되지 않은 재고를 보관하는 물류 허브',
     totalLabel: '판매처 미할당 재고 합계',
-    regionLabels: ['수도권', '영남권', '호남권'],
+    sceneLabel: '물류 허브 관제',
   },
   online: {
     label: '온라인 판매처 할당',
+    tabLabel: '온라인',
     shortLabel: '온라인 판매처',
     countUnit: '판매처',
     icon: Store,
-    description: '물류센터에 보관 중인 온라인 판매처 할당 재고',
+    description: '물류센터에서 온라인 판매처로 할당된 재고 흐름',
     totalLabel: '온라인 판매처 재고 합계',
-    regionLabels: ['온라인 채널', '물류센터 보관', '판매처 할당'],
+    sceneLabel: '온라인 배분 네트워크',
   },
   stores: {
     label: '오프라인 판매처 할당',
+    tabLabel: '오프라인',
     shortLabel: '오프라인 판매처',
     countUnit: '판매처',
     icon: Building,
-    description: '오프라인 판매처에 할당된 재고',
-    totalLabel: '활성 오프라인 판매처 재고 합계',
-    regionLabels: ['서울·경기', '영남권', '충청권'],
+    description: '전국 오프라인 판매처에 할당된 재고 분포',
+    totalLabel: '오프라인 판매처 재고 합계',
+    sceneLabel: '전국 판매처 관제',
   },
 });
 
-const backdropRegionClasses = Object.freeze({
-  centers: [
-    'left-[3%] top-[10%] h-[56%] w-[62%] rotate-[-4deg] bg-[var(--primary-faint)]',
-    'right-[3%] top-[19%] h-[47%] w-[42%] rotate-[6deg] bg-[var(--surface)]',
-    'bottom-[4%] left-[22%] h-[35%] w-[51%] rotate-[2deg] bg-[var(--primary-soft)]/45',
-  ],
-  online: [
-    'left-[9%] top-[15%] h-[63%] w-[43%] rotate-[-5deg] bg-[var(--primary-faint)]',
-    'right-[9%] top-[24%] h-[57%] w-[43%] rotate-[5deg] bg-[var(--primary-soft)]/55',
-    'bottom-[8%] left-[37%] h-[27%] w-[26%] bg-[var(--surface)]',
-  ],
-  stores: [
-    'left-[2%] top-[8%] h-[59%] w-[64%] rotate-[-3deg] bg-[var(--primary-faint)]',
-    'right-[2%] top-[11%] h-[42%] w-[36%] rotate-[5deg] bg-[var(--surface)]',
-    'bottom-[2%] left-[17%] h-[39%] w-[69%] rotate-[1deg] bg-[var(--primary-soft)]/45',
-  ],
+const detailToneClasses = Object.freeze({
+  neutral: 'text-[color:var(--text-heading)]',
+  good: 'text-[color:var(--good)]',
+  warning: 'text-[color:var(--warning)]',
+  danger: 'text-[color:var(--danger)]',
 });
-
-const regionLabelClasses = ['left-[7%] top-[17%]', 'bottom-[14%] right-[8%]', 'bottom-[9%] left-[35%]'];
 
 function resolveLocationTone(location) {
   if (location.riskSkuCount >= 5 || location.nearExpiryStock >= 50 || location.expectedDisposal >= 40) {
@@ -73,72 +58,43 @@ function resolveLocationTone(location) {
   return 'good';
 }
 
-function LocationDetail({ location, viewMode }) {
-  const meta = viewMeta[viewMode];
-  const isCenterView = viewMode === 'centers';
-  const locationDescription =
-    viewMode === 'online'
-      ? `${formatQuantity(location.storageWarehouseCount)} 물류센터 보관`
-      : location.address || location.description || '주소 정보 없음';
-  const detailItems = [
+function getLocationDetailItems(location, viewMode) {
+  return [
     { label: '현재고', value: formatQuantity(location.currentStock), tone: 'neutral' },
-    { label: '판매 가능 재고', value: formatQuantity(location.availableStock), tone: 'good' },
-    { label: '소비기한 임박', value: formatQuantity(location.nearExpiryStock), tone: 'warning' },
-    isCenterView
+    { label: '판매 가능', value: formatQuantity(location.availableStock), tone: 'good' },
+    { label: '임박', value: formatQuantity(location.nearExpiryStock), tone: 'warning' },
+    viewMode === 'centers'
       ? { label: '출고 예정', value: formatQuantity(location.outboundStock), tone: 'neutral' }
-      : { label: '예상 폐기수량', value: formatQuantity(location.expectedDisposal), tone: 'danger' },
+      : { label: '예상 폐기', value: formatQuantity(location.expectedDisposal), tone: 'danger' },
     { label: '위험 SKU', value: formatQuantity(location.riskSkuCount), tone: 'danger' },
   ];
-  const toneClasses = {
-    neutral: 'text-[color:var(--text-heading)]',
-    good: 'text-[color:var(--good)]',
-    warning: 'text-[color:var(--warning)]',
-    danger: 'text-[color:var(--danger)]',
-  };
+}
 
+function LocationMetrics({ className, compact = false, layout = 'default', location, viewMode }) {
   return (
-    <aside
-      className="border-t border-[var(--border)] bg-[var(--surface)] p-4 xl:border-l xl:border-t-0"
-      aria-live="polite"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] text-[color:var(--primary-strong)]">
-            선택 {meta.shortLabel}
-          </p>
-          <h3 className="mt-1 truncate text-[length:var(--font-size-section-title)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
-            {location.name}
-          </h3>
-          <p className="mt-1 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-            {location.region} · {locationDescription}
-          </p>
-        </div>
-        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
-          <Icon icon={meta.icon} size={18} aria-hidden="true" />
-        </span>
-      </div>
-
-      <dl className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-1">
-        {detailItems.map((item) => (
-          <div
-            key={item.label}
-            className="flex min-h-12 items-center justify-between gap-3 rounded-[var(--radius-card)] bg-[var(--surface-subtle)] px-3 py-2"
+    <dl className={cn('grid gap-2', layout === 'dock' ? 'grid-cols-5' : 'grid-cols-2', className)}>
+      {getLocationDetailItems(location, viewMode).map((item) => (
+        <div
+          key={item.label}
+          className={cn(
+            'flex items-center justify-between gap-2 rounded-[var(--radius-control)] bg-[var(--surface-subtle)]',
+            compact ? 'min-h-8 px-2 py-1.5' : 'min-h-10 px-2.5 py-2',
+          )}
+        >
+          <dt className="text-[length:var(--font-size-tiny)] font-[var(--font-weight-medium)] text-[color:var(--text-muted)]">
+            {item.label}
+          </dt>
+          <dd
+            className={cn(
+              'tabular-nums text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)]',
+              detailToneClasses[item.tone],
+            )}
           >
-            <dt className="text-[length:var(--font-size-meta)] font-[var(--font-weight-medium)] text-[color:var(--text-muted)]">
-              {item.label}
-            </dt>
-            <dd
-              className={cn(
-                'tabular-nums text-[length:var(--font-size-body)] font-[var(--font-weight-bold)]',
-                toneClasses[item.tone],
-              )}
-            >
-              {item.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </aside>
+            {item.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -181,11 +137,11 @@ function MobileLocationList({ activeLocationId, locations, onActivate, viewMode 
           {meta.shortLabel} {locations.length}개
         </strong>
         <p className="mt-1 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-          위치를 선택하면 아래 상세 정보가 변경됩니다.
+          3D 장면 대신 위치별 핵심 수치를 제공합니다.
         </p>
       </div>
 
-      <ul className="max-h-[420px] divide-y divide-[var(--border)] overflow-y-auto">
+      <ul className="max-h-[460px] divide-y divide-[var(--border)] overflow-y-auto">
         {locations.map((location) => {
           const selected = location.id === activeLocationId;
           const tone = resolveLocationTone(location);
@@ -214,7 +170,6 @@ function MobileLocationList({ activeLocationId, locations, onActivate, viewMode 
                     <strong className="text-[color:var(--warning)]">{formatQuantity(location.nearExpiryStock)}</strong>
                   </span>
                 </span>
-
                 <span className="text-right">
                   <span className="block text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
                     판매 가능
@@ -224,6 +179,12 @@ function MobileLocationList({ activeLocationId, locations, onActivate, viewMode 
                   </strong>
                 </span>
               </button>
+
+              {selected ? (
+                <div className="border-t border-[var(--border)] bg-[var(--primary-faint)] p-3">
+                  <LocationMetrics location={location} viewMode={viewMode} />
+                </div>
+              ) : null}
             </li>
           );
         })}
@@ -232,41 +193,61 @@ function MobileLocationList({ activeLocationId, locations, onActivate, viewMode 
   );
 }
 
-function HeatmapBackdrop({ meta, viewMode }) {
+function SceneDock({ location, meta, totalAvailableStock, totalNearExpiryStock, viewMode }) {
+  const tone = resolveLocationTone(location);
+  const statusLabel = tone === 'danger' ? '위험' : tone === 'warning' ? '주의' : '정상';
+  const description =
+    viewMode === 'online'
+      ? `${formatQuantity(location.storageWarehouseCount)} 물류센터 보관`
+      : location.address || location.description || '주소 정보 없음';
+
   return (
-    <div aria-hidden="true" className="absolute inset-0 overflow-hidden bg-[var(--surface-subtle)]">
-      <div
-        className="absolute inset-0 opacity-80"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 28% 24%, color-mix(in srgb, var(--primary-soft) 78%, white), transparent 42%), radial-gradient(circle at 76% 72%, color-mix(in srgb, var(--warning-soft) 24%, white), transparent 38%), linear-gradient(145deg, color-mix(in srgb, var(--surface) 88%, var(--primary-soft)), var(--surface-subtle))',
-        }}
-      />
-
-      {backdropRegionClasses[viewMode].map((className) => (
-        <span
-          key={className}
-          className={cn(
-            'absolute rounded-[44%] border border-white/80 opacity-70 shadow-[inset_0_0_30px_color-mix(in_srgb,var(--primary)_5%,transparent)]',
-            className,
-          )}
-        />
-      ))}
-
-      {meta.regionLabels.map((label, index) => (
-        <span
-          key={label}
-          className={cn(
-            'absolute inline-flex items-center gap-1.5 rounded-full border border-white/90 bg-white/75 px-2.5 py-1 text-[length:var(--font-size-overline)] font-[var(--font-weight-bold)] tracking-[0.08em] text-[color:var(--text-muted)] shadow-[var(--shadow-soft)] backdrop-blur-sm',
-            regionLabelClasses[index],
-          )}
-        >
-          <span className="size-1.5 rounded-full bg-[var(--primary)]/55" />
-          {label}
+    <aside className="pointer-events-none absolute bottom-3 left-3 right-3 z-[2000] hidden grid-cols-[minmax(150px,0.8fr)_minmax(0,2.2fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/94 p-2.5 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid lg:grid-cols-[minmax(160px,0.8fr)_minmax(0,2.2fr)_auto]">
+      <div className="flex min-w-0 items-center gap-2.5 border-r border-[var(--border)] pr-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
+          <Icon icon={meta.icon} size={16} aria-hidden="true" />
         </span>
-      ))}
-    </div>
+        <div className="min-w-0">
+          <span className="flex items-center gap-2">
+            <strong className="truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
+              {location.name}
+            </strong>
+            <Badge variant={tone}>{statusLabel}</Badge>
+          </span>
+          <p className="mt-0.5 truncate text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
+            {location.region} · {description}
+          </p>
+        </div>
+      </div>
+      <LocationMetrics
+        compact
+        layout="dock"
+        location={location}
+        viewMode={viewMode}
+        className="gap-1.5 [&>div]:min-w-0 [&_dt]:truncate"
+      />
+      <div className="hidden min-w-[164px] border-l border-[var(--border)] pl-3 text-right lg:block">
+        <span className="block text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
+          {meta.totalLabel}
+        </span>
+        <strong className="mt-0.5 block whitespace-nowrap text-[length:var(--font-size-meta)] text-[color:var(--text-heading)]">
+          판매 가능 {formatQuantity(totalAvailableStock)}
+        </strong>
+        <span className="mt-0.5 block whitespace-nowrap text-[length:var(--font-size-tiny)] text-[color:var(--warning)]">
+          임박 {formatQuantity(totalNearExpiryStock)}
+        </span>
+      </div>
+    </aside>
   );
+}
+
+function supportsWebGL() {
+  try {
+    const canvas = document.createElement('canvas');
+    return Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+  } catch {
+    return false;
+  }
 }
 
 function getInitialViewMode(centers, onlineSalesPoints) {
@@ -277,23 +258,35 @@ function getInitialViewMode(centers, onlineSalesPoints) {
 
 export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }) {
   const [viewMode, setViewMode] = useState(() => getInitialViewMode(centers, onlineSalesPoints));
+  const [hoveredLocationId, setHoveredLocationId] = useState(null);
   const [activeLocationIds, setActiveLocationIds] = useState({
     centers: centers[0]?.id,
     online: onlineSalesPoints[0]?.id,
     stores: stores[0]?.id,
   });
+  const [webglAvailable] = useState(supportsWebGL);
   const locationGroups = { centers, online: onlineSalesPoints, stores };
   const locations = locationGroups[viewMode];
   const meta = viewMeta[viewMode];
   const activeLocation = locations.find((location) => location.id === activeLocationIds[viewMode]) ?? locations[0];
-  const stockValues = locations.map((location) => location.availableStock);
-  const minimumAvailableStock = stockValues.length > 0 ? Math.min(...stockValues) : 0;
-  const maximumAvailableStock = stockValues.length > 0 ? Math.max(...stockValues) : 0;
-  const totalAvailableStock = locations.reduce((sum, location) => sum + location.availableStock, 0);
-  const totalNearExpiryStock = locations.reduce((sum, location) => sum + location.nearExpiryStock, 0);
+  const hoveredLocation = locations.find((location) => location.id === hoveredLocationId);
+  const displayLocation = hoveredLocation ?? activeLocation;
+  const totalAvailableStock = useMemo(
+    () => locations.reduce((sum, location) => sum + location.availableStock, 0),
+    [locations],
+  );
+  const totalNearExpiryStock = useMemo(
+    () => locations.reduce((sum, location) => sum + location.nearExpiryStock, 0),
+    [locations],
+  );
 
   const handleLocationActivate = (locationId) => {
     setActiveLocationIds((current) => ({ ...current, [viewMode]: locationId }));
+  };
+
+  const handleViewModeChange = (mode) => {
+    setHoveredLocationId(null);
+    setViewMode(mode);
   };
 
   return (
@@ -306,118 +299,94 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
               재고 위치별 현황
             </CardTitle>
             <CardDescription className="mt-1">
-              판매처 미할당·온라인 할당·오프라인 할당 재고를 분리해 위험 위치를 빠르게 비교합니다.
+              3D 장면에서 재고 규모와 위험 위치를 비교하고 시설을 선택해 상세 수치를 확인합니다.
             </CardDescription>
           </div>
 
           <div
             role="tablist"
             aria-label="재고 위치 유형"
-            className="flex w-fit max-w-full flex-wrap gap-1 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1"
+            className="flex w-fit max-w-full flex-nowrap gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1"
           >
             {Object.entries(locationGroups).map(([mode, group]) => (
               <ViewModeButton
                 key={mode}
                 active={viewMode === mode}
-                count={`${group.length}개`}
+                count={group.length}
                 disabled={group.length === 0}
                 icon={viewMeta[mode].icon}
-                label={viewMeta[mode].label}
-                onClick={() => setViewMode(mode)}
+                label={viewMeta[mode].tabLabel}
+                onClick={() => handleViewModeChange(mode)}
               />
             ))}
           </div>
         </CardHeader>
 
-        {activeLocation ? (
-          <div className="grid xl:grid-cols-[minmax(0,1fr)_260px]">
-            <div className="p-3 sm:p-4">
-              {viewMode !== 'centers' ? (
-                <MobileLocationList
-                  activeLocationId={activeLocation.id}
-                  locations={locations}
-                  onActivate={handleLocationActivate}
+        {locations.length > 0 ? (
+          <div className="p-3 sm:p-4">
+            <MobileLocationList
+              activeLocationId={activeLocation?.id}
+              locations={locations}
+              onActivate={handleLocationActivate}
+              viewMode={viewMode}
+            />
+
+            <div className="relative hidden h-[clamp(340px,47vh,480px)] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-strong)] bg-[var(--surface-subtle)] sm:block">
+              {webglAvailable ? (
+                <Suspense
+                  fallback={
+                    <div className="absolute inset-0 grid place-items-center bg-[var(--surface-subtle)]">
+                      <div className="text-center">
+                        <span className="mx-auto block size-9 animate-pulse rounded-full bg-[var(--primary-soft)] motion-reduce:animate-none" />
+                        <strong className="mt-3 block text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
+                          3D 재고 장면을 준비하고 있습니다.
+                        </strong>
+                      </div>
+                    </div>
+                  }
+                >
+                  <InventoryLocationScene
+                    key={viewMode}
+                    activeLocationId={activeLocation?.id}
+                    locations={locations}
+                    onActivate={handleLocationActivate}
+                    onHoverChange={setHoveredLocationId}
+                    viewMode={viewMode}
+                  />
+                </Suspense>
+              ) : (
+                <StateView
+                  state="empty"
+                  title="3D 장면을 표시할 수 없습니다."
+                  description="그래픽 가속을 지원하는 브라우저에서 다시 확인해 주세요."
+                  className="absolute inset-4"
+                />
+              )}
+
+              <div className="pointer-events-none absolute left-3 top-3 z-[2000] flex max-w-[calc(100%_-_24px)] items-center rounded-full border border-white/80 bg-white/95 px-3 py-1.5 shadow-[var(--shadow-soft)] backdrop-blur-sm">
+                <span className="text-[length:var(--font-size-tiny)] font-[var(--font-weight-bold)] tracking-[0.08em] text-[color:var(--primary-strong)]">
+                  {meta.sceneLabel}
+                </span>
+                <span className="ml-2 text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
+                  {locations.length}개 {meta.countUnit}
+                </span>
+              </div>
+
+              {displayLocation ? (
+                <SceneDock
+                  location={displayLocation}
+                  meta={meta}
+                  totalAvailableStock={totalAvailableStock}
+                  totalNearExpiryStock={totalNearExpiryStock}
                   viewMode={viewMode}
                 />
               ) : null}
 
-              <div
-                className={cn(
-                  'relative min-h-[430px] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-strong)] bg-[var(--surface-subtle)] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:min-h-[500px]',
-                  viewMode !== 'centers' && 'hidden sm:block',
-                )}
-              >
-                <HeatmapBackdrop meta={meta} viewMode={viewMode} />
-
-                <div className="absolute left-4 top-4 z-10 max-w-[90%] rounded-full border border-[var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--text-body)] shadow-[var(--shadow-soft)]">
-                  {meta.description} · {locations.length}개
-                </div>
-
-                {locations.map((location) => {
-                  const selected = location.id === activeLocation.id;
-                  const markerSize = getHeatmapMarkerSize(
-                    location.availableStock,
-                    minimumAvailableStock,
-                    maximumAvailableStock,
-                    viewMode,
-                  );
-                  const tone = resolveLocationTone(location);
-
-                  return (
-                    <button
-                      key={location.id}
-                      type="button"
-                      aria-label={`${location.name}, 판매 가능 재고 ${formatQuantity(location.availableStock)}, 소비기한 임박 ${formatQuantity(location.nearExpiryStock)}`}
-                      aria-pressed={selected}
-                      className={cn(
-                        'group absolute z-[2] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-[transform,box-shadow] duration-[var(--motion-fast)] hover:z-10 hover:-translate-x-1/2 hover:-translate-y-1/2 hover:scale-[1.14] hover:shadow-[0_12px_28px_rgba(15,76,59,0.24)] focus-visible:z-10',
-                        locationToneClasses[tone],
-                        selected && 'ring-4 ring-[var(--surface)] outline outline-2 outline-[var(--primary-strong)]',
-                      )}
-                      style={{
-                        left: `${location.x}%`,
-                        top: `${location.y}%`,
-                        width: markerSize,
-                        height: markerSize,
-                      }}
-                      onMouseEnter={() => handleLocationActivate(location.id)}
-                      onFocus={() => handleLocationActivate(location.id)}
-                      onClick={() => handleLocationActivate(location.id)}
-                    >
-                      <span className="flex h-full flex-col items-center justify-center leading-none">
-                        <strong
-                          className={
-                            viewMode === 'centers'
-                              ? 'text-[length:var(--font-size-body-sm)]'
-                              : 'text-[length:var(--font-size-meta)]'
-                          }
-                        >
-                          {location.shortName}
-                        </strong>
-                        <span className="mt-1 text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)]">
-                          {location.availableStock.toLocaleString('ko-KR')}
-                        </span>
-                      </span>
-                      <span className="absolute -right-2 -top-2 inline-flex items-center gap-0.5 rounded-full border-2 border-[var(--surface)] bg-[var(--warning)] px-1.5 py-1 text-[length:var(--font-size-tiny)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)] shadow-[var(--shadow-soft)]">
-                        <Icon icon={Warning} size={9} aria-hidden="true" />
-                        {location.nearExpiryStock}
-                      </span>
-                    </button>
-                  );
-                })}
-
-                <div className="absolute bottom-4 left-4 right-4 z-[1] flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[color:var(--surface)] px-3 py-2.5 shadow-[var(--shadow-soft)]">
-                  <span className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-                    {meta.totalLabel}
-                  </span>
-                  <strong className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
-                    판매 가능 {formatQuantity(totalAvailableStock)} · 임박 {formatQuantity(totalNearExpiryStock)}
-                  </strong>
-                </div>
-              </div>
+              <p className="sr-only">
+                {meta.shortLabel} {locations.length}개의 판매 가능 재고와 위험도를 보여주는 3D 재고 관제 장면입니다.
+                시설 이름을 선택하면 해당 위치로 카메라가 이동합니다.
+              </p>
             </div>
-
-            <LocationDetail location={activeLocation} viewMode={viewMode} />
           </div>
         ) : (
           <StateView

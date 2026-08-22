@@ -63,7 +63,7 @@ export function DashboardSummary({ calculatedAt, summary }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {metrics.map((metric) => (
           <MetricCard
             key={metric.label}
