@@ -5,6 +5,7 @@ import { InventoryTable } from './InventoryTable.jsx';
 const item = {
   rowId: 'SKU-1',
   productName: '테스트 상품',
+  supplierName: '테스트 공급사',
   skuCode: 'SKU-1',
   skuName: '규격',
   categoryName: '베이커리',
@@ -50,6 +51,7 @@ describe('InventoryTable pagination', () => {
     expect(screen.getByText('1 - 20건 표시 중')).toBeInTheDocument();
     expect(screen.getByText('SKU 및 상품 정보')).toBeInTheDocument();
     expect(screen.getAllByText('베이커리').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('공급사: 테스트 공급사')).toHaveLength(2);
     expect(screen.getByRole('button', { name: '다음' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '100개씩 보기' })).toBeInTheDocument();
@@ -112,5 +114,144 @@ describe('InventoryTable pagination', () => {
     fireEvent.click(screen.getByRole('button', { name: '다시 조회' }));
 
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows center-only inventory as a separate stock owner in the table', () => {
+    render(
+      <InventoryTable
+        items={[
+          {
+            ...item,
+            unassignedInventory: {
+              currentQuantity: 40,
+              availableQuantity: 35,
+              reservedQuantity: 5,
+              locationCount: 1,
+              hasStock: true,
+            },
+          },
+        ]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+      />,
+    );
+
+    expect(screen.getByText('물류센터 미할당 40개')).toBeInTheDocument();
+    expect(screen.getAllByText('40개').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders separate 판매처 and 미할당 재고 column headers and hides 판정 완료 text for ASSESSED status', () => {
+    render(
+      <InventoryTable
+        items={[
+          {
+            ...item,
+            assessmentStatus: 'ASSESSED',
+            riskGrade: 'CAUTION',
+            unassignedInventory: {
+              currentQuantity: 22,
+              availableQuantity: 20,
+              reservedQuantity: 2,
+              hasStock: true,
+            },
+          },
+        ]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: '판매처' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '미할당 재고' })).toBeInTheDocument();
+    expect(screen.getByText('22개')).toBeInTheDocument();
+    expect(screen.queryByText('판정 완료')).not.toBeInTheDocument();
+  });
+
+  it('renders selection checkboxes and enforces max 5 selection limit', () => {
+    const onToggleSelectSku = vi.fn();
+    const onClearSelectedSkus = vi.fn();
+
+    const items = Array.from({ length: 6 }, (_, idx) => ({
+      ...item,
+      rowId: `SKU-${idx + 1}`,
+      skuCode: `SKU-${idx + 1}`,
+      skuName: `상품 ${idx + 1}`,
+    }));
+
+    const { rerender } = render(
+      <InventoryTable
+        items={items}
+        totalCount={6}
+        page={1}
+        size={20}
+        totalPages={1}
+        selectedSkuCodes={['SKU-1', 'SKU-2']}
+        onToggleSelectSku={onToggleSelectSku}
+        onClearSelectedSkus={onClearSelectedSkus}
+        maxSelection={5}
+      />,
+    );
+
+    expect(screen.getByText('2/5개 선택됨')).toBeInTheDocument();
+
+    const checkboxes = screen.getAllByRole('checkbox');
+    // Header checkbox + desktop row checkboxes (6) + mobile checkboxes (6)
+    expect(checkboxes.length).toBeGreaterThan(6);
+
+    fireEvent.click(screen.getByRole('button', { name: '선택 해제' }));
+    expect(onClearSelectedSkus).toHaveBeenCalledTimes(1);
+
+    // 5개가 이미 선택된 상태
+    rerender(
+      <InventoryTable
+        items={items}
+        totalCount={6}
+        page={1}
+        size={20}
+        totalPages={1}
+        selectedSkuCodes={['SKU-1', 'SKU-2', 'SKU-3', 'SKU-4', 'SKU-5']}
+        onToggleSelectSku={onToggleSelectSku}
+        onClearSelectedSkus={onClearSelectedSkus}
+        maxSelection={5}
+      />,
+    );
+
+    expect(screen.getByText('5/5개 선택됨')).toBeInTheDocument();
+    // SKU-6 checkbox should be disabled
+    const sku6Checkboxes = screen.getAllByRole('checkbox', { name: /상품 6 선택/ });
+    expect(sku6Checkboxes[0]).toBeDisabled();
+  });
+
+  it('triggers onSelectAllSkus([]) to clear selection when clicking header checkbox while items are selected', () => {
+    const onSelectAllSkus = vi.fn();
+    const items = Array.from({ length: 5 }, (_, idx) => ({
+      ...item,
+      rowId: `SKU-${idx + 1}`,
+      skuCode: `SKU-${idx + 1}`,
+      skuName: `상품 ${idx + 1}`,
+    }));
+
+    render(
+      <InventoryTable
+        items={items}
+        totalCount={5}
+        page={1}
+        size={20}
+        totalPages={1}
+        selectedSkuCodes={['SKU-1', 'SKU-2', 'SKU-3', 'SKU-4', 'SKU-5']}
+        onSelectAllSkus={onSelectAllSkus}
+        maxSelection={5}
+      />,
+    );
+
+    const headerCheckbox = screen.getByRole('checkbox', { name: /현재 페이지 항목 최대 5개 선택 토글/ });
+    expect(headerCheckbox).toBeChecked();
+
+    fireEvent.click(headerCheckbox);
+    expect(onSelectAllSkus).toHaveBeenCalledWith([]);
   });
 });

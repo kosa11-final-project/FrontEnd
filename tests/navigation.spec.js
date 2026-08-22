@@ -6,7 +6,7 @@ test.describe('기본 앱 셸', () => {
     await mockAuthenticatedSession(page);
     await page.goto('/');
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '재고 운영 대시보드', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: '대시보드' })).toHaveAttribute('aria-current', 'page');
   });
 

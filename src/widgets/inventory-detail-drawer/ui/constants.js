@@ -9,7 +9,7 @@ export const CHANNEL_BADGE_LABELS = Object.freeze({
   GREETING: '그리팅',
   ECOMMERCE: '모두의맛집',
   HYUNDAI_DEPT: '현대백화점',
-  HMART: 'H마트',
+  HMART: '직영점',
 });
 
 export const STORAGE_BADGE_STYLES = {

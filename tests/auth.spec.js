@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { mockAnonymousSession, mockAuthenticatedSession, mockCsrfToken, successfulLoginBody } from './auth-mocks.js';
+import {
+  mockAnonymousSession,
+  mockAuthenticatedSession,
+  mockCsrfToken,
+  mockInventoryReadSlice,
+  successfulLoginBody,
+} from './auth-mocks.js';
 
 async function fillLoginForm(page) {
   await page.getByLabel('아이디').fill('greenfood-admin');
@@ -18,6 +24,18 @@ async function mockSuccessfulLogin(page) {
   });
 }
 
+async function mockAuthenticatedSessionAfterLogin(page) {
+  await page.unroute('**/api/v1/auth/me');
+  await page.route('**/api/v1/auth/me', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: successfulLoginBody(),
+    }),
+  );
+  await mockInventoryReadSlice(page);
+}
+
 test.describe('세션 로그인과 보호 라우팅', () => {
   test('로그인한 사용자가 로그인 화면에 접근하면 대시보드로 이동한다', async ({ page }) => {
     await mockAuthenticatedSession(page);
@@ -25,7 +43,7 @@ test.describe('세션 로그인과 보호 라우팅', () => {
     await page.goto('/login');
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '재고 운영 대시보드', exact: true })).toBeVisible();
   });
 
   test('앱 헤더에 현재 세션 사용자의 이름과 역할을 표시한다', async ({ page }) => {
@@ -72,12 +90,14 @@ test.describe('세션 로그인과 보호 라우팅', () => {
     await mockAnonymousSession(page);
     await mockSuccessfulLogin(page);
     await page.goto('/login');
+    await expect(page.getByLabel('아이디')).toBeVisible();
+    await mockAuthenticatedSessionAfterLogin(page);
     await fillLoginForm(page);
 
     await page.getByRole('button', { name: '로그인' }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '재고 운영 대시보드', exact: true })).toBeVisible();
   });
 
   test('로그인 성공 후 처음 접근했던 화면으로 돌아간다', async ({ page }) => {
@@ -85,12 +105,13 @@ test.describe('세션 로그인과 보호 라우팅', () => {
     await mockSuccessfulLogin(page);
     await page.goto('/statistics');
     await expect(page).toHaveURL(/\/login$/);
+    await mockAuthenticatedSessionAfterLogin(page);
     await fillLoginForm(page);
 
     await page.getByRole('button', { name: '로그인' }).click();
 
     await expect(page).toHaveURL(/\/statistics$/);
-    await expect(page.getByRole('heading', { name: '통계' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '운영 통계', exact: true })).toBeVisible();
   });
 
   test('업무 API에서 세션이 만료되면 안내 후 재로그인하여 원래 경로로 돌아간다', async ({ page }) => {
