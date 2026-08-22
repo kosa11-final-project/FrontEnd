@@ -4,7 +4,12 @@ const { getJson } = vi.hoisted(() => ({ getJson: vi.fn() }));
 
 vi.mock('@/shared/api', () => ({ getJson }));
 
-import { getStrategyExecution, getStrategyExecutions, mapStrategyExecutionResponse } from './strategyExecutionApi.js';
+import {
+  getStrategyExecution,
+  getStrategyExecutions,
+  mapStrategyExecutionPageResponse,
+  mapStrategyExecutionResponse,
+} from './strategyExecutionApi.js';
 
 const backendExecution = {
   id: 721,
@@ -44,16 +49,41 @@ const backendExecution = {
 describe('strategy execution API', () => {
   beforeEach(() => getJson.mockReset());
 
-  it('unwraps ApiResponse data for the execution list', async () => {
-    getJson.mockResolvedValue({ data: [backendExecution], timestamp: '2026-08-20T00:00:00Z' });
+  it('maps the paged execution list and sends only the provided query parameters', async () => {
+    getJson.mockResolvedValue({
+      data: {
+        content: [backendExecution],
+        page: 1,
+        size: 10,
+        totalElements: 21,
+        totalPages: 3,
+        first: false,
+        last: false,
+      },
+      timestamp: '2026-08-20T00:00:00Z',
+    });
 
-    const result = await getStrategyExecutions();
+    const params = { page: 1, size: 10, query: '왕교자', status: 'EXECUTING' };
+    const signal = new AbortController().signal;
+    const result = await getStrategyExecutions(params, signal);
 
-    expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions', signal: undefined });
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe(721);
-    expect(result[0].actions).toHaveLength(1);
-    expect(result[0].actions[0].kpis[0].value).toBe(0);
+    expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions', params, signal });
+    expect(result).toMatchObject({ page: 2, size: 10, totalElements: 21, totalPages: 3 });
+    expect(result.items[0].id).toBe(721);
+    expect(result.items[0].actions).toHaveLength(1);
+    expect(result.items[0].actions[0].kpis[0].value).toBe(0);
+  });
+
+  it('keeps the list mapper compatible with an empty or legacy array response', () => {
+    expect(mapStrategyExecutionPageResponse({ data: [] })).toEqual({
+      items: [],
+      page: 1,
+      size: 10,
+      totalElements: 0,
+      totalPages: 1,
+      first: true,
+      last: true,
+    });
   });
 
   it('uses strategyCaseId for detail and preserves nullable fields', async () => {
