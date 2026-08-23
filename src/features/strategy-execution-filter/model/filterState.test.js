@@ -8,6 +8,8 @@ import {
 describe('strategy execution filter state', () => {
   it('parses a one-based UI page and normalizes invalid values to the first page', () => {
     expect(parseStrategyExecutionPage(new URLSearchParams('page=3'))).toBe(3);
+    expect(parseStrategyExecutionPage(new URLSearchParams())).toBe(1);
+    expect(parseStrategyExecutionPage(new URLSearchParams('page='))).toBe(1);
     expect(parseStrategyExecutionPage(new URLSearchParams('page=0'))).toBe(1);
     expect(parseStrategyExecutionPage(new URLSearchParams('page=wrong'))).toBe(1);
   });
