@@ -67,7 +67,70 @@ const columns = [
   },
 ];
 
-export function RiskSalesPointTable({ points }) {
+function CompactRiskSalesPointList({ points }) {
+  return (
+    <Card asChild padding="none" className="h-full min-w-0 overflow-hidden shadow-[var(--shadow-soft)]">
+      <section className="flex h-full min-h-0 flex-col" aria-labelledby="risk-sales-points-title">
+        <CardHeader className="shrink-0 border-b border-[var(--border)] p-4">
+          <CardTitle id="risk-sales-points-title" className="flex items-center gap-2 text-[17px]">
+            <Icon icon={Store} size={18} className="text-[color:var(--danger)]" aria-hidden="true" />
+            위험재고 보유 판매처 TOP 10
+          </CardTitle>
+          <CardDescription className="text-[13px] text-[color:var(--text-body)]">
+            위험 SKU 수 → 예상 폐기수량 순
+          </CardDescription>
+        </CardHeader>
+
+        {points.length === 0 ? (
+          <p className="p-5 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
+            위험재고를 보유한 판매처가 없습니다.
+          </p>
+        ) : (
+          <>
+            <ol className="dashboard-scrollbar min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto px-4 pr-2">
+              {points.map((point) => (
+                <li key={point.id}>
+                  <Link
+                    to={getRiskSalesPointInventoryUrl(point)}
+                    aria-label={`${point.name} 재고 보기`}
+                    className="-mx-2 grid grid-cols-[30px_minmax(0,1fr)_34px] items-center gap-2.5 rounded-[var(--radius-control)] px-2 py-2.5 transition-colors hover:bg-[var(--surface-subtle)]"
+                  >
+                    <span className="grid size-7 place-items-center rounded-full bg-[var(--danger-soft)] text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] text-[color:var(--danger)]">
+                      {point.rank}
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="block truncate text-[length:var(--font-size-body)] text-[color:var(--text-heading)]">
+                        {point.name}
+                      </strong>
+                      <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
+                        {point.type} · 위험 SKU{' '}
+                        <strong className="text-[color:var(--danger)]">{formatQuantity(point.riskSkuCount)}</strong> ·
+                        폐기{' '}
+                        <strong className="text-[color:var(--danger)]">{formatQuantity(point.expectedDisposal)}</strong>
+                      </span>
+                    </span>
+                    <span className="grid size-8 place-items-center rounded-full text-[color:var(--primary-strong)]">
+                      <Icon icon={ArrowRight} size={16} aria-hidden="true" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+            {points.length > 5 ? (
+              <p className="shrink-0 border-t border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-2 text-center text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
+                목록 안에서 스크롤해 전체 {points.length}개 판매처를 확인할 수 있습니다.
+              </p>
+            ) : null}
+          </>
+        )}
+      </section>
+    </Card>
+  );
+}
+
+export function RiskSalesPointTable({ compact = false, points }) {
+  if (compact) return <CompactRiskSalesPointList points={points} />;
+
   return (
     <Card asChild padding="none" className="min-w-0 overflow-hidden shadow-[var(--shadow-soft)]">
       <section aria-labelledby="risk-sales-points-title">

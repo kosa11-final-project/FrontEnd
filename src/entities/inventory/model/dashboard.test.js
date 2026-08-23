@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { offlineStoreInventories, rankRiskSalesPoints, rankUrgentSkus } from './dashboard.js';
+import {
+  dashboardInventorySummary,
+  distributionCenters,
+  offlineStoreInventories,
+  rankRiskSalesPoints,
+  rankUrgentSkus,
+} from './dashboard.js';
 
 describe('dashboard inventory ranking', () => {
   it('위험 판매처를 위험 SKU 수, 예상 폐기수량 순으로 정렬한다', () => {
@@ -28,5 +34,17 @@ describe('dashboard inventory ranking', () => {
     expect(offlineStoreInventories.map((point) => point.id)).not.toEqual(
       expect.arrayContaining(['GREETING', 'MODU_MATJIP', 'DEPT_DCUBE']),
     );
+  });
+
+  it('실제 운영 중인 5개 물류센터와 총현재고를 대시보드 fixture에 반영한다', () => {
+    expect(distributionCenters).toHaveLength(5);
+    expect(distributionCenters.map((center) => center.id)).toEqual([
+      'GYEONGIN_1',
+      'GYEONGIN_2',
+      'SUJI',
+      'YEONGNAM',
+      'HONAM',
+    ]);
+    expect(dashboardInventorySummary.totalCurrentStock).toBeGreaterThan(dashboardInventorySummary.totalAvailableStock);
   });
 });

@@ -1,13 +1,18 @@
-import { AlertTriangle, Box, Clock, Warning } from 'reicon-react';
-import { formatQuantity } from '@/shared/lib/format';
-import { MetricCard } from '@/shared/ui';
+import { AlertTriangle, Box, Clock, Refresh, Warning } from 'reicon-react';
+import { formatDateTime, formatPercent, formatQuantity } from '@/shared/lib/format';
+import { Icon, MetricCard } from '@/shared/ui';
 
-export function DashboardSummary({ summary }) {
+export function DashboardSummary({ calculatedAt, summary }) {
+  const availabilityRate =
+    summary.totalCurrentStock > 0 ? (summary.totalAvailableStock / summary.totalCurrentStock) * 100 : null;
   const metrics = [
     {
       label: '전체 판매 가능 재고',
       value: formatQuantity(summary.totalAvailableStock),
-      helper: '전국 온·오프라인 재고 기준',
+      helper:
+        availabilityRate === null
+          ? '총현재고 기준 가용률 산정 불가'
+          : `총현재고 ${formatQuantity(summary.totalCurrentStock)} 중 ${formatPercent(availabilityRate)}`,
       icon: Box,
       tone: 'good',
     },
@@ -26,7 +31,7 @@ export function DashboardSummary({ summary }) {
         </>
       ),
       icon: AlertTriangle,
-      tone: 'danger',
+      tone: 'warning',
     },
     {
       label: '부족 SKU',
@@ -40,7 +45,7 @@ export function DashboardSummary({ summary }) {
       value: formatQuantity(summary.expectedDisposal),
       helper: '수요예측·LOT 소비기한 기준',
       icon: Clock,
-      tone: 'danger',
+      tone: 'warning',
     },
   ];
 
@@ -50,9 +55,21 @@ export function DashboardSummary({ summary }) {
         핵심 재고 지표
       </h2>
 
-      <div className="grid grid-cols-1 gap-[var(--spacing-card-gap)] sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-1.5 flex justify-end">
+        <p className="inline-flex items-center gap-1.5 text-[length:var(--font-size-body-sm)] text-[color:var(--text-body)]">
+          <Icon icon={Refresh} size={13} aria-hidden="true" />
+          마지막 정상 동기화
+          <strong className="text-[color:var(--text-heading)]">{formatDateTime(calculatedAt)}</strong>
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
+          <MetricCard
+            key={metric.label}
+            {...metric}
+            className="px-4 py-2.5 shadow-[var(--shadow-soft)] 2xl:grid 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:grid-rows-[auto_auto] 2xl:items-center 2xl:gap-x-3 [&>div>span:first-child]:size-7 [&>div>span:last-child]:text-[13px] [&>div>span:last-child]:text-[color:var(--text-body)] [&>strong]:mt-1 [&>strong]:text-xl 2xl:[&>strong]:mt-0 2xl:[&>strong]:text-right [&>span:last-child]:mt-0.5 [&>span:last-child]:text-[length:var(--font-size-body-sm)] [&>span:last-child]:text-[color:var(--text-body)] 2xl:[&>span:last-child]:col-span-2"
+          />
         ))}
       </div>
     </section>

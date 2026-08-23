@@ -3,6 +3,7 @@ import {
   dashboardInventorySummary,
   distributionCenters,
   offlineStoreInventories,
+  onlineSalesPointInventories,
   rankRiskSalesPoints,
   rankUrgentSkus,
   riskSalesPoints,
@@ -13,6 +14,7 @@ import { DashboardPageContent } from './DashboardPage.jsx';
 const dashboardFixture = {
   summary: dashboardInventorySummary,
   warehouses: distributionCenters,
+  onlineSalesPoints: onlineSalesPointInventories,
   offlineStores: offlineStoreInventories,
   riskSalesPointsTop10: rankRiskSalesPoints(riskSalesPoints)
     .slice(0, 10)
