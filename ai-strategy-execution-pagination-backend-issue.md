@@ -86,4 +86,3 @@ GET /api/v1/strategy-executions?page=0&size=10&query=두부&status=EXECUTING&act
 ## 프론트엔드 연동 참고
 
 프론트엔드는 응답의 `content`, `page`, `size`, `totalElements`, `totalPages`를 사용해 페이지네이션 UI를 구성한다. 검색어나 필터가 변경되면 `page=0`으로 다시 요청한다.
-
