@@ -39,10 +39,7 @@ function formatChannelName(result, actions) {
   const salesPointName = result.salesPointName || result.channel || '판매처 미수집';
   const salesPoint = findSalesPoint(result, actions);
   const channelName =
-    result.channelName ||
-    CHANNEL_TYPE_LABELS[result.channelType] ||
-    CHANNEL_TYPE_LABELS[salesPoint?.type] ||
-    null;
+    result.channelName || CHANNEL_TYPE_LABELS[result.channelType] || CHANNEL_TYPE_LABELS[salesPoint?.type] || null;
 
   if (!channelName || salesPointName.includes(channelName)) return salesPointName;
   return `${channelName} · ${salesPointName}`;

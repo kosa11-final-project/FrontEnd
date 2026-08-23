@@ -3,10 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'reicon-react';
 import {
   EmptyPerformanceState,
+  formatAchievementRateText,
   getCompletedActionCount,
   getStrategyExecution,
   StrategyActionCard,
   StrategyActionProgress,
+  StrategyChannelPerformanceReport,
   StrategyDailySalesAreaChart,
   StrategyInventoryComparisonBarChart,
   StrategyInventoryTransferList,
@@ -102,7 +104,7 @@ export function StrategyExecutionDetailContent({ strategy }) {
               <p className="mt-3 text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-muted)]">
                 전체 결과
               </p>
-              <p className="mt-1">{strategy.resultSummary ?? '미수집'}</p>
+              <p className="mt-1">{formatAchievementRateText(strategy.resultSummary) ?? '미수집'}</p>
             </div>
             <div className="rounded-[var(--radius-card)] bg-[var(--surface-subtle)] p-4">
               <p className="mb-2 text-[length:var(--font-size-body-sm)]">
@@ -200,22 +202,9 @@ export function StrategyExecutionDetailContent({ strategy }) {
             <EmptyPerformanceState title="이동 결과가 아직 수집되지 않았습니다." />
           )}
         </Section>
-        <Section title="채널별 판매 성과">
+        <Section title="채널별 판매 성과 리포트" description="채널 수와 수집된 성과에 맞는 분석 화면을 제공합니다.">
           {strategy.channelResults.length ? (
-            <div className="grid gap-2">
-              {strategy.channelResults.map((row) => (
-                <div
-                  key={row.salesPointId ?? row.channel}
-                  className="grid gap-2 rounded-[var(--radius-card)] bg-[var(--surface-subtle)] p-3 sm:grid-cols-5"
-                >
-                  <strong className="text-[color:var(--text-heading)]">{row.channel}</strong>
-                  <span>{row.status ?? '상태 미수집'}</span>
-                  <span>판매 {valueOrMissing(row.sales, '개')}</span>
-                  <span>매출 {valueOrMissing(row.revenue, '원')}</span>
-                  <span>잠식 {row.cannibalization ?? '미수집'}</span>
-                </div>
-              ))}
-            </div>
+            <StrategyChannelPerformanceReport results={strategy.channelResults} actions={strategy.actions} />
           ) : (
             <EmptyPerformanceState
               title="채널 판매 성과가 없습니다."

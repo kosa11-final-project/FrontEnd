@@ -2,10 +2,18 @@ import { StrategyActionCard } from './StrategyActionCard.jsx';
 import { StrategyStatusBadge } from './StrategyStatusBadge.jsx';
 import { StrategySyncStatus } from './StrategySyncStatus.jsx';
 import { StrategyDailySalesAreaChart } from './StrategyDailySalesAreaChart.jsx';
+import { StrategyChannelPerformanceReport } from './StrategyChannelPerformanceReport.jsx';
 import { StrategyInventoryComparisonBarChart } from './StrategyInventoryComparisonBarChart.jsx';
 import { StrategyInventoryTransferList } from './StrategyInventoryTransferList.jsx';
 import { EmptyPerformanceState } from './EmptyPerformanceState.jsx';
 import { strategyExecutionFixtures } from '../testing/fixtures.js';
+
+const scatterChannelResults = [
+  { channel: '모두의 맛집', status: 'COMPLETED', sales: 63, revenue: 598500, cannibalization: '미수집' },
+  { channel: '그리팅', status: 'COMPLETED', sales: 41, revenue: 382000, cannibalization: '해당 없음' },
+  { channel: '현대식품관 투홈', status: 'EXECUTING', sales: 25, revenue: 220000, cannibalization: '관찰 중' },
+  { channel: '복지몰', status: 'COMPLETED', sales: 52, revenue: 470000, cannibalization: '해당 없음' },
+];
 
 const meta = {
   title: 'Entities/Strategy Execution',
@@ -112,6 +120,27 @@ export const InventoryTransferRoutesMobile = {
   render: () => (
     <div className="w-[320px] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4">
       <StrategyInventoryTransferList transfers={strategyExecutionFixtures[0].inventoryTransfers} />
+    </div>
+  ),
+};
+export const ChannelPerformanceSingleReport = {
+  render: () => (
+    <div className="w-[720px] max-w-[calc(100vw-2rem)] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5">
+      <StrategyChannelPerformanceReport results={strategyExecutionFixtures[3].channelResults} />
+    </div>
+  ),
+};
+export const ChannelPerformanceTreemapReport = {
+  render: () => (
+    <div className="w-[720px] max-w-[calc(100vw-2rem)] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5">
+      <StrategyChannelPerformanceReport results={strategyExecutionFixtures[0].channelResults} />
+    </div>
+  ),
+};
+export const ChannelPerformanceScatterReport = {
+  render: () => (
+    <div className="w-[720px] max-w-[calc(100vw-2rem)] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5">
+      <StrategyChannelPerformanceReport results={scatterChannelResults} />
     </div>
   ),
 };

@@ -49,14 +49,17 @@ describe('strategy execution pages', () => {
   });
   it('renders multi-action dependency, missing data and required detail sections', () => {
     renderRoute(<StrategyExecutionDetailContent strategy={strategyExecutionFixtures[1]} />, '/execution/102');
-    expect(screen.getByText('다중 액션 실행 흐름')).toBeInTheDocument();
+    expect(screen.getByText('다중 전략 실행 흐름')).toBeInTheDocument();
+    const strategyCardList = screen.getByRole('list', { name: '실행 전략 카드 목록' });
+    expect(within(strategyCardList).getAllByRole('listitem')).toHaveLength(3);
     expect(screen.getByText(/선행 RT 이동 실패/)).toBeInTheDocument();
     expect(screen.getAllByText('미수집').length).toBeGreaterThan(0);
     expect(screen.getByText('재고 이동 경로')).toBeInTheDocument();
     expect(screen.getByRole('listitem', { name: '서부센터 → 동부센터, 90개 이동' })).toBeInTheDocument();
     expect(screen.getByText('위치별 재고 변화')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '위치별 재고 변화 비교 가로 막대 차트' })).toBeInTheDocument();
-    expect(screen.getByText('채널별 판매 성과')).toBeInTheDocument();
+    expect(screen.getByText('채널별 판매 성과 리포트')).toBeInTheDocument();
+    expect(screen.getByText('채널 판매 성과가 없습니다.')).toBeInTheDocument();
     expect(screen.queryByText('동기화 이력')).not.toBeInTheDocument();
     expect(screen.queryByText('경고 및 후속 추천')).not.toBeInTheDocument();
     expect(screen.getByRole('img', { name: '프리미엄 오피스 체어 에어 상품 이미지 없음' })).toBeInTheDocument();
@@ -66,6 +69,7 @@ describe('strategy execution pages', () => {
     const chartSection = screen.getByText('판매처별 SKU 일일 판매량').closest('section');
     expect(chartSection).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '전체 판매처 SKU 일별 판매량 비교 영역 차트' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '채널별 매출 비중 트리맵' })).toBeInTheDocument();
     expect(within(chartSection).getByText(/이동 대상 판매처/)).toBeInTheDocument();
     expect(within(chartSection).getByText(/기존 판매처/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '그리팅몰' }));
@@ -96,5 +100,16 @@ describe('strategy execution pages', () => {
     expect(screen.getByText('전략 전체 성과가 아직 수집되지 않았습니다.')).toBeInTheDocument();
     expect(screen.getByText('재고 이동 경로가 없습니다.')).toBeInTheDocument();
     expect(screen.queryByText('0%')).not.toBeInTheDocument();
+  });
+
+  it('rounds the achievement rate in the overall result to one decimal place', () => {
+    const strategy = {
+      ...strategyExecutionFixtures[0],
+      resultSummary: '실제 판매 200 / 목표 180 (달성률 111.111111%)',
+    };
+    renderRoute(<StrategyExecutionDetailContent strategy={strategy} />, '/execution/101');
+
+    expect(screen.getByText('실제 판매 200 / 목표 180 (달성률 111.1%)')).toBeInTheDocument();
+    expect(screen.queryByText(/111\.111111%/)).not.toBeInTheDocument();
   });
 });
