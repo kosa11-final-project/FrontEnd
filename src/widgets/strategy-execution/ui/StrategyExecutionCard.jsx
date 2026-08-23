@@ -62,13 +62,13 @@ export function StrategyExecutionCard({ strategy }) {
       className="overflow-hidden shadow-[var(--shadow-panel)] transition-shadow hover:shadow-[var(--shadow-panel)]"
     >
       <article aria-labelledby={`${strategy.id}-title`}>
-        <header className="bg-[linear-gradient(180deg,var(--surface-subtle),var(--card))] p-4 sm:px-5 sm:py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <header className="bg-[linear-gradient(180deg,var(--surface-subtle),var(--card))] p-3 sm:px-4 sm:py-3">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start">
             <StrategyProductImage
               src={strategy.product.imageUrl}
               alt={`${strategy.product.name} 상품 이미지`}
               size="lg"
-              className="size-20 sm:size-24"
+              className="size-16 sm:size-20"
             />
             <div className="min-w-0 flex-1 sm:pt-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -85,7 +85,7 @@ export function StrategyExecutionCard({ strategy }) {
               </div>
               <h2
                 id={`${strategy.id}-title`}
-                className="mt-2 max-w-3xl text-[length:var(--font-size-headline2)] font-bold leading-[var(--line-height-heading)] text-[color:var(--text-heading)]"
+                className="mt-1.5 max-w-3xl text-[length:var(--font-size-headline2)] font-bold leading-[var(--line-height-heading)] text-[color:var(--text-heading)]"
               >
                 {strategy.product.name}
               </h2>
@@ -104,21 +104,21 @@ export function StrategyExecutionCard({ strategy }) {
           </div>
         </header>
 
-        <div className="grid gap-4 bg-[var(--card)] p-4 sm:p-5 lg:grid-cols-[minmax(240px,0.8fr)_minmax(0,1.2fr)]">
+        <div className="grid gap-3 bg-[var(--card)] p-3 sm:p-4 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
           <section aria-label="전략 진행 상황" className="flex h-full min-w-0 flex-col">
-            <h3 className="mb-2 text-[length:var(--font-size-body-sm)] font-bold text-[color:var(--text-heading)]">
+            <h3 className="mb-1.5 text-[length:var(--font-size-body-sm)] font-bold text-[color:var(--text-heading)]">
               전략 진행 상황
             </h3>
-            <div className="grid min-h-28 flex-1 items-center rounded-[var(--radius-panel)] border border-[var(--border)] bg-[linear-gradient(135deg,var(--card),var(--surface-subtle))] p-4 shadow-[var(--shadow-soft)]">
+            <div className="grid min-h-24 flex-1 items-center rounded-[var(--radius-panel)] border border-[var(--border)] bg-[linear-gradient(135deg,var(--card),var(--surface-subtle))] p-3 shadow-[var(--shadow-soft)]">
               <StrategyActionStepProgress actions={strategy.actions} />
             </div>
           </section>
 
           <section aria-label="주요 전략 지표" className="flex h-full min-w-0 flex-col">
-            <h3 className="mb-2 text-[length:var(--font-size-body-sm)] font-bold text-[color:var(--text-heading)]">
+            <h3 className="mb-1.5 text-[length:var(--font-size-body-sm)] font-bold text-[color:var(--text-heading)]">
               주요 전략 지표
             </h3>
-            <div className="grid flex-1 grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
+            <div className="grid flex-1 grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2">
               {representativeKpis.map(({ actionId, type, target, kpi }) => {
                 const tone = actionCardToneClasses[type] ?? defaultActionCardToneClasses;
                 return (
@@ -126,7 +126,7 @@ export function StrategyExecutionCard({ strategy }) {
                     key={actionId}
                     data-action-type={type}
                     className={cn(
-                      'group flex h-full min-h-28 min-w-0 flex-col rounded-[var(--radius-panel)] border p-3 shadow-[var(--shadow-soft)] transition-[border-color,transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[var(--shadow-panel)]',
+                      'group flex h-full min-h-24 min-w-0 flex-col rounded-[var(--radius-panel)] border p-3 shadow-[var(--shadow-soft)] transition-[border-color,transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[var(--shadow-panel)]',
                       tone.card,
                     )}
                   >
@@ -147,7 +147,7 @@ export function StrategyExecutionCard({ strategy }) {
                 );
               })}
               {!representativeKpis.length ? (
-                <div className="grid min-h-28 place-items-center rounded-[var(--radius-panel)] border border-dashed border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)] sm:col-span-2">
+                <div className="grid min-h-24 place-items-center rounded-[var(--radius-panel)] border border-dashed border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)] sm:col-span-2">
                   표시할 액션 성과가 없습니다.
                 </div>
               ) : null}
@@ -155,7 +155,7 @@ export function StrategyExecutionCard({ strategy }) {
           </section>
         </div>
 
-        <footer className="flex flex-col gap-2 border-t border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <footer className="flex flex-col gap-2 border-t border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <StrategySyncStatus lastSyncedAt={strategy.lastSyncedAt} />
           <Button asChild size="sm" className="w-full text-[color:var(--color-white)] sm:w-auto">
             <Link to={`/execution/${strategy.id}`}>
