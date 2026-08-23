@@ -18,10 +18,4 @@ export const STORAGE_BADGE_STYLES = {
   ROOM_TEMP: 'bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB]',
 };
 
-export const ASSESSMENT_STATUS_LABELS = {
-  ASSESSED: '판정 완료',
-  UNASSESSED: '미판정',
-  REASSESSING: '재판정 중',
-  STALE: '판정 만료',
-  FAILED: '판정 실패',
-};
+export { ASSESSMENT_STATUS_LABELS } from '@/entities/risk';

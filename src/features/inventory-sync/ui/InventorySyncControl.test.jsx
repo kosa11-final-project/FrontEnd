@@ -218,10 +218,10 @@ describe('InventorySyncControl', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('위험 판정 저장 중 오류가 발생했습니다.');
     expect(screen.getByText('동기화 상세 정보')).toBeInTheDocument();
-    expect(screen.getByText('단계 CANONICAL · 시도 2회')).toBeInTheDocument();
+    expect(screen.getByText('단계 통합재고 반영 · 시도 2회')).toBeInTheDocument();
     expect(screen.getByText('오류 코드 SYNC_FAILED')).toBeInTheDocument();
-    expect(screen.getByText('OFFLINE')).toBeInTheDocument();
-    expect(screen.getByText('WAREHOUSE')).toBeInTheDocument();
+    expect(screen.getByText('오프라인')).toBeInTheDocument();
+    expect(screen.getByText('물류센터')).toBeInTheDocument();
   });
 
   it('invalidates every integrated-inventory read scope once after success', async () => {
@@ -345,7 +345,7 @@ describe('InventorySyncControl', () => {
 
     expect(await screen.findByRole('button', { name: '재고 동기화 복구 중' })).toBeDisabled();
     expect(screen.getByText(/재고 동기화 복구 시도 2회차/)).toBeInTheDocument();
-    expect(screen.getByText('복구 시도 2회차, RISK_ASSESSMENT 단계가 실행 중입니다.')).toHaveClass('sr-only');
+    expect(screen.getByText('복구 시도 2회차, 위험 판정 단계가 실행 중입니다.')).toHaveClass('sr-only');
   });
 
   it('uses a new idempotency key when deliberately retrying a terminal failure', async () => {

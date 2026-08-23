@@ -1,8 +1,9 @@
 import { Building, ChevronRight, Shop, ShoppingCart, Store } from 'reicon-react';
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory';
+import { getAssessmentStatusLabel } from '@/entities/risk';
 import { SortHeaderButton } from './SortHeaderButton.jsx';
-import { CHANNEL_BADGE_STYLES, STORAGE_BADGE_STYLES, ASSESSMENT_STATUS_LABELS } from './constants.js';
+import { CHANNEL_BADGE_STYLES, STORAGE_BADGE_STYLES } from './constants.js';
 
 function categorizeSalesPoints(salesPoints = []) {
   let dangerPoints = 0;
@@ -357,7 +358,7 @@ export function InventoryTableDesktop({
                     <InventoryStatusBadge status={item.riskGrade} />
                     {item.assessmentStatus && item.assessmentStatus !== 'ASSESSED' && (
                       <span className="text-[10px] font-medium text-gray-500">
-                        {ASSESSMENT_STATUS_LABELS[item.assessmentStatus] || item.assessmentStatus}
+                        {getAssessmentStatusLabel(item.assessmentStatus)}
                       </span>
                     )}
                     {(dangerPoints > 0 || cautionPoints > 0) && (
@@ -372,7 +373,7 @@ export function InventoryTableDesktop({
                     )}
                     {item.inventoryFactState && item.inventoryFactState !== 'AVAILABLE' && (
                       <span className="text-[10px] font-medium text-gray-500">
-                        {item.inventoryFactLabel || item.inventoryFactState}
+                        {item.inventoryFactLabel || '재고 상태 확인 필요'}
                       </span>
                     )}
                   </div>

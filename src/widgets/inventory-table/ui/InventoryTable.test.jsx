@@ -106,6 +106,39 @@ describe('InventoryTable pagination', () => {
     expect(onSortChange).toHaveBeenLastCalledWith('availableQuantity,desc');
   });
 
+  it('starts 종합 위험도 sorting from 양호 and toggles to 위험 first', () => {
+    const onSortChange = vi.fn();
+    const { rerender } = render(
+      <InventoryTable
+        items={[item]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+        sort="updatedAt,desc"
+        onSortChange={onSortChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '종합 위험도 오름차순 정렬' }));
+    expect(onSortChange).toHaveBeenLastCalledWith('riskGrade,asc');
+
+    rerender(
+      <InventoryTable
+        items={[item]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+        sort="riskGrade,asc"
+        onSortChange={onSortChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '종합 위험도 내림차순 정렬' }));
+    expect(onSortChange).toHaveBeenLastCalledWith('riskGrade,desc');
+  });
+
   it('uses the explicit retry callback instead of mutating the current page', () => {
     const onRetry = vi.fn();
 

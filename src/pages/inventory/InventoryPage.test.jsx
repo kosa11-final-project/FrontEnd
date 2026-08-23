@@ -148,6 +148,8 @@ describe('InventoryPage Integration', () => {
       ruleVersion: 'STOCK_EXPIRY_V1_SALES_FORECAST',
       baseDate: '2026-08-16',
       shortageQty30: 10,
+      stockCoverageDays: 20,
+      shortageYn: 'Y',
       safetyGapQty: 5,
       reasons: [],
     });
@@ -208,6 +210,8 @@ describe('InventoryPage Integration', () => {
 
     // 재고 개요 탭 내 우측 LOT 섹션에 FEFO 목록 표시 확인
     expect((await screen.findAllByText(/FEFO 1순위/)).length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText('재고 부족 여부')).toBeInTheDocument();
+    expect(await screen.findByText('부족')).toBeInTheDocument();
     expect(screen.queryByText('재고 위험 판정')).not.toBeInTheDocument();
     expect(screen.queryByText('판정 실패')).not.toBeInTheDocument();
   });

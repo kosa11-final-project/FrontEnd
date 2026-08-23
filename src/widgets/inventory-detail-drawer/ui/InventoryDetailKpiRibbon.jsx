@@ -1,7 +1,7 @@
 import { CheckCircle, Danger, Package, Warning } from 'reicon-react';
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
-import { InventoryRiskReasonTooltip, InventoryStatusBadge } from '@/entities/inventory';
-import { ASSESSMENT_STATUS_LABELS } from './constants.js';
+import { InventoryStatusBadge } from '@/entities/inventory';
+import { getAssessmentStatusLabel } from '@/entities/risk';
 
 /**
  * 재고 상세 상단 핵심 4대 KPI 리본 영역
@@ -26,7 +26,7 @@ export function InventoryDetailKpiRibbon({ item, showRisk = true }) {
 
       <div className="flex items-center justify-between rounded-lg border border-[#B7ECCF] bg-[#F0FDF4] px-3 py-2 shadow-2xs">
         <div>
-          <span className="text-[10px] font-semibold text-[#1E8251]">실 가용수량</span>
+          <span className="text-[10px] font-semibold text-[#1E8251]">가용수량</span>
           <div className="text-sm font-extrabold text-[#166534] tabular-nums">
             {formatQuantity(item.availableQuantity)}{' '}
             <span className="text-[10px] font-normal text-[#1E8251]">
@@ -42,12 +42,11 @@ export function InventoryDetailKpiRibbon({ item, showRisk = true }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <span className="text-[10px] font-semibold text-gray-500">위험 판정</span>
-              <InventoryRiskReasonTooltip reason={item.riskReason} />
             </div>
             <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
               <InventoryStatusBadge status={item.riskGrade} />
               <span className="text-[10px] font-medium text-gray-500">
-                {ASSESSMENT_STATUS_LABELS[item.assessmentStatus] || '판정 상태 미제공'}
+                {getAssessmentStatusLabel(item.assessmentStatus)}
               </span>
             </div>
           </div>

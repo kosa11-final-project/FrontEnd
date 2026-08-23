@@ -12,6 +12,12 @@ import {
   inventorySyncLatestQueryOptions,
   inventorySyncRunQueryOptions,
 } from '../model/inventorySyncQueries.js';
+import {
+  getSyncPhaseLabel,
+  getSyncSourceTypeLabel,
+  getSyncStatusLabel,
+  getSyncTriggerTypeLabel,
+} from '../model/inventorySyncStatus.js';
 
 export const SYNC_UI_STATES = Object.freeze({
   INITIAL_LOADING: 'INITIAL_LOADING',
@@ -164,7 +170,10 @@ function resolveDisplayNotice({
   }
   if (runError) return '동기화 상태 조회에 실패했습니다. 마지막 정상 상태를 유지합니다.';
   if (uiState === SYNC_UI_STATES.RECOVERY_WAITING) return '동기화가 중단되어 운영자 복구를 기다리는 중입니다.';
-  return notice || (observedRun ? `상태: ${observedRun.status}` : '원천 4종을 정제해 통합재고에 반영합니다.');
+  return (
+    notice ||
+    (observedRun ? `상태: ${getSyncStatusLabel(observedRun.status)}` : '원천 4종을 정제해 통합재고에 반영합니다.')
+  );
 }
 
 function resolveSyncPresentation({ uiState, latestQuery, runQuery, observedRunId, observedRun, notice }) {
@@ -187,7 +196,7 @@ function resolveSyncPresentation({ uiState, latestQuery, runQuery, observedRunId
   });
   const phaseAnnouncement =
     uiState === SYNC_UI_STATES.TRACKING && observedRun?.phase
-      ? `${isRecoveryAttempt ? `복구 시도 ${formatNumber(observedRun.mainAttemptNo)}회차, ` : ''}${observedRun.phase} 단계가 실행 중입니다.`
+      ? `${isRecoveryAttempt ? `복구 시도 ${formatNumber(observedRun.mainAttemptNo)}회차, ` : ''}${getSyncPhaseLabel(observedRun.phase)} 단계가 실행 중입니다.`
       : STATE_ANNOUNCEMENTS[uiState] || '';
 
   return {
@@ -208,7 +217,8 @@ function RunDetails({ run, defaultOpen = false }) {
   const errorMessage = summarizeSyncError(run.errorMessage);
   const attempt = Number(run.mainAttemptNo);
   const runMeta = [
-    run.phase ? `단계 ${run.phase}` : null,
+    run.phase ? `단계 ${getSyncPhaseLabel(run.phase)}` : null,
+    run.triggerType ? getSyncTriggerTypeLabel(run.triggerType) : null,
     Number.isFinite(attempt) && attempt > 0 ? `시도 ${formatNumber(attempt)}회` : null,
   ].filter(Boolean);
   const counts = [
@@ -253,10 +263,11 @@ function RunDetails({ run, defaultOpen = false }) {
                   key={source.sourceType}
                   className="flex flex-wrap justify-between gap-1 rounded bg-gray-50 px-2 py-1"
                 >
-                  <span className="font-semibold text-gray-700">{source.sourceType}</span>
+                  <span className="font-semibold text-gray-700">{getSyncSourceTypeLabel(source.sourceType)}</span>
                   <span>
-                    {source.status} · 읽음 {formatNumber(source.readCount)} · 매핑 {formatNumber(source.mappedCount)} ·
-                    반영 {formatNumber(source.changedCount)} · 오류 {formatNumber(source.errorCount)}
+                    {getSyncStatusLabel(source.status)} · 읽음 {formatNumber(source.readCount)} · 매핑{' '}
+                    {formatNumber(source.mappedCount)} · 반영 {formatNumber(source.changedCount)} · 오류{' '}
+                    {formatNumber(source.errorCount)}
                   </span>
                 </li>
               ))}
