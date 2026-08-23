@@ -62,10 +62,28 @@ export function mapStrategyExecutionResponse(value = {}) {
   };
 }
 
-export async function getStrategyExecutions(signal) {
-  const response = await getJson({ path: strategyExecutionPath, signal });
-  const executions = Array.isArray(response?.data) ? response.data : [];
-  return executions.map(mapStrategyExecutionResponse);
+export function mapStrategyExecutionPageResponse(response = {}) {
+  const data = response?.data ?? {};
+  const content = Array.isArray(data) ? data : Array.isArray(data.content) ? data.content : [];
+  const backendPage = Number.isInteger(data.page) ? data.page : Number.isInteger(data.number) ? data.number : 0;
+  const size = Number.isInteger(data.size) && data.size > 0 ? data.size : Math.max(content.length, 10);
+  const totalElements = Number.isInteger(data.totalElements) ? data.totalElements : content.length;
+  const totalPages = Number.isInteger(data.totalPages) ? Math.max(data.totalPages, 1) : 1;
+
+  return {
+    items: content.map(mapStrategyExecutionResponse),
+    page: backendPage + 1,
+    size,
+    totalElements,
+    totalPages,
+    first: typeof data.first === 'boolean' ? data.first : backendPage <= 0,
+    last: typeof data.last === 'boolean' ? data.last : backendPage >= totalPages - 1,
+  };
+}
+
+export async function getStrategyExecutions(params = {}, signal) {
+  const response = await getJson({ path: strategyExecutionPath, params, signal });
+  return mapStrategyExecutionPageResponse(response);
 }
 
 export async function getStrategyExecution(strategyCaseId, signal) {

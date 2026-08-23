@@ -1,14 +1,36 @@
+import { useMemo, useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { strategyExecutionFixtures } from '@/entities/strategy';
+import { filterStrategies, strategyExecutionFixtures } from '@/entities/strategy';
+import { defaultStrategyExecutionFilters, STRATEGY_EXECUTION_PAGE_SIZE } from '@/features/strategy-execution-filter';
 import { StrategyExecutionDetailContent } from './ExecutionDetailPage.jsx';
 import { StrategyExecutionListContent } from './ExecutionListPage.jsx';
 
 const renderRoute = (ui, path = '/execution') => render(<MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>);
+
+function StrategyExecutionListHarness({ strategies = strategyExecutionFixtures }) {
+  const [filters, setFilters] = useState(defaultStrategyExecutionFilters);
+  const filtered = useMemo(() => filterStrategies(strategies, filters), [filters, strategies]);
+  return (
+    <StrategyExecutionListContent
+      strategies={filtered}
+      filters={filters}
+      pagination={{
+        page: 1,
+        size: STRATEGY_EXECUTION_PAGE_SIZE,
+        totalElements: filtered.length,
+        totalPages: 1,
+      }}
+      onFiltersChange={setFilters}
+      onPageChange={() => {}}
+    />
+  );
+}
+
 describe('strategy execution pages', () => {
   it('filters strategies by action type and search', () => {
-    renderRoute(<StrategyExecutionListContent initialStrategies={strategyExecutionFixtures} />);
+    renderRoute(<StrategyExecutionListHarness />);
     expect(screen.getByText('비비고 왕교자 1.05kg')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '비비고 왕교자 1.05kg 상품 이미지' })).toBeInTheDocument();
     expect(screen.queryByLabelText('계열사')).not.toBeInTheDocument();
@@ -20,7 +42,7 @@ describe('strategy execution pages', () => {
     expect(screen.getByText('조건에 맞는 실행 전략이 없습니다.')).toBeInTheDocument();
   });
   it('keeps synchronization disabled until the backend API is available', () => {
-    renderRoute(<StrategyExecutionListContent initialStrategies={strategyExecutionFixtures} />);
+    renderRoute(<StrategyExecutionListHarness />);
     expect(screen.getByRole('button', { name: '성과 동기화 API 준비 중' })).toBeDisabled();
     expect(screen.getByText(/백엔드 API 연동 후 제공됩니다/)).toBeInTheDocument();
     expect(screen.queryByLabelText('동기화 상태')).not.toBeInTheDocument();

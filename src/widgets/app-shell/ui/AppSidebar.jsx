@@ -28,7 +28,7 @@ function AppSidebar() {
           {navigationItems.map(({ path, label, icon: NavIcon }) => (
             <SidebarMenuItem key={path}>
               <SidebarMenuButton asChild>
-                <NavLink end to={path}>
+                <NavLink to={path}>
                   <Icon icon={NavIcon} size={18} />
                   <span>{label}</span>
                 </NavLink>
