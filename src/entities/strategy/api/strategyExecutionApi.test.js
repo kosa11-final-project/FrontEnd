@@ -79,8 +79,9 @@ describe('strategy execution API', () => {
     expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions', params, signal });
     expect(result).toMatchObject({ page: 2, size: 10, totalElements: 21, totalPages: 3 });
     expect(result.items[0].id).toBe(721);
-    expect(result.items[0].actions).toHaveLength(1);
+    expect(result.items[0].actions).toHaveLength(2);
     expect(result.items[0].actions[0].kpis[0].value).toBe(0);
+    expect(result.items[0].actions[1].type).toBe('PRICE_DISCOUNT');
   });
 
   it('keeps the list mapper compatible with an empty or legacy array response', () => {

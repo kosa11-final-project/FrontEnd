@@ -29,6 +29,12 @@ describe('strategy execution filter state', () => {
     });
   });
 
+  it('sends price discount as a supported backend action filter', () => {
+    expect(
+      toStrategyExecutionQueryParams({ strategyStatus: 'ALL', actionType: 'PRICE_DISCOUNT', query: '' }, 1),
+    ).toEqual({ page: 0, size: STRATEGY_EXECUTION_PAGE_SIZE, actionType: 'PRICE_DISCOUNT' });
+  });
+
   it('does not send unsupported status, action type, or empty search parameters', () => {
     expect(
       toStrategyExecutionQueryParams({ strategyStatus: 'FAILED', actionType: 'UNKNOWN', query: '   ' }, 1),
