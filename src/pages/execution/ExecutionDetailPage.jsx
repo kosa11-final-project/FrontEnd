@@ -114,18 +114,21 @@ export function StrategyExecutionDetailContent({ strategy }) {
           </div>
         </header>
       </Card>
-      <Section title="다중 액션 실행 흐름" description="번호 순서와 선행·병렬·조건부 관계를 함께 표시합니다.">
-        <div className="space-y-3">
-          {strategy.actions.map((action, index) => (
-            <StrategyActionCard key={action.id} action={action} index={index} actionNames={names} />
-          ))}
-          {!strategy.actions.length ? (
-            <EmptyPerformanceState
-              title="실행 액션이 없습니다."
-              description="최종 선택 전략에 지원 액션이 등록되면 표시됩니다."
-            />
-          ) : null}
-        </div>
+      <Section title="다중 전략 실행 흐름" description="번호 순서와 선행·병렬·조건부 관계를 함께 표시합니다.">
+        {strategy.actions.length ? (
+          <ol aria-label="실행 전략 카드 목록" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {strategy.actions.map((action, index) => (
+              <li key={action.id} className="min-w-0">
+                <StrategyActionCard action={action} index={index} actionNames={names} />
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <EmptyPerformanceState
+            title="실행 액션이 없습니다."
+            description="최종 선택 전략에 지원 액션이 등록되면 표시됩니다."
+          />
+        )}
       </Section>
       <Section
         title="판매처별 SKU 일일 판매량"

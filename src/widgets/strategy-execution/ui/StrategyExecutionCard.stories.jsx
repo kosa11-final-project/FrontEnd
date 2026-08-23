@@ -9,7 +9,7 @@ const meta = {
   decorators: [
     (Story) => (
       <MemoryRouter>
-        <div className="w-full max-w-5xl">
+        <div className="w-[min(1200px,calc(100vw-48px))]">
           <Story />
         </div>
       </MemoryRouter>
@@ -21,16 +21,22 @@ const meta = {
 export default meta;
 export const Default = {};
 export const MultipleActions = { args: { strategy: strategyExecutionFixtures[1] } };
+export const SingleAction = {
+  args: {
+    strategy: {
+      ...strategyExecutionFixtures[3],
+      actions: strategyExecutionFixtures[3].actions.slice(0, 1),
+    },
+  },
+};
 export const NoPerformanceData = { args: { strategy: strategyExecutionFixtures[2] } };
 export const Mobile = {
   parameters: { viewport: { defaultViewport: 'mobile1' } },
   decorators: [
     (Story) => (
-      <MemoryRouter>
-        <div className="w-[320px]">
-          <Story />
-        </div>
-      </MemoryRouter>
+      <div className="w-[320px]">
+        <Story />
+      </div>
     ),
   ],
 };

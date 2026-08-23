@@ -21,7 +21,13 @@ export {
 export { EmptyPerformanceState } from './ui/EmptyPerformanceState.jsx';
 export { StrategyActionCard } from './ui/StrategyActionCard.jsx';
 export { StrategyActionProgress } from './ui/StrategyActionProgress.jsx';
+export { StrategyActionStepProgress } from './ui/StrategyActionStepProgress.jsx';
 export { StrategyActionTypeBadge } from './ui/StrategyActionTypeBadge.jsx';
+export {
+  buildChannelPerformanceReport,
+  parseChannelRevenue,
+  StrategyChannelPerformanceReport,
+} from './ui/StrategyChannelPerformanceReport.jsx';
 export {
   StrategyDailySalesAreaChart,
   buildDailySalesChartData,

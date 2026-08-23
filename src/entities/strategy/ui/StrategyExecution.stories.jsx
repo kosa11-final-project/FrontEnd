@@ -28,7 +28,7 @@ export const ReadyExecutingPartialCompletedFailed = {
 };
 export const MultipleActions = {
   render: () => (
-    <div className="grid w-full max-w-4xl gap-3">
+    <div className="grid w-[min(1200px,calc(100vw-48px))] gap-4 md:grid-cols-2 xl:grid-cols-3">
       {strategyExecutionFixtures[1].actions.map((action, index) => (
         <StrategyActionCard
           key={action.id}
@@ -42,7 +42,7 @@ export const MultipleActions = {
 };
 export const SequentialAndParallelActions = {
   render: () => (
-    <div className="grid w-full max-w-4xl gap-3">
+    <div className="grid w-[min(1200px,calc(100vw-48px))] gap-4 md:grid-cols-2 xl:grid-cols-3">
       {strategyExecutionFixtures[0].actions.map((action, index) => (
         <StrategyActionCard key={action.id} action={action} index={index} />
       ))}
