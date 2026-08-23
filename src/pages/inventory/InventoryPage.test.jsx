@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mapInventoryItem, mapInventoryListResponse, mapInventorySummaryResponse } from '@/entities/inventory';
 import { mockInventorySummaryResponse, mockRawInventoryItems } from '@/entities/inventory/testing/fixtures.js';
+import { TooltipProvider } from '@/shared/ui';
 
 const inventoryApiMock = vi.hoisted(() => ({
   getInventories: vi.fn(),
@@ -22,9 +23,16 @@ const riskApiMock = vi.hoisted(() => ({
   getInventoryRisk: vi.fn(),
 }));
 
+const inventorySyncApiMock = vi.hoisted(() => ({
+  getInventorySync: vi.fn(),
+  getInventorySyncLatest: vi.fn(),
+  startInventorySync: vi.fn(),
+}));
+
 vi.mock('@/entities/inventory/api/inventoryApi.js', () => inventoryApiMock);
 vi.mock('@/entities/forecast/api/forecastApi.js', () => forecastApiMock);
 vi.mock('@/entities/risk/api/riskApi.js', () => riskApiMock);
+vi.mock('@/features/inventory-sync/api/inventorySyncApi.js', () => inventorySyncApiMock);
 
 import InventoryPage from './InventoryPage.jsx';
 
@@ -39,7 +47,9 @@ function renderWithProviders(ui, { initialEntries = ['/inventory'] } = {}) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }
@@ -47,6 +57,8 @@ function renderWithProviders(ui, { initialEntries = ['/inventory'] } = {}) {
 describe('InventoryPage Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    inventorySyncApiMock.getInventorySyncLatest.mockResolvedValue(null);
+    inventorySyncApiMock.getInventorySync.mockResolvedValue(null);
     inventoryApiMock.getInventories.mockImplementation(async (params = {}) => {
       let items = [...mockRawInventoryItems];
       const query = String(params.q || '').toLowerCase();
@@ -144,11 +156,10 @@ describe('InventoryPage Integration', () => {
   it('renders page header, summary KPI cards, filter bar and inventory table', async () => {
     renderWithProviders(<InventoryPage />);
 
-    // 실제 source 스키마가 없으므로 동기화는 요청을 보내지 않는 준비 중 상태입니다.
     expect(screen.getByText('통합 재고 관제')).toBeInTheDocument();
     expect(screen.getByText('현재 DB 기준')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '재고 동기화 준비 중' })).toBeDisabled();
-    expect(screen.getByText('원천 데이터 연결과 Flyway 반영 후 활성화됩니다.')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '재고 동기화' })).toBeEnabled();
+    expect(screen.getByText('원천 4종을 정제해 통합재고에 반영합니다.')).toBeInTheDocument();
 
     // 상단 KPI 카드 비동기 렌더링 확인
     expect(await screen.findByText(/총 현재고/)).toBeInTheDocument();
