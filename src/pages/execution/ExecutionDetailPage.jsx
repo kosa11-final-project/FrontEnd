@@ -8,6 +8,8 @@ import {
   StrategyActionCard,
   StrategyActionProgress,
   StrategyDailySalesAreaChart,
+  StrategyInventoryComparisonBarChart,
+  StrategyInventoryTransferList,
   StrategyKpiGrid,
   StrategyProductImage,
   StrategyStatusBadge,
@@ -142,36 +144,52 @@ export function StrategyExecutionDetailContent({ strategy }) {
           <EmptyPerformanceState title="전략 전체 성과가 아직 수집되지 않았습니다." />
         )}
       </Section>
+      <Section title="재고 이동 경로" description="전략 실행으로 재고가 이동한 출발·도착 거점과 수량을 표시합니다.">
+        {strategy.inventoryTransfers?.length ? (
+          <StrategyInventoryTransferList transfers={strategy.inventoryTransfers} />
+        ) : (
+          <EmptyPerformanceState
+            title="재고 이동 경로가 없습니다."
+            description="재고 이동이 실행되거나 이동 결과가 동기화되면 표시됩니다."
+          />
+        )}
+      </Section>
       <div className="grid gap-4 2xl:grid-cols-2">
-        <Section title="재고 위치별 이동 전후 결과" description="안전재고는 변경할 수 없는 읽기 전용 가드레일입니다.">
+        <Section
+          title="위치별 재고 변화"
+          description="전략 실행 전후의 위치별 재고를 비교하며, 안전재고는 읽기 전용 가드레일입니다."
+        >
           {strategy.inventoryResults.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] text-left text-[length:var(--font-size-body-sm)]">
-                <thead className="border-b border-[var(--border)] text-[color:var(--text-muted)]">
-                  <tr>
-                    <th className="p-3">재고 위치</th>
-                    <th className="p-3">이동 전</th>
-                    <th className="p-3">이동량</th>
-                    <th className="p-3">이동 후</th>
-                    <th className="p-3">가드레일</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {strategy.inventoryResults.map((row) => (
-                    <tr
-                      key={`${row.locationType ?? 'LOCATION'}-${row.locationId ?? row.location}`}
-                      className="border-b border-[var(--border)] last:border-0"
-                    >
-                      <th className="p-3 font-semibold text-[color:var(--text-heading)]">{row.location}</th>
-                      <td className="p-3">{valueOrMissing(row.before, '개')}</td>
-                      <td className="p-3">{valueOrMissing(row.moved, '개')}</td>
-                      <td className="p-3">{valueOrMissing(row.after, '개')}</td>
-                      <td className="p-3 text-[color:var(--text-muted)]">{row.guardrail}</td>
+            <>
+              <StrategyInventoryComparisonBarChart results={strategy.inventoryResults} />
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] text-left text-[length:var(--font-size-body-sm)]">
+                  <thead className="border-b border-[var(--border)] text-[color:var(--text-muted)]">
+                    <tr>
+                      <th className="p-3">재고 위치</th>
+                      <th className="p-3">이동 전</th>
+                      <th className="p-3">재고 증감</th>
+                      <th className="p-3">이동 후</th>
+                      <th className="p-3">가드레일</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {strategy.inventoryResults.map((row) => (
+                      <tr
+                        key={`${row.locationType ?? 'LOCATION'}-${row.locationId ?? row.location}`}
+                        className="border-b border-[var(--border)] last:border-0"
+                      >
+                        <th className="p-3 font-semibold text-[color:var(--text-heading)]">{row.location}</th>
+                        <td className="p-3">{valueOrMissing(row.before, '개')}</td>
+                        <td className="p-3">{valueOrMissing(row.moved, '개')}</td>
+                        <td className="p-3">{valueOrMissing(row.after, '개')}</td>
+                        <td className="p-3 text-[color:var(--text-muted)]">{row.guardrail}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <EmptyPerformanceState title="이동 결과가 아직 수집되지 않았습니다." />
           )}

@@ -39,6 +39,15 @@ const backendExecution = {
     { id: 82, type: 'PRICE_DISCOUNT', kpis: [] },
   ],
   inventoryResults: null,
+  inventoryTransfers: [
+    {
+      fromLocationId: 7,
+      fromLocationName: '광주센터',
+      toLocationId: 3,
+      toLocationName: '그리팅몰',
+      quantity: 480,
+    },
+  ],
   channelResults: [],
   salesDaily: [],
   salesPointComparison: [],
@@ -95,6 +104,15 @@ describe('strategy execution API', () => {
     expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions/721', signal });
     expect(result.progress).toBeNull();
     expect(result.inventoryResults).toEqual([]);
+    expect(result.inventoryTransfers).toEqual([
+      {
+        fromLocationId: 7,
+        fromLocationName: '광주센터',
+        toLocationId: 3,
+        toLocationName: '그리팅몰',
+        quantity: 480,
+      },
+    ]);
     expect(result.actions[0].dependsOn).toEqual([]);
     expect(result).not.toHaveProperty('sync');
     expect(result).not.toHaveProperty('warnings');
@@ -106,6 +124,7 @@ describe('strategy execution API', () => {
       id: 1,
       actions: [],
       inventoryResults: [],
+      inventoryTransfers: [],
       channelResults: [],
       salesDaily: [],
       salesPointComparison: [],

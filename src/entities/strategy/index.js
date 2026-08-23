@@ -28,6 +28,11 @@ export {
   buildDailySalesComparisonData,
 } from './ui/StrategyDailySalesAreaChart.jsx';
 export { StrategyKpiGrid } from './ui/StrategyKpiGrid.jsx';
+export {
+  buildInventoryComparisonChartData,
+  StrategyInventoryComparisonBarChart,
+} from './ui/StrategyInventoryComparisonBarChart.jsx';
+export { StrategyInventoryTransferList } from './ui/StrategyInventoryTransferList.jsx';
 export { StrategyProductImage } from './ui/StrategyProductImage.jsx';
 export { StrategyStatusBadge } from './ui/StrategyStatusBadge.jsx';
 export { StrategySyncStatus } from './ui/StrategySyncStatus.jsx';

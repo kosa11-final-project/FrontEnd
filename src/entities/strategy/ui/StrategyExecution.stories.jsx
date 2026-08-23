@@ -2,6 +2,8 @@ import { StrategyActionCard } from './StrategyActionCard.jsx';
 import { StrategyStatusBadge } from './StrategyStatusBadge.jsx';
 import { StrategySyncStatus } from './StrategySyncStatus.jsx';
 import { StrategyDailySalesAreaChart } from './StrategyDailySalesAreaChart.jsx';
+import { StrategyInventoryComparisonBarChart } from './StrategyInventoryComparisonBarChart.jsx';
+import { StrategyInventoryTransferList } from './StrategyInventoryTransferList.jsx';
 import { EmptyPerformanceState } from './EmptyPerformanceState.jsx';
 import { strategyExecutionFixtures } from '../testing/fixtures.js';
 
@@ -88,6 +90,28 @@ export const DailySalesAreaChartInteractive = {
         records={strategyExecutionFixtures[0].salesDaily}
         salesPointComparison={strategyExecutionFixtures[0].salesPointComparison}
       />
+    </div>
+  ),
+};
+export const InventoryComparisonHorizontalBars = {
+  render: () => (
+    <div className="w-full max-w-3xl rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5">
+      <StrategyInventoryComparisonBarChart results={strategyExecutionFixtures[0].inventoryResults} />
+    </div>
+  ),
+};
+export const InventoryTransferRoutes = {
+  render: () => (
+    <div className="w-[768px] max-w-[calc(100vw-2rem)] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-5">
+      <StrategyInventoryTransferList transfers={strategyExecutionFixtures[0].inventoryTransfers} />
+    </div>
+  ),
+};
+export const InventoryTransferRoutesMobile = {
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
+  render: () => (
+    <div className="w-[320px] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4">
+      <StrategyInventoryTransferList transfers={strategyExecutionFixtures[0].inventoryTransfers} />
     </div>
   ),
 };
