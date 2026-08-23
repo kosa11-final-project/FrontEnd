@@ -31,7 +31,7 @@ export function DashboardSummary({ calculatedAt, summary }) {
         </>
       ),
       icon: AlertTriangle,
-      tone: 'danger',
+      tone: 'warning',
     },
     {
       label: '부족 SKU',
@@ -45,7 +45,7 @@ export function DashboardSummary({ calculatedAt, summary }) {
       value: formatQuantity(summary.expectedDisposal),
       helper: '수요예측·LOT 소비기한 기준',
       icon: Clock,
-      tone: 'danger',
+      tone: 'warning',
     },
   ];
 
@@ -55,20 +55,20 @@ export function DashboardSummary({ calculatedAt, summary }) {
         핵심 재고 지표
       </h2>
 
-      <div className="mb-2 flex justify-end">
-        <p className="inline-flex items-center gap-1.5 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+      <div className="mb-1.5 flex justify-end">
+        <p className="inline-flex items-center gap-1.5 text-[length:var(--font-size-body-sm)] text-[color:var(--text-body)]">
           <Icon icon={Refresh} size={13} aria-hidden="true" />
           마지막 정상 동기화
           <strong className="text-[color:var(--text-heading)]">{formatDateTime(calculatedAt)}</strong>
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {metrics.map((metric) => (
           <MetricCard
             key={metric.label}
             {...metric}
-            className="p-3 shadow-[var(--shadow-soft)] [&>strong]:mt-2 [&>strong]:text-[length:var(--font-size-title)] [&>span:last-child]:mt-1"
+            className="px-4 py-2.5 shadow-[var(--shadow-soft)] 2xl:grid 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:grid-rows-[auto_auto] 2xl:items-center 2xl:gap-x-3 [&>div>span:first-child]:size-7 [&>div>span:last-child]:text-[13px] [&>div>span:last-child]:text-[color:var(--text-body)] [&>strong]:mt-1 [&>strong]:text-xl 2xl:[&>strong]:mt-0 2xl:[&>strong]:text-right [&>span:last-child]:mt-0.5 [&>span:last-child]:text-[length:var(--font-size-body-sm)] [&>span:last-child]:text-[color:var(--text-body)] 2xl:[&>span:last-child]:col-span-2"
           />
         ))}
       </div>

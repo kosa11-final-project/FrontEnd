@@ -137,15 +137,20 @@ function mapDashboardCenter(location, index) {
 const formatQuantity = (value) => new Intl.NumberFormat('ko-KR').format(value);
 
 function CameraRig() {
-  const desiredPosition = useMemo(() => new THREE.Vector3(), []);
-  const lookTarget = useMemo(() => new THREE.Vector3(0, 0.55, -0.05), []);
+  const previousSizeRef = useRef('');
 
-  useFrame(({ camera, size }, delta) => {
-    desiredPosition.set(9.4, 9.3, 11.2);
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, desiredPosition.x, 4, delta);
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, desiredPosition.y, 4, delta);
-    camera.position.z = THREE.MathUtils.damp(camera.position.z, desiredPosition.z, 4, delta);
-    camera.zoom = THREE.MathUtils.damp(camera.zoom, Math.min(size.width / 14.5, size.height / 6.8, 66), 5, delta);
+  useFrame(({ camera, size }) => {
+    const sizeKey = `${size.width}:${size.height}`;
+    if (previousSizeRef.current === sizeKey) return;
+    previousSizeRef.current = sizeKey;
+    const tallSceneRatio = THREE.MathUtils.clamp((size.height - 420) / 260, 0, 1);
+    const lookTarget = new THREE.Vector3(
+      0,
+      THREE.MathUtils.lerp(0.55, 0.3, tallSceneRatio),
+      THREE.MathUtils.lerp(-0.05, 0.22, tallSceneRatio),
+    );
+    camera.position.set(9.4, 9.3, 11.2);
+    camera.zoom = Math.min(size.width / 14.5, size.height / 6.8, 66);
     camera.lookAt(lookTarget);
     camera.updateProjectionMatrix();
   });
@@ -755,8 +760,8 @@ function PrototypeScene({ centers, onHoverCenter, onSelectCenter, reducedMotion,
         color="#fff9e8"
         intensity={2.4}
         position={[7, 11, 9]}
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-camera-far={30}
         shadow-camera-left={-10}
         shadow-camera-right={10}
@@ -830,7 +835,7 @@ export function WarehouseScenePrototype() {
       <Canvas
         orthographic
         shadows
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         camera={{ position: [9.4, 9.3, 11.2], zoom: 62, near: 0.1, far: 60 }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         style={{ position: 'relative', zIndex: 1 }}
@@ -895,7 +900,14 @@ export function WarehouseScenePrototype() {
   );
 }
 
-export function WarehouseCampusScene({ activeLocationId, locations, onActivate, onHoverChange, reducedMotion }) {
+export function WarehouseCampusScene({
+  activeLocationId,
+  locations,
+  onActivate,
+  onHoverChange,
+  reducedMotion,
+  renderActive = true,
+}) {
   const sceneCenters = useMemo(() => locations.map(mapDashboardCenter), [locations]);
   const selectedCenterId = sceneCenters.some((center) => center.id === activeLocationId)
     ? activeLocationId
@@ -906,7 +918,8 @@ export function WarehouseCampusScene({ activeLocationId, locations, onActivate, 
       <Canvas
         orthographic
         shadows
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
+        frameloop={renderActive ? 'always' : 'never'}
         camera={{ position: [9.4, 9.3, 11.2], zoom: 62, near: 0.1, far: 60 }}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         style={{ position: 'relative', zIndex: 1 }}

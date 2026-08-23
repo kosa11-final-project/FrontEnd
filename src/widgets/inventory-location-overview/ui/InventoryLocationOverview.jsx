@@ -3,12 +3,23 @@ import { Building, Database, Store } from 'reicon-react';
 import { cn } from '@/shared/lib/cn';
 import { formatQuantity } from '@/shared/lib/format';
 import { Badge, Card, CardDescription, CardHeader, CardTitle, Icon, StateView } from '@/shared/ui';
+import { getInventoryLocationTone } from '../model/inventoryLocationTone.js';
 
 const InventoryLocationScene = lazy(() =>
   import('./InventoryLocationScene.jsx').then((module) => ({ default: module.InventoryLocationScene })),
 );
 
 const viewMeta = Object.freeze({
+  stores: {
+    label: '오프라인 판매처 할당',
+    tabLabel: '오프라인',
+    shortLabel: '오프라인 판매처',
+    countUnit: '판매처',
+    icon: Building,
+    description: '전국 오프라인 판매처에 할당된 재고 분포',
+    totalLabel: '오프라인 판매처 재고 합계',
+    sceneLabel: '전국 판매처 관제',
+  },
   centers: {
     label: '판매처 미할당',
     tabLabel: '미할당',
@@ -25,19 +36,9 @@ const viewMeta = Object.freeze({
     shortLabel: '온라인 판매처',
     countUnit: '판매처',
     icon: Store,
-    description: '물류센터에서 온라인 판매처로 할당된 재고 흐름',
+    description: '그리팅몰과 모두의맛집에 연결된 온라인 재고 흐름',
     totalLabel: '온라인 판매처 재고 합계',
-    sceneLabel: '온라인 배분 네트워크',
-  },
-  stores: {
-    label: '오프라인 판매처 할당',
-    tabLabel: '오프라인',
-    shortLabel: '오프라인 판매처',
-    countUnit: '판매처',
-    icon: Building,
-    description: '전국 오프라인 판매처에 할당된 재고 분포',
-    totalLabel: '오프라인 판매처 재고 합계',
-    sceneLabel: '전국 판매처 관제',
+    sceneLabel: '온라인 재고 연결',
   },
 });
 
@@ -47,16 +48,6 @@ const detailToneClasses = Object.freeze({
   warning: 'text-[color:var(--warning)]',
   danger: 'text-[color:var(--danger)]',
 });
-
-function resolveLocationTone(location) {
-  if (location.riskSkuCount >= 5 || location.nearExpiryStock >= 50 || location.expectedDisposal >= 40) {
-    return 'danger';
-  }
-  if (location.riskSkuCount >= 3 || location.nearExpiryStock >= 30 || location.expectedDisposal >= 25) {
-    return 'warning';
-  }
-  return 'good';
-}
 
 function getLocationDetailItems(location, viewMode) {
   return [
@@ -77,16 +68,17 @@ function LocationMetrics({ className, compact = false, layout = 'default', locat
         <div
           key={item.label}
           className={cn(
-            'flex items-center justify-between gap-2 rounded-[var(--radius-control)] bg-[var(--surface-subtle)]',
-            compact ? 'min-h-8 px-2 py-1.5' : 'min-h-10 px-2.5 py-2',
+            'flex rounded-[var(--radius-control)] bg-[var(--surface-subtle)]',
+            layout === 'dock' ? 'flex-col items-start justify-center gap-0.5' : 'items-center justify-between gap-2',
+            compact ? 'min-h-10 px-2.5 py-2' : 'min-h-11 px-3 py-2.5',
           )}
         >
-          <dt className="text-[length:var(--font-size-tiny)] font-[var(--font-weight-medium)] text-[color:var(--text-muted)]">
+          <dt className="whitespace-nowrap text-[length:var(--font-size-meta)] font-[var(--font-weight-medium)] text-[color:var(--text-body)]">
             {item.label}
           </dt>
           <dd
             className={cn(
-              'tabular-nums text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)]',
+              'whitespace-nowrap tabular-nums text-[length:var(--font-size-body)] font-[var(--font-weight-bold)]',
               detailToneClasses[item.tone],
             )}
           >
@@ -106,7 +98,7 @@ function ViewModeButton({ active, count, disabled = false, icon, label, onClick 
       aria-selected={active}
       disabled={disabled}
       className={cn(
-        'inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] transition-colors',
+        'inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] px-3 text-[13px] font-[var(--font-weight-bold)] transition-colors',
         active
           ? 'bg-[var(--primary-strong)] text-[color:var(--text-inverse)] shadow-[var(--shadow-soft)]'
           : 'text-[color:var(--text-body)] hover:bg-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent',
@@ -117,7 +109,7 @@ function ViewModeButton({ active, count, disabled = false, icon, label, onClick 
       {label}
       <span
         className={cn(
-          'rounded-full px-1.5 py-0.5 text-[length:var(--font-size-tiny)]',
+          'rounded-full px-1.5 py-0.5 text-[11px]',
           active ? 'bg-white/18 text-white' : 'bg-[var(--surface)] text-[color:var(--text-muted)]',
         )}
       >
@@ -144,7 +136,7 @@ function MobileLocationList({ activeLocationId, locations, onActivate, viewMode 
       <ul className="max-h-[460px] divide-y divide-[var(--border)] overflow-y-auto">
         {locations.map((location) => {
           const selected = location.id === activeLocationId;
-          const tone = resolveLocationTone(location);
+          const tone = getInventoryLocationTone(location, viewMode);
           const statusLabel = tone === 'danger' ? '위험' : tone === 'warning' ? '주의' : '정상';
 
           return (
@@ -193,28 +185,53 @@ function MobileLocationList({ activeLocationId, locations, onActivate, viewMode 
   );
 }
 
-function SceneDock({ location, meta, totalAvailableStock, totalNearExpiryStock, viewMode }) {
-  const tone = resolveLocationTone(location);
+function SceneTotalSummary({ meta, totalAvailableStock, totalNearExpiryStock }) {
+  return (
+    <aside
+      aria-label={meta.totalLabel}
+      className="pointer-events-none absolute right-3 top-3 z-[2000] hidden min-w-[292px] grid-cols-2 items-stretch overflow-hidden rounded-[var(--radius-panel)] border border-white/85 bg-white/95 shadow-[0_12px_28px_rgba(21,70,53,0.13)] backdrop-blur-md md:grid"
+    >
+      <div className="px-3 py-2.5">
+        <span className="block text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">전체 판매 가능</span>
+        <strong className="mt-0.5 block whitespace-nowrap tabular-nums text-[length:var(--font-size-body)] text-[color:var(--good)]">
+          {formatQuantity(totalAvailableStock)}
+        </strong>
+      </div>
+      <div className="border-l border-[var(--border)] px-3 py-2.5">
+        <span className="block text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">소비기한 임박</span>
+        <strong className="mt-0.5 block whitespace-nowrap tabular-nums text-[length:var(--font-size-body)] text-[color:var(--warning)]">
+          {formatQuantity(totalNearExpiryStock)}
+        </strong>
+      </div>
+    </aside>
+  );
+}
+
+function SceneDock({ location, meta, viewMode }) {
+  const tone = getInventoryLocationTone(location, viewMode);
   const statusLabel = tone === 'danger' ? '위험' : tone === 'warning' ? '주의' : '정상';
+  const displayName = viewMode === 'online' ? location.shortName || location.name : location.name;
   const description =
     viewMode === 'online'
       ? `${formatQuantity(location.storageWarehouseCount)} 물류센터 보관`
       : location.address || location.description || '주소 정보 없음';
 
   return (
-    <aside className="pointer-events-none absolute bottom-3 left-3 right-3 z-[2000] hidden grid-cols-[minmax(150px,0.8fr)_minmax(0,2.2fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/94 p-2.5 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid lg:grid-cols-[minmax(160px,0.8fr)_minmax(0,2.2fr)_auto]">
-      <div className="flex min-w-0 items-center gap-2.5 border-r border-[var(--border)] pr-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
-          <Icon icon={meta.icon} size={16} aria-hidden="true" />
+    <aside className="pointer-events-none absolute bottom-4 left-4 right-4 z-[2000] hidden grid-cols-[minmax(210px,0.9fr)_minmax(0,3.1fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/95 p-3 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid">
+      <div className="flex min-w-0 items-center gap-3 border-r border-[var(--border)] pr-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
+          <Icon icon={meta.icon} size={18} aria-hidden="true" />
         </span>
         <div className="min-w-0">
           <span className="flex items-center gap-2">
-            <strong className="truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
-              {location.name}
+            <strong className="truncate text-[length:var(--font-size-body)] text-[color:var(--text-heading)]">
+              {displayName}
             </strong>
-            <Badge variant={tone}>{statusLabel}</Badge>
+            <Badge variant={tone} size="lg">
+              {statusLabel}
+            </Badge>
           </span>
-          <p className="mt-0.5 truncate text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
+          <p className="mt-1 truncate text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
             {location.region} · {description}
           </p>
         </div>
@@ -224,19 +241,8 @@ function SceneDock({ location, meta, totalAvailableStock, totalNearExpiryStock, 
         layout="dock"
         location={location}
         viewMode={viewMode}
-        className="gap-1.5 [&>div]:min-w-0 [&_dt]:truncate"
+        className="gap-2 [&>div]:min-w-0"
       />
-      <div className="hidden min-w-[164px] border-l border-[var(--border)] pl-3 text-right lg:block">
-        <span className="block text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
-          {meta.totalLabel}
-        </span>
-        <strong className="mt-0.5 block whitespace-nowrap text-[length:var(--font-size-meta)] text-[color:var(--text-heading)]">
-          판매 가능 {formatQuantity(totalAvailableStock)}
-        </strong>
-        <span className="mt-0.5 block whitespace-nowrap text-[length:var(--font-size-tiny)] text-[color:var(--warning)]">
-          임박 {formatQuantity(totalNearExpiryStock)}
-        </span>
-      </div>
     </aside>
   );
 }
@@ -250,14 +256,15 @@ function supportsWebGL() {
   }
 }
 
-function getInitialViewMode(centers, onlineSalesPoints) {
+function getInitialViewMode(centers, onlineSalesPoints, stores) {
+  if (stores.length > 0) return 'stores';
   if (centers.length > 0) return 'centers';
   if (onlineSalesPoints.length > 0) return 'online';
   return 'stores';
 }
 
 export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }) {
-  const [viewMode, setViewMode] = useState(() => getInitialViewMode(centers, onlineSalesPoints));
+  const [viewMode, setViewMode] = useState(() => getInitialViewMode(centers, onlineSalesPoints, stores));
   const [hoveredLocationId, setHoveredLocationId] = useState(null);
   const [activeLocationIds, setActiveLocationIds] = useState({
     centers: centers[0]?.id,
@@ -265,7 +272,7 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
     stores: stores[0]?.id,
   });
   const [webglAvailable] = useState(supportsWebGL);
-  const locationGroups = { centers, online: onlineSalesPoints, stores };
+  const locationGroups = { stores, centers, online: onlineSalesPoints };
   const locations = locationGroups[viewMode];
   const meta = viewMeta[viewMode];
   const activeLocation = locations.find((location) => location.id === activeLocationIds[viewMode]) ?? locations[0];
@@ -290,15 +297,15 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
   };
 
   return (
-    <Card asChild padding="none" className="min-w-0 overflow-hidden shadow-[var(--shadow-card)]">
-      <section aria-labelledby="inventory-location-title">
-        <CardHeader className="flex-col gap-3 border-b border-[var(--border)] p-4 lg:flex-row lg:items-start lg:justify-between">
+    <Card asChild padding="none" className="h-full min-w-0 overflow-hidden shadow-[var(--shadow-card)]">
+      <section className="flex h-full min-h-0 flex-col" aria-labelledby="inventory-location-title">
+        <CardHeader className="shrink-0 flex-col gap-3 border-b border-[var(--border)] p-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <CardTitle id="inventory-location-title" className="flex items-center gap-2">
-              <Icon icon={Database} size={18} className="text-[color:var(--primary)]" aria-hidden="true" />
+            <CardTitle id="inventory-location-title" className="flex items-center gap-2 text-lg">
+              <Icon icon={Database} size={20} className="text-[color:var(--primary)]" aria-hidden="true" />
               재고 위치별 현황
             </CardTitle>
-            <CardDescription className="mt-1">
+            <CardDescription className="mt-1 text-sm text-[color:var(--text-body)]">
               3D 장면에서 재고 규모와 위험 위치를 비교하고 시설을 선택해 상세 수치를 확인합니다.
             </CardDescription>
           </div>
@@ -323,7 +330,7 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
         </CardHeader>
 
         {locations.length > 0 ? (
-          <div className="p-3 sm:p-4">
+          <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
             <MobileLocationList
               activeLocationId={activeLocation?.id}
               locations={locations}
@@ -331,7 +338,7 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
               viewMode={viewMode}
             />
 
-            <div className="relative hidden h-[clamp(340px,47vh,480px)] overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-strong)] bg-[var(--surface-subtle)] sm:block">
+            <div className="relative hidden h-[clamp(380px,49vh,500px)] min-h-0 overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-strong)] bg-[var(--surface-subtle)] sm:block 2xl:h-auto 2xl:flex-1">
               {webglAvailable ? (
                 <Suspense
                   fallback={
@@ -364,7 +371,7 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
               )}
 
               <div className="pointer-events-none absolute left-3 top-3 z-[2000] flex max-w-[calc(100%_-_24px)] items-center rounded-full border border-white/80 bg-white/95 px-3 py-1.5 shadow-[var(--shadow-soft)] backdrop-blur-sm">
-                <span className="text-[length:var(--font-size-tiny)] font-[var(--font-weight-bold)] tracking-[0.08em] text-[color:var(--primary-strong)]">
+                <span className="text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] tracking-[0.04em] text-[color:var(--primary-strong)]">
                   {meta.sceneLabel}
                 </span>
                 <span className="ml-2 text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
@@ -372,19 +379,26 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
                 </span>
               </div>
 
-              {displayLocation ? (
-                <SceneDock
-                  location={displayLocation}
-                  meta={meta}
-                  totalAvailableStock={totalAvailableStock}
-                  totalNearExpiryStock={totalNearExpiryStock}
-                  viewMode={viewMode}
+              <SceneTotalSummary
+                meta={meta}
+                totalAvailableStock={totalAvailableStock}
+                totalNearExpiryStock={totalNearExpiryStock}
+              />
+
+              {viewMode === 'stores' ? (
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-[1500] h-5 bg-[#edf7f4]"
+                  aria-hidden="true"
                 />
               ) : null}
 
+              {displayLocation ? <SceneDock location={displayLocation} meta={meta} viewMode={viewMode} /> : null}
+
               <p className="sr-only">
                 {meta.shortLabel} {locations.length}개의 판매 가능 재고와 위험도를 보여주는 3D 재고 관제 장면입니다.
-                시설 이름을 선택하면 해당 위치로 카메라가 이동합니다.
+                {viewMode === 'centers'
+                  ? '시설 이름을 선택하면 해당 위치로 카메라가 이동합니다.'
+                  : '판매처에 마우스를 올리거나 이름을 선택하면 하단 상세 수치가 변경됩니다.'}
               </p>
             </div>
           </div>

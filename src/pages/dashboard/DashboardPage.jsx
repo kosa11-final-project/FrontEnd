@@ -20,17 +20,17 @@ function DashboardShell({ children }) {
 export function DashboardPageContent({ dashboard }) {
   return (
     <DashboardShell>
-      <div className="space-y-4">
+      <div className="space-y-3">
         <DashboardSummary calculatedAt={dashboard.calculatedAt} summary={dashboard.summary} />
 
-        <section className="grid min-w-0 grid-cols-1 items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="grid min-w-0 grid-cols-1 items-stretch gap-4 2xl:h-[clamp(620px,calc(100dvh-300px),860px)] 2xl:min-h-0 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-rows-[minmax(0,1fr)]">
           <InventoryLocationOverview
             centers={dashboard.warehouses}
             onlineSalesPoints={dashboard.onlineSalesPoints}
             stores={dashboard.offlineStores}
           />
 
-          <div className="grid min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-1">
+          <div className="grid h-full min-h-0 min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-1 2xl:grid-rows-[repeat(2,minmax(0,1fr))]">
             <UrgentSkuList compact skus={dashboard.urgentSkusTop5} />
             <RiskSalesPointTable compact points={dashboard.riskSalesPointsTop10} />
           </div>

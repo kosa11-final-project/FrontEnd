@@ -12,7 +12,7 @@ const warehouseLayoutByCode = Object.freeze({
 
 const onlineSalesPointLayoutByCode = Object.freeze({
   GREETING: { shortName: '그리팅몰', region: '온라인', x: 34, y: 44 },
-  MODU_MATJIP: { shortName: '모두의 맛집', region: '온라인', x: 66, y: 56 },
+  MODU_MATJIP: { shortName: '모두의맛집', region: '온라인', x: 66, y: 56 },
 });
 
 const storeLayoutByCode = Object.freeze({
