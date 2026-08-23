@@ -23,30 +23,26 @@ const CHANNEL_TYPE_LABELS = Object.freeze({
   HMART: '직영점',
 });
 
-const HYUNDAI_DEPARTMENT_STORE_NAMES = new Set([
-  '더현대 서울점',
-  '압구정본점',
-  '무역센터점',
-  '천호점',
-  '신촌점',
-  '미아점',
-  '목동점',
-  '중동점',
-  '킨텍스점',
-  '디큐브시티',
-  '판교점',
-  '울산점',
-  '울산동구점',
-  '충청점',
-  '대구점',
-]);
-
-function formatChannelName(result) {
+function findSalesPoint(result, actions) {
   const salesPointName = result.salesPointName || result.channel || '판매처 미수집';
+  return actions
+    .flatMap((action) => [action.sourceSalesPoint, action.targetSalesPoint])
+    .filter(Boolean)
+    .find(
+      (salesPoint) =>
+        (result.salesPointId != null && String(salesPoint.id) === String(result.salesPointId)) ||
+        salesPoint.name === salesPointName,
+    );
+}
+
+function formatChannelName(result, actions) {
+  const salesPointName = result.salesPointName || result.channel || '판매처 미수집';
+  const salesPoint = findSalesPoint(result, actions);
   const channelName =
     result.channelName ||
     CHANNEL_TYPE_LABELS[result.channelType] ||
-    (HYUNDAI_DEPARTMENT_STORE_NAMES.has(salesPointName) ? '현대백화점' : null);
+    CHANNEL_TYPE_LABELS[salesPoint?.type] ||
+    null;
 
   if (!channelName || salesPointName.includes(channelName)) return salesPointName;
   return `${channelName} · ${salesPointName}`;
@@ -72,13 +68,13 @@ export function parseChannelRevenue(value) {
   return amount;
 }
 
-export function buildChannelPerformanceReport(results = []) {
+export function buildChannelPerformanceReport(results = [], actions = []) {
   const channels = results.map((result, index) => {
     const sales = toFiniteNumber(result.sales);
     const revenue = parseChannelRevenue(result.revenue);
     return {
       id: result.salesPointId ?? `${result.channel ?? 'CHANNEL'}-${index}`,
-      channel: formatChannelName(result),
+      channel: formatChannelName(result, actions),
       status: result.status ?? null,
       sales,
       revenue,
@@ -397,8 +393,8 @@ function SingleChannelReport({ channel }) {
   );
 }
 
-export function StrategyChannelPerformanceReport({ results = [] }) {
-  const report = buildChannelPerformanceReport(results);
+export function StrategyChannelPerformanceReport({ results = [], actions = [] }) {
+  const report = buildChannelPerformanceReport(results, actions);
   if (!report.channels.length) return null;
 
   return (

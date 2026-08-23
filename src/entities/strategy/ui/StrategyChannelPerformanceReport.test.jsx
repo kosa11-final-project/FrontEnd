@@ -62,8 +62,14 @@ describe('StrategyChannelPerformanceReport', () => {
     expect(screen.queryByText('COMPLETED')).not.toBeInTheDocument();
   });
 
-  it('표시할 채널명이 없는 현대백화점 지점에 소속 채널명을 붙인다', () => {
-    render(<StrategyChannelPerformanceReport results={[channel('울산점', 76, 373_160)]} />);
+  it('판매처 메타데이터로 소속 채널명과 지점명을 조합한다', () => {
+    const result = channel('울산점', 76, 373_160, { salesPointId: 12 });
+    const actions = [
+      {
+        targetSalesPoint: { id: 12, name: '울산점', type: 'HYUNDAI_DEPT' },
+      },
+    ];
+    render(<StrategyChannelPerformanceReport results={[result]} actions={actions} />);
 
     expect(screen.getByText('현대백화점 · 울산점')).toBeInTheDocument();
     expect(screen.getByRole('article', { name: '현대백화점 · 울산점 채널 판매 성과' })).toBeInTheDocument();
