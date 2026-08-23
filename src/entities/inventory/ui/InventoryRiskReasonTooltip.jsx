@@ -6,6 +6,31 @@ import { TooltipContent, TooltipTrigger } from '@/shared/ui';
 const SERVER_REASON_HEADER = /^\[([^/\]]+)\/([^/\]]+)\/([^\]]+)\]\s*/;
 const CALCULATION_SEPARATOR = /\s*\|\s*산식:\s*/;
 
+function formatIntegerQuantity(value) {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? String(Math.round(numericValue)) : value;
+}
+
+function translatePrimaryReason(reason) {
+  return reason.replace(/(-?\d+(?:\.\d+)?)(?=개)/g, (_, value) => formatIntegerQuantity(value));
+}
+
+/**
+ * 서버가 저장한 수식은 판정 재현에 필요한 식별자 중심의 형식이므로,
+ * 툴팁에서는 같은 값을 사용자가 바로 이해할 수 있는 한국어로 보여줍니다.
+ */
+export function translateCalculationEvidence(evidence) {
+  if (!evidence) return null;
+
+  return evidence
+    .replace(/가용재고=on_hand_qty\(([^)]+)\)/g, (_, value) => `가용 재고: ${formatIntegerQuantity(value)}개`)
+    .replace(/가용재고=([^,]+)/g, (_, value) => `가용 재고: ${formatIntegerQuantity(value)}개`)
+    .replace(/D\+7예상잔고=max\([^)]*\)=([^,]+)/g, (_, value) => `7일 후 예상 잔고: ${formatIntegerQuantity(value)}개`)
+    .replace(/D\+30부족량=max\([^)]*\)=([^,]+)/g, (_, value) => `30일 부족 수량: ${formatIntegerQuantity(value)}개`)
+    .replace(/안전재고부족=max\([^)]*\)=([^,]+)/g, (_, value) => `안전 재고 부족: ${formatIntegerQuantity(value)}개`)
+    .replace(/소비기한\/LOT 규칙을 함께 적용했습니다\./g, '소비기한과 로트 규칙도 함께 적용했습니다.');
+}
+
 /**
  * 재고 동기화가 RISK_ASSESSMENT.reason_message에 저장한 판정 문자열을
  * 사용자가 읽기 쉬운 핵심 이유와 보조 계산 근거로 분리합니다.
@@ -17,12 +42,13 @@ export function parseInventoryRiskReason(reason) {
   const header = normalizedReason.match(SERVER_REASON_HEADER);
   const explanation = header ? normalizedReason.slice(header[0].length) : normalizedReason;
   const [primaryReason, ...calculationParts] = explanation.split(CALCULATION_SEPARATOR);
-  const calculationEvidence = calculationParts.join(' | 산식: ').trim();
+  const calculationEvidence = translateCalculationEvidence(calculationParts.join(' | 산식: ').trim());
+  const normalizedPrimaryReason = primaryReason.trim() || normalizedReason;
 
   return {
     ruleVersion: header?.[2] || null,
     ruleCode: header?.[3] || null,
-    primaryReason: primaryReason.trim() || normalizedReason,
+    primaryReason: translatePrimaryReason(normalizedPrimaryReason),
     calculationEvidence: calculationEvidence || null,
   };
 }
@@ -69,7 +95,7 @@ export function InventoryRiskReasonTooltip({ reason }) {
         {explanation.calculationEvidence && (
           <div className="rounded-md bg-gray-50 px-2.5 py-2">
             <span className="block text-[10px] font-semibold text-gray-500">계산 근거</span>
-            <p className="mt-0.5 break-words font-mono text-[10px] leading-4 text-gray-600">
+            <p className="mt-0.5 break-words font-sans text-[10px] leading-4 text-gray-600">
               {explanation.calculationEvidence}
             </p>
           </div>

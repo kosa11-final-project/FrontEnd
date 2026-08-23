@@ -8,7 +8,7 @@ export const FORECAST_STATUS = {
 export const FORECAST_STATUS_LABELS = {
   AVAILABLE: '수요예측 정상 제공',
   NO_DATA: '데이터 없음',
-  STALE: '수요예측 만료됨 (Stale)',
+  STALE: '수요예측 만료',
   ERROR: '수요예측 조회 실패',
 };
 

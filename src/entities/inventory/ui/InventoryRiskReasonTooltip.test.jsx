@@ -13,7 +13,7 @@ beforeAll(() => {
 });
 
 describe('InventoryRiskReasonTooltip', () => {
-  it('separates the persisted server decision from its calculation evidence', () => {
+  it('translates persisted formula identifiers into Korean calculation evidence', () => {
     expect(
       parseInventoryRiskReason(
         '[ASSESSED/v1.1.0/SHORTAGE_D30] D+30 예상 수요가 가용재고를 초과합니다. | 산식: 가용재고=100, D+30부족량=max(0, 140-100)=40',
@@ -22,7 +22,19 @@ describe('InventoryRiskReasonTooltip', () => {
       ruleVersion: 'v1.1.0',
       ruleCode: 'SHORTAGE_D30',
       primaryReason: 'D+30 예상 수요가 가용재고를 초과합니다.',
-      calculationEvidence: '가용재고=100, D+30부족량=max(0, 140-100)=40',
+      calculationEvidence: '가용 재고: 100개, 30일 부족 수량: 40개',
+    });
+  });
+
+  it('translates the full server sync formula into Korean calculation evidence', () => {
+    expect(
+      parseInventoryRiskReason(
+        '[ASSESSED/v1.1.0/PREDICTED_SHORTAGE] D+30 수요예측 대비 재고 부족 예상 (14.456개 부족) | 산식: 가용재고=on_hand_qty(48), D+7예상잔고=max(0, 가용재고-예측D7)=32.179, D+30부족량=max(0, 예측D30-가용재고)=14.456, 안전재고부족=max(0, 안전재고-D+7예상잔고)=0, 소비기한/LOT 규칙을 함께 적용했습니다.',
+      ),
+    ).toMatchObject({
+      primaryReason: 'D+30 수요예측 대비 재고 부족 예상 (14개 부족)',
+      calculationEvidence:
+        '가용 재고: 48개, 7일 후 예상 잔고: 32개, 30일 부족 수량: 14개, 안전 재고 부족: 0개, 소비기한과 로트 규칙도 함께 적용했습니다.',
     });
   });
 
@@ -31,7 +43,7 @@ describe('InventoryRiskReasonTooltip', () => {
 
     render(
       <TooltipProvider>
-        <InventoryRiskReasonTooltip reason="[ASSESSED/v1.1.0/SHORTAGE_D30] D+30 예상 수요가 가용재고를 초과합니다. | 산식: 가용재고=100, D+30부족량=max(0, 140-100)=40" />
+        <InventoryRiskReasonTooltip reason="[ASSESSED/v1.1.0/PREDICTED_SHORTAGE] D+30 수요예측 대비 재고 부족 예상 (14.456개 부족) | 산식: 가용재고=48, D+7예상잔고=max(0, 가용재고-예측D7)=32.179, D+30부족량=max(0, 예측D30-가용재고)=14.456" />
       </TooltipProvider>,
     );
 
@@ -39,9 +51,9 @@ describe('InventoryRiskReasonTooltip', () => {
     await user.hover(trigger);
 
     expect(await screen.findByRole('tooltip')).toBeInTheDocument();
-    expect(screen.getByText('D+30 예상 수요가 가용재고를 초과합니다.')).toBeInTheDocument();
-    expect(screen.getByText('가용재고=100, D+30부족량=max(0, 140-100)=40')).toBeInTheDocument();
-    expect(screen.getByText('규칙 v1.1.0 · SHORTAGE_D30')).toBeInTheDocument();
+    expect(screen.getByText('D+30 수요예측 대비 재고 부족 예상 (14개 부족)')).toBeInTheDocument();
+    expect(screen.getByText('가용 재고: 48개, 7일 후 예상 잔고: 32개, 30일 부족 수량: 14개')).toBeInTheDocument();
+    expect(screen.getByText('규칙 v1.1.0 · PREDICTED_SHORTAGE')).toBeInTheDocument();
   });
 
   it('keeps a legacy reason readable without inventing a formula', async () => {
