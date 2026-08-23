@@ -1,5 +1,7 @@
+import { useMemo, useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { strategyExecutionFixtures } from '@/entities/strategy';
+import { filterStrategies, strategyExecutionFixtures } from '@/entities/strategy';
+import { defaultStrategyExecutionFilters, STRATEGY_EXECUTION_PAGE_SIZE } from '@/features/strategy-execution-filter';
 import { StrategyExecutionDetailContent } from './ExecutionDetailPage.jsx';
 import { StrategyExecutionListContent } from './ExecutionListPage.jsx';
 
@@ -17,10 +19,30 @@ const Frame = ({ children, path = '/execution' }) => (
     </div>
   </MemoryRouter>
 );
+
+function ListPreview({ strategies }) {
+  const [filters, setFilters] = useState(defaultStrategyExecutionFilters);
+  const filtered = useMemo(() => filterStrategies(strategies, filters), [filters, strategies]);
+  return (
+    <StrategyExecutionListContent
+      strategies={filtered}
+      filters={filters}
+      pagination={{
+        page: 1,
+        size: STRATEGY_EXECUTION_PAGE_SIZE,
+        totalElements: filtered.length,
+        totalPages: 1,
+      }}
+      onFiltersChange={setFilters}
+      onPageChange={() => {}}
+    />
+  );
+}
+
 export const Default = {
   render: () => (
     <Frame>
-      <StrategyExecutionListContent initialStrategies={strategyExecutionFixtures} />
+      <ListPreview strategies={strategyExecutionFixtures} />
     </Frame>
   ),
 };
@@ -41,7 +63,7 @@ export const DetailNoPerformanceData = {
 export const Empty = {
   render: () => (
     <Frame>
-      <StrategyExecutionListContent initialStrategies={[]} />
+      <ListPreview strategies={[]} />
     </Frame>
   ),
 };
@@ -49,7 +71,7 @@ export const Mobile = {
   parameters: { viewport: { defaultViewport: 'mobile1' } },
   render: () => (
     <Frame>
-      <StrategyExecutionListContent initialStrategies={strategyExecutionFixtures.slice(0, 1)} />
+      <ListPreview strategies={strategyExecutionFixtures.slice(0, 1)} />
     </Frame>
   ),
 };
