@@ -39,6 +39,10 @@ const normalizeInventoryTransfer = (transfer = {}) => ({
   fromLocationName: transfer.fromLocationName ?? '',
   toLocationId: transfer.toLocationId ?? null,
   toLocationName: transfer.toLocationName ?? '',
+  destinationWarehouseId: transfer.destinationWarehouseId ?? null,
+  destinationWarehouseName: transfer.destinationWarehouseName ?? null,
+  targetSalesPointId: transfer.targetSalesPointId ?? null,
+  targetSalesPointName: transfer.targetSalesPointName ?? null,
   quantity: transfer.quantity ?? null,
 });
 

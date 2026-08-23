@@ -45,6 +45,10 @@ const backendExecution = {
       fromLocationName: '광주센터',
       toLocationId: 3,
       toLocationName: '그리팅몰',
+      destinationWarehouseId: 1,
+      destinationWarehouseName: '경인1센터',
+      targetSalesPointId: 3,
+      targetSalesPointName: '그리팅몰',
       quantity: 480,
     },
   ],
@@ -111,6 +115,10 @@ describe('strategy execution API', () => {
         fromLocationName: '광주센터',
         toLocationId: 3,
         toLocationName: '그리팅몰',
+        destinationWarehouseId: 1,
+        destinationWarehouseName: '경인1센터',
+        targetSalesPointId: 3,
+        targetSalesPointName: '그리팅몰',
         quantity: 480,
       },
     ]);
@@ -118,6 +126,66 @@ describe('strategy execution API', () => {
     expect(result).not.toHaveProperty('sync');
     expect(result).not.toHaveProperty('warnings');
     expect(result).not.toHaveProperty('recommendations');
+  });
+
+  it('keeps the legacy destination fields when the expanded transfer fields are absent', () => {
+    expect(
+      mapStrategyExecutionResponse({
+        inventoryTransfers: [
+          {
+            fromLocationId: 7,
+            fromLocationName: '영남센터',
+            toLocationId: 1,
+            toLocationName: '경인1센터',
+            quantity: 161,
+          },
+        ],
+      }).inventoryTransfers[0],
+    ).toEqual({
+      fromLocationId: 7,
+      fromLocationName: '영남센터',
+      toLocationId: 1,
+      toLocationName: '경인1센터',
+      destinationWarehouseId: null,
+      destinationWarehouseName: null,
+      targetSalesPointId: null,
+      targetSalesPointName: null,
+      quantity: 161,
+    });
+  });
+
+  it('keeps a single price discount action and its requested quantity KPI', () => {
+    const result = mapStrategyExecutionResponse({
+      id: 355,
+      number: 'DEMO-STAT-0355',
+      actions: [
+        {
+          id: 3551,
+          type: 'PRICE_DISCOUNT',
+          status: 'COMPLETED',
+          target: '모두의 맛집',
+          kpis: [{ label: '요청 수량', value: 9, unit: '개', representative: true }],
+        },
+      ],
+    });
+
+    expect(result.actions).toEqual([
+      expect.objectContaining({
+        id: 3551,
+        type: 'PRICE_DISCOUNT',
+        status: 'COMPLETED',
+        kpis: [{ label: '요청 수량', value: 9, unit: '개', representative: true }],
+      }),
+    ]);
+  });
+
+  it('keeps price discount together with the existing supported action types', () => {
+    const actionTypes = ['REALLOCATION', 'RT_TRANSFER', 'PRICE_DISCOUNT', 'CHANNEL_EXPANSION', 'CHANNEL_CONCENTRATION'];
+    const result = mapStrategyExecutionResponse({
+      actions: actionTypes.map((type, index) => ({ id: index + 1, type })),
+    });
+
+    expect(result.actions.map((action) => action.type)).toEqual(actionTypes);
   });
 
   it('normalizes empty backend collections without inventing performance data', () => {

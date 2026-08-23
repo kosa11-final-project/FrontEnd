@@ -144,7 +144,10 @@ export function StrategyExecutionDetailContent({ strategy }) {
           <EmptyPerformanceState title="전략 전체 성과가 아직 수집되지 않았습니다." />
         )}
       </Section>
-      <Section title="재고 이동 경로" description="전략 실행으로 재고가 이동한 출발·도착 거점과 수량을 표시합니다.">
+      <Section
+        title="재고 이동 경로"
+        description="전략 실행의 출발·도착 센터와 이동 수량을 표시하며, 대상 판매처는 보조 정보로 제공합니다."
+      >
         {strategy.inventoryTransfers?.length ? (
           <StrategyInventoryTransferList transfers={strategy.inventoryTransfers} />
         ) : (
