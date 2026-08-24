@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Package } from 'reicon-react';
 import { formatNumber, formatQuantity } from '@/shared/lib/format';
-import { InventoryStatusBadge } from '@/entities/inventory';
+import { getSalesPointStateLabel, InventoryStatusBadge } from '@/entities/inventory';
 import { CHANNEL_BADGE_LABELS, CHANNEL_BADGE_STYLES } from './constants.js';
 
 /**
@@ -120,7 +120,7 @@ export function InventorySalesPointsSection({
                     <span className="text-xs font-bold text-gray-900 truncate">{sp.salesPointName}</span>
                     {sp.salesPointState && sp.salesPointState !== 'OWNED' && (
                       <span className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 text-[9px] font-semibold text-slate-600">
-                        {sp.salesPointState === 'CENTER_ONLY' ? '센터 보관' : '할당'}
+                        {getSalesPointStateLabel(sp.salesPointState)}
                       </span>
                     )}
                   </div>

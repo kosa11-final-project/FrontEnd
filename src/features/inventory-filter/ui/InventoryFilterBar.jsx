@@ -1,16 +1,9 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { SearchNormal, Refresh, Filter, CloseCircle } from 'reicon-react';
 import { INVENTORY_CHANNEL_TYPES } from '../model/filterState.js';
-import { CHANNEL_NAMES, RISK_GRADE_META, STORAGE_NAMES, REGION_NAMES } from '@/entities/inventory';
+import { CHANNEL_NAMES, STORAGE_NAMES, REGION_NAMES } from '@/entities/inventory';
+import { getAssessmentStatusLabel, getRiskGradeLabel } from '@/entities/risk';
 import { InventoryFilterModal } from './InventoryFilterModal.jsx';
-
-const ASSESSMENT_STATUS_LABELS = {
-  ASSESSED: '판정완료',
-  UNASSESSED: '미판정',
-  REASSESSING: '재판정중',
-  STALE: '만료',
-  FAILED: '실패',
-};
 
 export function InventoryFilterBar({
   filters,
@@ -379,12 +372,12 @@ export function InventoryFilterBar({
               className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-900"
             >
               <span className="text-amber-700 font-bold">위험:</span>
-              <span>{RISK_GRADE_META[grade]?.label || grade}</span>
+              <span>{getRiskGradeLabel(grade)}</span>
               <button
                 type="button"
                 onClick={() => onFilterChange({ riskGrade: selectedRiskGrades.filter((g) => g !== grade) })}
                 className="text-amber-600 hover:text-amber-900"
-                aria-label={`${grade} 필터 해제`}
+                aria-label={`${getRiskGradeLabel(grade)} 필터 해제`}
               >
                 <CloseCircle size={13} />
               </button>
@@ -398,7 +391,7 @@ export function InventoryFilterBar({
               className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 font-medium text-purple-900"
             >
               <span className="text-purple-700 font-bold">판정:</span>
-              <span>{ASSESSMENT_STATUS_LABELS[status] || status}</span>
+              <span>{getAssessmentStatusLabel(status)}</span>
               <button
                 type="button"
                 onClick={() =>
@@ -407,7 +400,7 @@ export function InventoryFilterBar({
                   })
                 }
                 className="text-purple-600 hover:text-purple-900"
-                aria-label={`${status} 판정 필터 해제`}
+                aria-label={`${getAssessmentStatusLabel(status)} 판정 필터 해제`}
               >
                 <CloseCircle size={13} />
               </button>
