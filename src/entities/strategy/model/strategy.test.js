@@ -18,9 +18,9 @@ describe('AI 전략 생성 상태 모델', () => {
   });
 
   it('생성중인 현재 단계와 이전·다음 단계를 구분한다', () => {
-    expect(getStrategyGenerationProgress('GENERATING', 'AI_STRATEGY_GENERATING')).toEqual([
+    expect(getStrategyGenerationProgress('GENERATING', 'STRATEGY_GENERATING')).toEqual([
       { stage: 'FORECASTING', state: 'complete' },
-      { stage: 'AI_STRATEGY_GENERATING', state: 'current' },
+      { stage: 'STRATEGY_GENERATING', state: 'current' },
       { stage: 'COMPARISON_READY', state: 'upcoming' },
     ]);
   });

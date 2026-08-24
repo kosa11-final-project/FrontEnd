@@ -1,6 +1,7 @@
 export * from './model/strategy.js';
 export * from './model/strategyRequest.js';
-export { createAiStrategyCase } from './api/strategyApi.js';
+export { createAiStrategyCase, getAiStrategyCases, serializeAiStrategyListParams } from './api/strategyApi.js';
+export { aiStrategyKeys, aiStrategyListQueryOptions } from './api/strategyQueries.js';
 export { StrategyGenerationProgress } from './ui/StrategyGenerationProgress.jsx';
 export { StrategyGenerationStatus } from './ui/StrategyGenerationStatus.jsx';
 export {
