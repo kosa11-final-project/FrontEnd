@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Calendar, CloseCircle, DocumentText, InfoCircle, Layers, Store } from 'reicon-react';
 import { inventoryLotsQueryOptions } from '@/entities/inventory';
 import {
   STRATEGY_REQUEST_TYPES,
   StrategyProductImage,
+  buildStrategyRequestPayload,
+  createAiStrategyCase,
   createStrategyRequestDraft,
   hasStrategyRequestPreference,
   validateStrategyRequestDraft,
@@ -261,7 +263,7 @@ function CandidateSalesPointSelector({ points, sourceCode, values, disabled, onC
   );
 }
 
-function RequestSummary({ item, draft, productCount, completedCount, onSubmit }) {
+function RequestSummary({ item, draft, productCount, completedCount, isSubmitting, onSubmit }) {
   const selectedTypeLabels = draft.strategyTypes.map(
     (type) => STRATEGY_REQUEST_TYPES.find((option) => option.value === type)?.label ?? type,
   );
@@ -319,8 +321,9 @@ function RequestSummary({ item, draft, productCount, completedCount, onSubmit })
           </div>
         </dl>
         <div className="border-t border-[var(--border)] bg-[var(--surface-subtle)] p-4">
-          <Button type="button" size="lg" className="w-full" onClick={onSubmit}>
-            AI 전략 생성 요청 <Icon icon={ArrowRight} size={17} aria-hidden="true" />
+          <Button type="button" size="lg" className="w-full" disabled={isSubmitting} onClick={onSubmit}>
+            {isSubmitting ? '요청 전송 중...' : 'AI 전략 생성 요청'}
+            {!isSubmitting ? <Icon icon={ArrowRight} size={17} aria-hidden="true" /> : null}
           </Button>
         </div>
       </Card>
@@ -328,7 +331,7 @@ function RequestSummary({ item, draft, productCount, completedCount, onSubmit })
   );
 }
 
-function StrategyRequestModalContent({ selectedItems, onClose }) {
+function StrategyRequestModalContent({ selectedItems, onClose, onCreated, createCase }) {
   const closeButtonRef = useRef(null);
   const [activeSkuCode, setActiveSkuCode] = useState(() => selectedItems[0]?.skuCode ?? '');
   const [drafts, setDrafts] = useState(() =>
@@ -336,6 +339,10 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
   );
   const [errorsBySku, setErrorsBySku] = useState({});
   const today = getSeoulToday();
+  const creationMutation = useMutation({
+    mutationFn: (payloads) => Promise.all(payloads.map((payload) => createCase(payload))),
+    onSuccess: (createdCases) => onCreated?.(createdCases),
+  });
 
   useEffect(() => {
     const previouslyFocusedElement = document.activeElement;
@@ -365,6 +372,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
   });
 
   const updateDraft = (changes) => {
+    creationMutation.reset();
     setDrafts((current) => ({
       ...current,
       [activeItem.skuCode]: { ...current[activeItem.skuCode], ...changes },
@@ -427,6 +435,8 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
       setActiveSkuCode(firstInvalidSku);
       return;
     }
+
+    creationMutation.mutate(selectedItems.map((item) => buildStrategyRequestPayload(drafts[item.skuCode])));
   };
 
   return createPortal(
@@ -472,6 +482,12 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
             있습니다.
           </Alert>
 
+          {creationMutation.isError ? (
+            <Alert variant="danger" title="AI 전략 생성 요청을 전송하지 못했습니다." className="mt-4" role="alert">
+              {creationMutation.error?.message || '잠시 후 다시 시도해 주세요.'}
+            </Alert>
+          ) : null}
+
           <section className="mt-5" aria-label="전략 생성 대상 상품 선택">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {selectedItems.map((item, index) => (
@@ -481,7 +497,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                   index={index}
                   active={item.skuCode === activeItem.skuCode}
                   ready={hasStrategyRequestPreference(drafts[item.skuCode])}
-                  needsAttention={Boolean(errorsBySku[item.skuCode]?.requestPreference)}
+                  needsAttention={Boolean(Object.keys(errorsBySku[item.skuCode] ?? {}).length)}
                   onClick={() => setActiveSkuCode(item.skuCode)}
                 />
               ))}
@@ -491,6 +507,18 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
           <div className="mt-4 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="min-w-0 space-y-5">
               <TargetProductSummary item={activeItem} />
+
+              {errors.skuId || errors.sourceSalesPointId || errors.candidateSalesPointIds ? (
+                <Alert variant="danger" title="요청에 필요한 식별자를 확인해 주세요." role="alert">
+                  <ul className="list-disc space-y-1 pl-4">
+                    {[errors.skuId, errors.sourceSalesPointId, errors.candidateSalesPointIds]
+                      .filter(Boolean)
+                      .map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                  </ul>
+                </Alert>
+              ) : null}
 
               <Card padding="lg">
                 <div className="mb-5 flex items-start justify-between gap-3 border-b border-[var(--border)] pb-4">
@@ -716,11 +744,6 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                   </p>
                 ) : null}
               </Card>
-
-              <Alert variant="warning" title="실제 API 연결 전에 응답 식별자 보완이 필요합니다.">
-                통합 재고 응답에 숫자형 <code>skuId</code>와 <code>salesPointId</code>가 추가되어야 문서의 생성
-                Request를 완성할 수 있습니다.
-              </Alert>
             </div>
 
             <RequestSummary
@@ -728,6 +751,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
               draft={draft}
               productCount={selectedItems.length}
               completedCount={completedCount}
+              isSubmitting={creationMutation.isPending}
               onSubmit={handleSubmit}
             />
           </div>
@@ -738,7 +762,14 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
   );
 }
 
-export function StrategyRequestModal({ selectedItems = [], onClose }) {
+export function StrategyRequestModal({ selectedItems = [], onClose, onCreated, createCase = createAiStrategyCase }) {
   if (!selectedItems.length) return null;
-  return <StrategyRequestModalContent selectedItems={selectedItems} onClose={onClose} />;
+  return (
+    <StrategyRequestModalContent
+      selectedItems={selectedItems}
+      onClose={onClose}
+      onCreated={onCreated}
+      createCase={createCase}
+    />
+  );
 }

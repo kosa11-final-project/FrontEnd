@@ -71,6 +71,18 @@ export function validateStrategyRequestDraft(draft, today) {
   const startDate = draft?.preferredStartDate ?? '';
   const endDate = draft?.preferredEndDate ?? '';
 
+  if (!Number.isInteger(draft?.skuId) || draft.skuId <= 0) {
+    errors.skuId = '상품 식별자를 확인할 수 없습니다. 재고 목록을 새로고침한 뒤 다시 선택해 주세요.';
+  }
+
+  if (draft?.sourceSalesPointCode && (!Number.isInteger(draft.sourceSalesPointId) || draft.sourceSalesPointId <= 0)) {
+    errors.sourceSalesPointId = '선택한 출발 판매처의 식별자를 확인할 수 없습니다.';
+  }
+
+  if ((draft?.candidateSalesPointCodes?.length ?? 0) !== (draft?.candidateSalesPointIds?.length ?? 0)) {
+    errors.candidateSalesPointIds = '선택한 후보 판매처 중 식별자를 확인할 수 없는 판매처가 있습니다.';
+  }
+
   if (!hasStrategyRequestPreference(draft)) {
     errors.requestPreference = '조건을 하나 이상 입력하거나 조건 전체를 AI에게 추천받기를 선택해 주세요.';
   }

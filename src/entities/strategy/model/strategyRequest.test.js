@@ -27,6 +27,24 @@ describe('AI 전략 생성 요청 모델', () => {
     });
   });
 
+  it('API 요청에 필요한 숫자형 식별자 누락을 검증한다', () => {
+    const errors = validateStrategyRequestDraft(
+      {
+        ...createStrategyRequestDraft({ skuCode: 'SKU-001' }),
+        sourceSalesPointCode: 'STORE-1',
+        candidateSalesPointCodes: ['STORE-2'],
+        recommendAllConditions: true,
+      },
+      '2026-08-24',
+    );
+
+    expect(errors).toMatchObject({
+      skuId: expect.any(String),
+      sourceSalesPointId: expect.any(String),
+      candidateSalesPointIds: expect.any(String),
+    });
+  });
+
   it('상품별로 직접 조건 하나 또는 전체 AI 추천 선택을 요구한다', () => {
     const emptyDraft = createStrategyRequestDraft({ skuId: 1001 });
 
@@ -42,7 +60,7 @@ describe('AI 전략 생성 요청 모델', () => {
     expect(
       validateStrategyRequestDraft(
         {
-          ...createStrategyRequestDraft(),
+          ...createStrategyRequestDraft({ skuId: 1001 }),
           caseName: 'a'.repeat(201),
           preferredStartDate: '2026-08-22',
           preferredEndDate: '2027-01-01',
@@ -57,7 +75,7 @@ describe('AI 전략 생성 요청 모델', () => {
     expect(
       validateStrategyRequestDraft(
         {
-          ...createStrategyRequestDraft(),
+          ...createStrategyRequestDraft({ skuId: 1001 }),
           preferredStartDate: '2026-08-23',
           preferredEndDate: '2026-11-20',
         },

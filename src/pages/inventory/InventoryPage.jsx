@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   inventoryFilterOptionsQueryOptions,
@@ -21,6 +21,7 @@ import { InventoryDetailDrawer } from '@/widgets/inventory-detail-drawer';
 import { StrategyRequestModal } from '@/widgets/strategy-request-modal';
 
 export default function InventoryPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedSkuItems, setSelectedSkuItems] = useState([]);
   const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
@@ -189,6 +190,12 @@ export default function InventoryPage() {
     setIsStrategyModalOpen(true);
   }, [selectedSkuItems.length]);
 
+  const handleStrategyCreated = useCallback(() => {
+    setIsStrategyModalOpen(false);
+    setSelectedSkuItems([]);
+    navigate('/ai-strategy');
+  }, [navigate]);
+
   return (
     <div className="flex flex-col gap-6">
       {/* 상단: 프리미엄 대시보드 헤더 */}
@@ -276,7 +283,11 @@ export default function InventoryPage() {
       />
 
       {isStrategyModalOpen ? (
-        <StrategyRequestModal selectedItems={selectedSkuItems} onClose={() => setIsStrategyModalOpen(false)} />
+        <StrategyRequestModal
+          selectedItems={selectedSkuItems}
+          onClose={() => setIsStrategyModalOpen(false)}
+          onCreated={handleStrategyCreated}
+        />
       ) : null}
 
       {/* 4. 우측 상세 관제 드로어 */}

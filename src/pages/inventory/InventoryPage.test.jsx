@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mapInventoryItem, mapInventoryListResponse, mapInventorySummaryResponse } from '@/entities/inventory';
@@ -29,10 +29,15 @@ const inventorySyncApiMock = vi.hoisted(() => ({
   startInventorySync: vi.fn(),
 }));
 
+const strategyApiMock = vi.hoisted(() => ({
+  createAiStrategyCase: vi.fn(),
+}));
+
 vi.mock('@/entities/inventory/api/inventoryApi.js', () => inventoryApiMock);
 vi.mock('@/entities/forecast/api/forecastApi.js', () => forecastApiMock);
 vi.mock('@/entities/risk/api/riskApi.js', () => riskApiMock);
 vi.mock('@/features/inventory-sync/api/inventorySyncApi.js', () => inventorySyncApiMock);
+vi.mock('@/entities/strategy/api/strategyApi.js', () => strategyApiMock);
 
 import InventoryPage from './InventoryPage.jsx';
 
@@ -59,6 +64,13 @@ describe('InventoryPage Integration', () => {
     vi.clearAllMocks();
     inventorySyncApiMock.getInventorySyncLatest.mockResolvedValue(null);
     inventorySyncApiMock.getInventorySync.mockResolvedValue(null);
+    strategyApiMock.createAiStrategyCase.mockResolvedValue({
+      strategyCaseId: 123,
+      caseName: '비비고 왕교자 AI 전략',
+      caseStatus: 'GENERATING',
+      generationStage: null,
+      createdAt: '2026-08-24T10:00:00',
+    });
     inventoryApiMock.getInventories.mockImplementation(async (params = {}) => {
       let items = [...mockRawInventoryItems];
       const query = String(params.q || '').toLowerCase();
@@ -223,10 +235,34 @@ describe('InventoryPage Integration', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
     expect(screen.getByText('요청 조건 입력 1/1')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
-    expect(screen.queryByText(/목업 요청 구성이 완료되었습니다/)).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성 팝업 닫기' }));
+    await waitFor(() =>
+      expect(strategyApiMock.createAiStrategyCase).toHaveBeenCalledWith({
+        caseName: null,
+        skuId: 1001,
+        sourceSalesPointId: null,
+        lotIds: null,
+        candidateSalesPointIds: null,
+        strategyTypes: null,
+        preferredStartDate: null,
+        preferredEndDate: null,
+      }),
+    );
     expect(screen.queryByRole('dialog', { name: 'AI 전략 생성' })).not.toBeInTheDocument();
+  });
+
+  it('shows the server error and keeps the request popup open when strategy creation fails', async () => {
+    strategyApiMock.createAiStrategyCase.mockRejectedValue(new Error('전략 생성 서버 오류'));
+    renderWithProviders(<InventoryPage />);
+
+    const productCheckboxes = await screen.findAllByRole('checkbox', { name: /1\.05kg 단품팩 선택/ });
+    fireEvent.click(productCheckboxes[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
+
+    expect(await screen.findByText('AI 전략 생성 요청을 전송하지 못했습니다.')).toBeInTheDocument();
+    expect(screen.getByText('전략 생성 서버 오류')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'AI 전략 생성' })).toBeInTheDocument();
   });
 
   it('renders filter empty state when no items match search query', async () => {

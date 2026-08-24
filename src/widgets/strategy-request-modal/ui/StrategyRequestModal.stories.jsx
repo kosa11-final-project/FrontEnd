@@ -12,6 +12,14 @@ const meta = {
   args: {
     selectedItems: mockRawInventoryItems.slice(0, 2).map(mapInventoryItem),
     onClose: fn(),
+    onCreated: fn(),
+    createCase: fn(async (payload) => ({
+      strategyCaseId: payload.skuId,
+      caseName: payload.caseName || '기본 제목',
+      caseStatus: 'GENERATING',
+      generationStage: null,
+      createdAt: '2026-08-24T10:00:00',
+    })),
   },
   decorators: [
     (Story) => (
