@@ -97,6 +97,7 @@ function mapSalesPoint(dto = {}, fallback = {}) {
   const sellingPrice = nullableNumber(valueOf(dto, 'sellingPrice', 'selling_price', fallback.sellingPrice));
   const rawPriceStatus = valueOf(dto, 'priceStatus', 'price_status', null);
   return {
+    salesPointId: nullableNumber(valueOf(dto, 'salesPointId', 'sales_point_id', fallback.salesPointId)),
     salesPointCode: valueOf(dto, 'salesPointCode', 'sales_point_code', fallback.salesPointCode || ''),
     salesPointName: valueOf(
       dto,
@@ -133,6 +134,7 @@ function isUnassignedSalesPoint(salesPoint = {}) {
  */
 export function mapInventoryItem(response = {}) {
   const dto = unwrapApiResponse(response) || {};
+  const skuId = nullableNumber(dto.skuId, dto.sku_id);
   const productCode = dto.productCode || dto.product_code || '';
   const productName = dto.productName || dto.product_name || '상품명 미지정';
   const supplierName = dto.supplierName || dto.supplier_name || '';
@@ -341,6 +343,7 @@ export function mapInventoryItem(response = {}) {
 
   return {
     rowId,
+    skuId,
     productCode,
     productName,
     supplierName,

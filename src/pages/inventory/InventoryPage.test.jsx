@@ -185,6 +185,50 @@ describe('InventoryPage Integration', () => {
     expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('opens the AI strategy request popup for selected products', async () => {
+    renderWithProviders(<InventoryPage />);
+
+    const productCheckboxes = await screen.findAllByRole('checkbox', { name: /1\.05kg 단품팩 선택/ });
+    fireEvent.click(productCheckboxes[0]);
+
+    const generateButton = screen.getByRole('button', { name: 'AI 전략 생성' });
+    expect(generateButton).toBeEnabled();
+    fireEvent.click(generateButton);
+
+    expect(screen.getByRole('dialog', { name: 'AI 전략 생성' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^전략명/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^현재·출발 판매처/)).toBeInTheDocument();
+    expect(screen.getByText('희망 전략 타입')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^시작일/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^종료일/)).toBeInTheDocument();
+    expect(screen.getByText('출발 판매처를 먼저 선택해 주세요.')).toBeInTheDocument();
+    expect(screen.getByText('요청 조건 입력 0/1')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
+    expect(
+      screen.getByText('조건을 하나 이상 입력하거나 조건 전체를 AI에게 추천받기를 선택해 주세요.'),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
+      target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
+    });
+    expect(await screen.findByRole('checkbox', { name: /LOT-GF-20260729-01 LOT 선택/ })).toBeInTheDocument();
+    expect(inventoryApiMock.getInventoryLots).toHaveBeenCalledWith(
+      'SKU_MANDU_001_105',
+      'STORE_THE_HYUNDAI_SEOUL',
+      expect.anything(),
+    );
+    expect(screen.getByText('요청 조건 입력 1/1')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
+    expect(screen.getByText('요청 조건 입력 1/1')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
+    expect(screen.getByText(/1건의 목업 요청 구성이 완료되었습니다/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성 팝업 닫기' }));
+    expect(screen.queryByRole('dialog', { name: 'AI 전략 생성' })).not.toBeInTheDocument();
+  });
+
   it('renders filter empty state when no items match search query', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: ['/inventory?q=존재하지않는상품검색어xyz'],

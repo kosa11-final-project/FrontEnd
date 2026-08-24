@@ -13,6 +13,7 @@ const meta = {
     onSortChange: fn(),
     onResetFilters: fn(),
     onRowClick: fn(),
+    onGenerateStrategy: fn(),
   },
 };
 

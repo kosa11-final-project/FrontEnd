@@ -259,6 +259,26 @@ describe('InventoryTable pagination', () => {
     expect(sku6Checkboxes[0]).toBeDisabled();
   });
 
+  it('enables AI strategy generation only after selecting a SKU', () => {
+    const onGenerateStrategy = vi.fn();
+    const { rerender } = render(
+      <InventoryTable items={[item]} totalCount={1} selectedSkuCodes={[]} onGenerateStrategy={onGenerateStrategy} />,
+    );
+
+    expect(screen.getByRole('button', { name: 'AI 전략 생성' })).toBeDisabled();
+
+    rerender(
+      <InventoryTable
+        items={[item]}
+        totalCount={1}
+        selectedSkuCodes={[item.skuCode]}
+        onGenerateStrategy={onGenerateStrategy}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성' }));
+    expect(onGenerateStrategy).toHaveBeenCalledTimes(1);
+  });
+
   it('triggers onSelectAllSkus([]) to clear selection when clicking header checkbox while items are selected', () => {
     const onSelectAllSkus = vi.fn();
     const items = Array.from({ length: 5 }, (_, idx) => ({

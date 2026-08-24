@@ -24,6 +24,7 @@ const HYUNDAI_DEPT_15_STORES = [
 
 export const mockRawInventoryItems = [
   {
+    sku_id: 1001,
     product_code: 'PROD_MANDU_001',
     product_name: '비비고 왕교자 1.05kg (옴니채널 통합기획)',
     sku_code: 'SKU_MANDU_001_105',
@@ -189,6 +190,7 @@ export const mockRawInventoryItems = [
     updated_at: '2026-08-14T09:30:00Z',
   },
   {
+    sku_id: 1002,
     product_code: 'PROD_HANWOO_002',
     product_name: '현대명품 한우 1++ 등심 구이용 500g',
     sku_code: 'SKU_HANWOO_002_500',
@@ -283,6 +285,7 @@ export const mockRawInventoryItems = [
     updated_at: '2026-08-14T11:00:00Z',
   },
   {
+    sku_id: 1003,
     product_code: 'PROD_SALAD_003',
     product_name: '프레시 바질 리코타 샐러드 220g',
     sku_code: 'SKU_SALAD_003_220',
@@ -345,6 +348,7 @@ export const mockRawInventoryItems = [
     updated_at: '2026-08-14T12:00:00Z',
   },
   {
+    sku_id: 1004,
     product_code: 'PROD_KIMCHI_004',
     product_name: '종가집 전라도 포기김치 3.2kg',
     sku_code: 'SKU_KIMCHI_004_320',
@@ -398,6 +402,7 @@ export const mockRawInventoryItems = [
     updated_at: '2026-08-14T08:15:00Z',
   },
   {
+    sku_id: 1005,
     product_code: 'PROD_SOUP_005',
     product_name: '갈비탕 밀키트 800g (2인분)',
     sku_code: 'SKU_SOUP_005_800',
