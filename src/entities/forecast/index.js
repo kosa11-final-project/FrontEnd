@@ -9,6 +9,8 @@ export {
 export { FORECAST_STATUS, FORECAST_STATUS_LABELS, FORECAST_STATUS_VARIANTS } from './model/forecast.js';
 
 export { mapDemandForecastResponse } from './model/forecastMapper.js';
+export { getSafetyStockCrossing, REPLENISHMENT_ACTIONS } from './model/forecastTimeline.js';
 export { DemandForecastChart } from './ui/DemandForecastChart.jsx';
+export { DemandForecastReplenishmentAlert } from './ui/DemandForecastReplenishmentAlert.jsx';
 export { DemandForecastStateView } from './ui/DemandForecastStateView.jsx';
 export { DemandForecastTable } from './ui/DemandForecastTable.jsx';

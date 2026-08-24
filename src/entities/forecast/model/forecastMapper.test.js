@@ -54,6 +54,12 @@ describe('forecastMapper', () => {
     expect(result.periodAverages).toBeUndefined();
     expect(result.lotMarkers).toBeUndefined();
     expect(result.chartPoints[0]).toMatchObject({ forecastQty: 0, projectedQty: 110 });
+    expect(result.chartPoints[0].offsetDays).toBe(0);
+    expect(result.safetyStockCrossing).toMatchObject({
+      status: 'CROSSING',
+      expectedLabel: 'D+12',
+      safetyStockQty: 30,
+    });
     expect(result.chartPoints.length).toBeGreaterThan(0);
   });
 
@@ -93,5 +99,6 @@ describe('forecastMapper', () => {
     expect(result.safetyStockQty).toBeNull();
     expect(result.chartPoints).toHaveLength(6);
     expect(result.chartPoints[1]).toMatchObject({ forecastQty: 10, projectedQty: 90, safetyStockQty: null });
+    expect(result.safetyStockCrossing).toBeNull();
   });
 });
