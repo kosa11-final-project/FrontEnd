@@ -31,3 +31,9 @@ export const SingleProduct = {
     selectedItems: [mapInventoryItem(mockRawInventoryItems[0])],
   },
 };
+
+export const FiveProducts = {
+  args: {
+    selectedItems: mockRawInventoryItems.slice(0, 5).map(mapInventoryItem),
+  },
+};

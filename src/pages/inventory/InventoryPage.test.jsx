@@ -223,7 +223,7 @@ describe('InventoryPage Integration', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
     expect(screen.getByText('요청 조건 입력 1/1')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
-    expect(screen.getByText(/1건의 목업 요청 구성이 완료되었습니다/)).toBeInTheDocument();
+    expect(screen.queryByText(/목업 요청 구성이 완료되었습니다/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성 팝업 닫기' }));
     expect(screen.queryByRole('dialog', { name: 'AI 전략 생성' })).not.toBeInTheDocument();
