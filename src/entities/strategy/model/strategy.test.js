@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { strategyExecutionFixtures } from '../testing/fixtures.js';
 import {
+  actionTypeMeta,
   filterStrategies,
+  formatAchievementRateText,
   formatKpiValue,
   getExecutionSummary,
   getStrategyGenerationProgress,
@@ -46,6 +48,10 @@ describe('AI 전략 생성 상태 모델', () => {
 
 const filters = { strategyStatus: 'ALL', actionType: 'ALL', query: '' };
 describe('strategy execution model', () => {
+  it('exposes price discount as a supported user-facing action type', () => {
+    expect(actionTypeMeta.PRICE_DISCOUNT).toEqual({ label: '가격 할인', shortLabel: '할인' });
+  });
+
   it('filters by supported action type and search query', () => {
     expect(filterStrategies(strategyExecutionFixtures, { ...filters, actionType: 'RT_TRANSFER' })).toHaveLength(1);
     expect(filterStrategies(strategyExecutionFixtures, { ...filters, query: '도시락' })[0].id).toBe(103);
@@ -53,6 +59,15 @@ describe('strategy execution model', () => {
   it('distinguishes zero from missing KPI data', () => {
     expect(formatKpiValue({ value: 0, unit: '개' })).toBe('0개');
     expect(formatKpiValue({ value: null })).toBe('미수집');
+  });
+  it('rounds numeric and embedded achievement rates to one decimal place', () => {
+    expect(formatKpiValue({ label: '목표 달성률', value: 103.092784, unit: '%' })).toBe('103.1%');
+    expect(formatKpiValue({ value: '실제 판매 63 / 목표 61.11 (달성률 103.092784%)' })).toBe(
+      '실제 판매 63 / 목표 61.11 (달성률 103.1%)',
+    );
+    expect(formatAchievementRateText('실제 판매 200 / 목표 180 (달성률 111.111111%)')).toBe(
+      '실제 판매 200 / 목표 180 (달성률 111.1%)',
+    );
   });
   it('summarizes known strategy and action data', () => {
     expect(getExecutionSummary(strategyExecutionFixtures)).toEqual({

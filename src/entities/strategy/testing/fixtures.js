@@ -58,6 +58,19 @@ export const strategyExecutionFixtures = [
       { location: '경기 광주센터', before: 2310, moved: -480, after: 1830, guardrail: '안전재고 320개 유지' },
       { location: '그리팅몰', before: 190, moved: 480, after: 670, guardrail: '가용재고 증가' },
     ],
+    inventoryTransfers: [
+      {
+        fromLocationId: 7,
+        fromLocationName: '경기 광주센터',
+        toLocationId: 3,
+        toLocationName: '그리팅몰',
+        destinationWarehouseId: 13,
+        destinationWarehouseName: '그리팅 물류센터',
+        targetSalesPointId: 3,
+        targetSalesPointName: '그리팅몰',
+        quantity: 480,
+      },
+    ],
     channelResults: [
       { channel: '그리팅몰', status: '집중 운영', sales: 173, revenue: '1,384만원', cannibalization: '해당 없음' },
       { channel: '더현대서울', status: '유지', sales: 96, revenue: '768만원', cannibalization: '관찰 중' },
@@ -168,6 +181,19 @@ export const strategyExecutionFixtures = [
       { location: '서부센터', before: 340, moved: -90, after: 250, guardrail: '안전재고 180개 유지' },
       { location: '동부센터', before: 34, moved: 90, after: null, guardrail: '입고 미완료' },
     ],
+    inventoryTransfers: [
+      {
+        fromLocationId: 11,
+        fromLocationName: '서부센터',
+        toLocationId: 12,
+        toLocationName: '동부센터',
+        destinationWarehouseId: 12,
+        destinationWarehouseName: '동부센터',
+        targetSalesPointId: null,
+        targetSalesPointName: null,
+        quantity: 90,
+      },
+    ],
     channelResults: [],
     salesDaily: [],
     salesPointComparison: [],
@@ -225,6 +251,7 @@ export const strategyExecutionFixtures = [
       },
     ],
     inventoryResults: [],
+    inventoryTransfers: [],
     channelResults: [],
     salesDaily: [],
     salesPointComparison: [],
@@ -281,6 +308,7 @@ export const strategyExecutionFixtures = [
     inventoryResults: [
       { location: '온라인 통합재고', before: 360, moved: -360, after: 0, guardrail: '시즌 종료 상품' },
     ],
+    inventoryTransfers: [],
     channelResults: [
       {
         channel: '현대식품관 투홈',

@@ -39,6 +39,19 @@ const backendExecution = {
     { id: 82, type: 'PRICE_DISCOUNT', kpis: [] },
   ],
   inventoryResults: null,
+  inventoryTransfers: [
+    {
+      fromLocationId: 7,
+      fromLocationName: '광주센터',
+      toLocationId: 3,
+      toLocationName: '그리팅몰',
+      destinationWarehouseId: 1,
+      destinationWarehouseName: '경인1센터',
+      targetSalesPointId: 3,
+      targetSalesPointName: '그리팅몰',
+      quantity: 480,
+    },
+  ],
   channelResults: [],
   salesDaily: [],
   salesPointComparison: [],
@@ -70,8 +83,9 @@ describe('strategy execution API', () => {
     expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions', params, signal });
     expect(result).toMatchObject({ page: 2, size: 10, totalElements: 21, totalPages: 3 });
     expect(result.items[0].id).toBe(721);
-    expect(result.items[0].actions).toHaveLength(1);
+    expect(result.items[0].actions).toHaveLength(2);
     expect(result.items[0].actions[0].kpis[0].value).toBe(0);
+    expect(result.items[0].actions[1].type).toBe('PRICE_DISCOUNT');
   });
 
   it('keeps the list mapper compatible with an empty or legacy array response', () => {
@@ -95,10 +109,83 @@ describe('strategy execution API', () => {
     expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions/721', signal });
     expect(result.progress).toBeNull();
     expect(result.inventoryResults).toEqual([]);
+    expect(result.inventoryTransfers).toEqual([
+      {
+        fromLocationId: 7,
+        fromLocationName: '광주센터',
+        toLocationId: 3,
+        toLocationName: '그리팅몰',
+        destinationWarehouseId: 1,
+        destinationWarehouseName: '경인1센터',
+        targetSalesPointId: 3,
+        targetSalesPointName: '그리팅몰',
+        quantity: 480,
+      },
+    ]);
     expect(result.actions[0].dependsOn).toEqual([]);
     expect(result).not.toHaveProperty('sync');
     expect(result).not.toHaveProperty('warnings');
     expect(result).not.toHaveProperty('recommendations');
+  });
+
+  it('keeps the legacy destination fields when the expanded transfer fields are absent', () => {
+    expect(
+      mapStrategyExecutionResponse({
+        inventoryTransfers: [
+          {
+            fromLocationId: 7,
+            fromLocationName: '영남센터',
+            toLocationId: 1,
+            toLocationName: '경인1센터',
+            quantity: 161,
+          },
+        ],
+      }).inventoryTransfers[0],
+    ).toEqual({
+      fromLocationId: 7,
+      fromLocationName: '영남센터',
+      toLocationId: 1,
+      toLocationName: '경인1센터',
+      destinationWarehouseId: null,
+      destinationWarehouseName: null,
+      targetSalesPointId: null,
+      targetSalesPointName: null,
+      quantity: 161,
+    });
+  });
+
+  it('keeps a single price discount action and its requested quantity KPI', () => {
+    const result = mapStrategyExecutionResponse({
+      id: 355,
+      number: 'DEMO-STAT-0355',
+      actions: [
+        {
+          id: 3551,
+          type: 'PRICE_DISCOUNT',
+          status: 'COMPLETED',
+          target: '모두의 맛집',
+          kpis: [{ label: '요청 수량', value: 9, unit: '개', representative: true }],
+        },
+      ],
+    });
+
+    expect(result.actions).toEqual([
+      expect.objectContaining({
+        id: 3551,
+        type: 'PRICE_DISCOUNT',
+        status: 'COMPLETED',
+        kpis: [{ label: '요청 수량', value: 9, unit: '개', representative: true }],
+      }),
+    ]);
+  });
+
+  it('keeps price discount together with the existing supported action types', () => {
+    const actionTypes = ['REALLOCATION', 'RT_TRANSFER', 'PRICE_DISCOUNT', 'CHANNEL_EXPANSION', 'CHANNEL_CONCENTRATION'];
+    const result = mapStrategyExecutionResponse({
+      actions: actionTypes.map((type, index) => ({ id: index + 1, type })),
+    });
+
+    expect(result.actions.map((action) => action.type)).toEqual(actionTypes);
   });
 
   it('normalizes empty backend collections without inventing performance data', () => {
@@ -106,6 +193,7 @@ describe('strategy execution API', () => {
       id: 1,
       actions: [],
       inventoryResults: [],
+      inventoryTransfers: [],
       channelResults: [],
       salesDaily: [],
       salesPointComparison: [],

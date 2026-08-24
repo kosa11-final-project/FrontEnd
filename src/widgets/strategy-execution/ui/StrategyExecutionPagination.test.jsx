@@ -43,4 +43,13 @@ describe('StrategyExecutionPagination', () => {
     expect(screen.getByText('1 / 1 페이지')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '전략 실행 목록 페이지 이동' })).not.toBeInTheDocument();
   });
+
+  it('does not render the pagination footer or navigation for an empty result', () => {
+    const { container } = render(
+      <StrategyExecutionPagination page={1} size={10} totalElements={0} totalPages={0} onPageChange={() => {}} />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByRole('navigation', { name: '전략 실행 목록 페이지 이동' })).not.toBeInTheDocument();
+  });
 });

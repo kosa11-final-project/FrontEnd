@@ -51,6 +51,7 @@ export const ACTION_STATUSES = Object.freeze([
 export const SUPPORTED_ACTION_TYPES = Object.freeze([
   'REALLOCATION',
   'RT_TRANSFER',
+  'PRICE_DISCOUNT',
   'CHANNEL_EXPANSION',
   'CHANNEL_CONCENTRATION',
 ]);
@@ -77,6 +78,7 @@ export const actionStatusMeta = Object.freeze({
 export const actionTypeMeta = Object.freeze({
   REALLOCATION: { label: '재고 재할당', shortLabel: '재할당' },
   RT_TRANSFER: { label: 'RT 이동', shortLabel: 'RT 이동' },
+  PRICE_DISCOUNT: { label: '가격 할인', shortLabel: '할인' },
   CHANNEL_EXPANSION: { label: '채널 확장', shortLabel: '채널 확장' },
   CHANNEL_CONCENTRATION: { label: '채널 집중', shortLabel: '채널 집중' },
 });
@@ -120,10 +122,28 @@ export function filterStrategies(strategies, filters) {
   });
 }
 
+export function formatAchievementRateText(value) {
+  if (value === null || value === undefined) return value;
+  return String(value).replace(/(달성률\s*)(-?\d+(?:\.\d+)?)(%)/g, (_, label, rate, unit) => {
+    const roundedRate = Number(rate).toLocaleString('ko-KR', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    return `${label}${roundedRate}${unit}`;
+  });
+}
+
 export function formatKpiValue(kpi) {
   if (!kpi || kpi.value === null || kpi.value === undefined) return kpi?.emptyLabel ?? '미수집';
-  if (typeof kpi.value === 'number') return `${kpi.value.toLocaleString('ko-KR')}${kpi.unit ?? ''}`;
-  return `${kpi.value}${kpi.unit ?? ''}`;
+  if (typeof kpi.value === 'number') {
+    const isAchievementRate = kpi.unit === '%' && kpi.label?.includes('달성률');
+    const value = isAchievementRate
+      ? kpi.value.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : kpi.value.toLocaleString('ko-KR');
+    return `${value}${kpi.unit ?? ''}`;
+  }
+  const value = formatAchievementRateText(kpi.value);
+  return `${value}${kpi.unit ?? ''}`;
 }
 
 export const strategyStatuses = STRATEGY_STATUSES;
