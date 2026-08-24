@@ -116,7 +116,7 @@ export function InventoryDetailDrawer({
   // 2. LOT 쿼리: 개요 탭 기준
   const lotsQuery = useQuery({
     ...inventoryLotsQueryOptions(skuCode, effectiveOverviewSalesPointCode),
-    enabled: Boolean(open && skuCode && effectiveOverviewSalesPointCode),
+    enabled: Boolean(open && activeTab === 'OVERVIEW' && skuCode && effectiveOverviewSalesPointCode),
   });
 
   // 3) 재고 개요 탭의 서버 위험 판정: 예상 소진일수와 부족 여부를 함께 표시합니다.

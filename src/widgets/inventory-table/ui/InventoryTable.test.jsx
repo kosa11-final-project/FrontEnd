@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { InventoryTable } from './InventoryTable.jsx';
 
 const item = {
@@ -31,7 +31,28 @@ const item = {
   nearestExpiryDays: null,
 };
 
+const imageItem = {
+  ...item,
+  imageUrl: 'https://example.com/test-product.png',
+};
+
 describe('InventoryTable pagination', () => {
+  it('opens a product image in a motion lightbox and closes it with Escape', async () => {
+    render(<InventoryTable items={[imageItem]} totalCount={1} page={1} size={20} totalPages={1} />);
+
+    const imageButtons = screen.getAllByRole('button', { name: '규격 이미지 크게 보기' });
+    expect(imageButtons).toHaveLength(2);
+
+    fireEvent.click(imageButtons[0]);
+
+    expect(screen.getByRole('dialog', { name: '규격 크게 보기' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '이미지 크게 보기 닫기' })).toHaveLength(2);
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '규격 크게 보기' })).not.toBeInTheDocument());
+  });
+
   it('uses server page metadata and exposes only API-supported page sizes', () => {
     const onPageChange = vi.fn();
     const onSizeChange = vi.fn();
