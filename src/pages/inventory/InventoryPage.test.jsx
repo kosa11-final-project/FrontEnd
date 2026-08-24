@@ -159,7 +159,7 @@ describe('InventoryPage Integration', () => {
     renderWithProviders(<InventoryPage />);
 
     expect(screen.getByText('통합 재고 관제')).toBeInTheDocument();
-    expect(screen.getByText('현재 DB 기준')).toBeInTheDocument();
+    expect(await screen.findByText('현재 DB 기준')).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: '재고 동기화' })).toBeEnabled();
     expect(screen.getByText('원천 4종을 정제해 통합재고에 반영합니다.')).toBeInTheDocument();
 
@@ -177,12 +177,57 @@ describe('InventoryPage Integration', () => {
     expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('does not claim current DB data when the inventory request failed', async () => {
+    inventoryApiMock.getInventories.mockRejectedValueOnce(new Error('database unavailable'));
+
+    renderWithProviders(<InventoryPage />);
+
+    expect(await screen.findByText('DB 연결 확인 필요')).toBeInTheDocument();
+    expect(screen.queryByText('현재 DB 기준')).not.toBeInTheDocument();
+  });
+
+  it('does not request LOT data while the forecast tab is active', async () => {
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: [
+        '/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=STORE_THE_HYUNDAI_SEOUL&detailTab=FORECAST',
+      ],
+    });
+
+    await vi.waitFor(() => expect(forecastApiMock.getDemandForecast).toHaveBeenCalled());
+    expect(inventoryApiMock.getInventoryLots).not.toHaveBeenCalled();
+  });
+
   it('renders filtered items according to query parameters', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: ['/inventory?q=비비고'],
     });
 
     expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('forwards the OR operator and overall risk filter to both list and summary requests', async () => {
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: ['/inventory?filterOperator=OR&storageType=FROZEN&riskGrade=DANGER'],
+    });
+
+    await vi.waitFor(() => {
+      expect(inventoryApiMock.getInventories).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterOperator: 'OR',
+          storageType: ['FROZEN'],
+          riskGrade: ['DANGER'],
+        }),
+        expect.anything(),
+      );
+      expect(inventoryApiMock.getInventorySummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterOperator: 'OR',
+          storageType: ['FROZEN'],
+          riskGrade: ['DANGER'],
+        }),
+        expect.anything(),
+      );
+    });
   });
 
   it('opens the AI strategy request popup for selected products', async () => {

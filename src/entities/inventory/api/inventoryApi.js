@@ -10,6 +10,7 @@ import {
 function extractInventoryQueryParams(filters = {}, { includePagination = true } = {}) {
   const params = {};
   if (filters.q) params.q = filters.q;
+  if (filters.filterOperator) params.filterOperator = filters.filterOperator;
   if (filters.channelType?.length) params.channelType = filters.channelType;
   if (filters.salesPointCode?.length) params.salesPointCode = filters.salesPointCode;
   if (filters.warehouseCode?.length) params.warehouseCode = filters.warehouseCode;

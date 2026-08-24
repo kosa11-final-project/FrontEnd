@@ -96,6 +96,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
   // 모달 내부 로컬 드래프트 상태 (마운트 시 초기화)
   const [draftCategoryId, setDraftCategoryId] = useState(filters.categoryId || '');
+  const [draftFilterOperator, setDraftFilterOperator] = useState(filters.filterOperator === 'OR' ? 'OR' : 'AND');
   const [draftStorageTypes, setDraftStorageTypes] = useState(
     Array.isArray(filters.storageType) ? filters.storageType : filters.storageType ? [filters.storageType] : [],
   );
@@ -260,6 +261,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
   // 로컬 전체 초기화
   const handleResetDraft = () => {
+    setDraftFilterOperator('AND');
     setDraftCategoryId('');
     setDraftStorageTypes([]);
     setDraftRiskGrades([]);
@@ -275,6 +277,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
   const handleApply = () => {
     // URL을 유일한 조회 상태 저장소로 사용하고 부모에 한 번만 방출합니다.
     onApply({
+      filterOperator: draftFilterOperator,
       categoryId: draftCategoryId || '',
       storageType: draftStorageTypes,
       riskGrade: draftRiskGrades,
@@ -324,7 +327,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
               <h2 id="filter-modal-title" className="text-base font-bold text-gray-900">
                 상세 필터 설정
               </h2>
-              <p className="text-xs text-gray-500">카테고리 계층, 보관유형, 위험등급, 거점 조건을 조합합니다.</p>
+              <p className="text-xs text-gray-500">검색어, 채널, 상세 필터 그룹을 AND 또는 OR로 조합합니다.</p>
             </div>
           </div>
           <button
@@ -346,6 +349,41 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
         {/* 모달 바디 (스크롤 영역) */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          <fieldset className="rounded-xl border border-gray-200 bg-gray-50/80 p-3.5">
+            <legend className="px-1 text-xs font-bold text-gray-800">조건 결합 방식</legend>
+            <div className="flex flex-col gap-2 sm:flex-row" role="group" aria-label="필터 조건 결합 방식">
+              {[
+                { value: 'AND', label: '모든 조건 만족 (AND)', description: '선택한 각 필터 그룹을 모두 만족' },
+                { value: 'OR', label: '하나 이상 만족 (OR)', description: '선택한 필터 그룹 중 하나 이상 만족' },
+              ].map((option) => {
+                const isSelected = draftFilterOperator === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-label={option.label}
+                    aria-pressed={isSelected}
+                    onClick={() => setDraftFilterOperator(option.value)}
+                    className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors ${
+                      isSelected
+                        ? 'border-[#27B06E] bg-[#EBF7F0] text-[#1E8251] shadow-2xs'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>
+                      <span className="block text-xs font-bold">{option.label}</span>
+                      <span className="mt-0.5 block text-[11px] font-normal opacity-80">{option.description}</span>
+                    </span>
+                    {isSelected && <TickCircle size={15} aria-hidden="true" />}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-gray-500">
+              같은 그룹에서 여러 값을 선택하면 그 값들은 항상 하나 이상 일치(OR)로 처리됩니다.
+            </p>
+          </fieldset>
+
           {/* 1. 카테고리 3단계 계층 브라우저 */}
           <div>
             <div className="flex items-center justify-between mb-2">

@@ -28,14 +28,16 @@ describe('inventoryApi', () => {
       },
     });
 
-    await expect(getInventories({ q: '만두', page: 1, size: 20 }, signal)).resolves.toMatchObject({
-      totalCount: 1,
-      items: [expect.objectContaining({ skuCode: 'SKU-1', currentQuantity: 12 })],
-    });
+    await expect(getInventories({ q: '만두', filterOperator: 'OR', page: 1, size: 20 }, signal)).resolves.toMatchObject(
+      {
+        totalCount: 1,
+        items: [expect.objectContaining({ skuCode: 'SKU-1', currentQuantity: 12 })],
+      },
+    );
     expect(requestJson).toHaveBeenCalledWith({
       path: 'v1/inventories',
       method: 'get',
-      params: { q: '만두', page: 1, size: 20 },
+      params: { q: '만두', filterOperator: 'OR', page: 1, size: 20 },
       signal,
     });
   });

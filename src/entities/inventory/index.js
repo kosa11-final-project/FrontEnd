@@ -33,17 +33,6 @@ export {
   SALES_POINT_STATE_LABELS,
   STORAGE_NAMES,
 } from './model/inventory.js';
-export {
-  dashboardInventorySummary,
-  distributionCenters,
-  offlineStoreInventories,
-  onlineSalesPointInventories,
-  rankRiskSalesPoints,
-  rankUrgentSkus,
-  riskSalesPoints,
-  salesPointInventories,
-  urgentSkus,
-} from './model/dashboard.js';
 export { getHeatmapMarkerSize } from './model/dashboardLayout.js';
 export { getRiskSalesPointInventoryUrl, getUrgentSkuInventoryUrl } from './model/dashboardLinks.js';
 export { mapDashboardResponse } from './model/dashboardMapper.js';

@@ -59,6 +59,16 @@ describe('inventoryQueries', () => {
     expect(second).toEqual(first);
   });
 
+  it('keeps the AND/OR operator in the summary request and cache key', () => {
+    const options = inventorySummaryQueryOptions({
+      filterOperator: 'OR',
+      riskGrade: ['DANGER'],
+      page: 3,
+    });
+
+    expect(options.queryKey).toEqual(['inventory', 'summary', { filterOperator: 'OR', riskGrade: ['DANGER'] }]);
+  });
+
   it('does not keep another seller detail or LOT response as placeholder data', () => {
     expect(inventoryDetailQueryOptions('SKU_01', 'STORE_01')).not.toHaveProperty('placeholderData');
     expect(inventoryLotsQueryOptions('SKU_01', 'STORE_01')).not.toHaveProperty('placeholderData');
