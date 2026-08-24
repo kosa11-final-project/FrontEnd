@@ -14,6 +14,15 @@ const focusableSelector = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
 
+const MAX_REVIEWERS = 10;
+
+function mergeDeliveryResults(previous, current) {
+  if (!previous) return current;
+  const reviewers = new Map(previous.reviewers.map((reviewer) => [reviewer.reviewerId, reviewer]));
+  current.reviewers.forEach((reviewer) => reviewers.set(reviewer.reviewerId, reviewer));
+  return { ...current, reviewers: [...reviewers.values()] };
+}
+
 function ReviewerDeliveryResult({ result, reviewersById }) {
   const sent = result.reviewers.filter((reviewer) => reviewer.deliveryStatus === 'SENT');
   const failed = result.reviewers.filter((reviewer) => reviewer.deliveryStatus !== 'SENT');
@@ -27,7 +36,11 @@ function ReviewerDeliveryResult({ result, reviewersById }) {
               const reviewer = reviewersById.get(delivery.reviewerId);
               return (
                 <li key={delivery.reviewerId}>
-                  {reviewer ? `${reviewer.reviewerName} · ${reviewer.email}` : `Reviewer #${delivery.reviewerId}`}
+                  {reviewer
+                    ? `${reviewer.reviewerName} · ${reviewer.email}`
+                    : delivery.reviewerName && delivery.email
+                      ? `${delivery.reviewerName} · ${delivery.email}`
+                      : `Reviewer #${delivery.reviewerId}`}
                 </li>
               );
             })}
@@ -39,10 +52,14 @@ function ReviewerDeliveryResult({ result, reviewersById }) {
           <ul className="mt-1 list-disc space-y-1 pl-4">
             {failed.map((delivery) => {
               const reviewer = reviewersById.get(delivery.reviewerId);
-              const reason = delivery.message ?? delivery.failureReason;
+              const reason = delivery.failureCode;
               return (
                 <li key={delivery.reviewerId}>
-                  {reviewer ? `${reviewer.reviewerName} · ${reviewer.email}` : `Reviewer #${delivery.reviewerId}`}
+                  {reviewer
+                    ? `${reviewer.reviewerName} · ${reviewer.email}`
+                    : delivery.reviewerName && delivery.email
+                      ? `${delivery.reviewerName} · ${delivery.email}`
+                      : `Reviewer #${delivery.reviewerId}`}
                   {reason ? ` — ${reason}` : ''}
                 </li>
               );
@@ -54,23 +71,24 @@ function ReviewerDeliveryResult({ result, reviewersById }) {
   );
 }
 
-export function ReviewerSelectionModal({ strategyCaseId, option, onClose, onCompleted }) {
+export function ReviewerSelectionModal({ strategyCaseId, option, initialDeliveryResult, onClose, onCompleted }) {
   const dialogRef = useRef(null);
   const closeButtonRef = useRef(null);
   const onCloseRef = useRef(onClose);
   const [query, setQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
-  const [deliveryResult, setDeliveryResult] = useState(null);
+  const [deliveryResult, setDeliveryResult] = useState(initialDeliveryResult ?? null);
   const reviewersQuery = useQuery(aiStrategyReviewerQueryOptions());
   const teamsMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (reviewerIds) =>
       sendAiStrategyTeamsRequest(strategyCaseId, {
         optionId: option.optionId,
-        reviewerIds: selectedIds,
+        reviewerIds,
       }),
     onSuccess: (result) => {
-      setDeliveryResult(result);
-      onCompleted?.(result);
+      const mergedResult = mergeDeliveryResults(deliveryResult, result);
+      setDeliveryResult(mergedResult);
+      onCompleted?.(mergedResult);
     },
   });
   const isSending = teamsMutation.isPending;
@@ -124,12 +142,20 @@ export function ReviewerSelectionModal({ strategyCaseId, option, onClose, onComp
     () => new Map((reviewersQuery.data ?? []).map((reviewer) => [reviewer.reviewerId, reviewer])),
     [reviewersQuery.data],
   );
+  const failedReviewerIds = useMemo(
+    () =>
+      deliveryResult?.reviewers
+        .filter(({ deliveryStatus }) => deliveryStatus !== 'SENT')
+        .map(({ reviewerId }) => reviewerId) ?? [],
+    [deliveryResult],
+  );
 
   const toggleReviewer = (reviewerId) => {
     teamsMutation.reset();
-    setSelectedIds((current) =>
-      current.includes(reviewerId) ? current.filter((id) => id !== reviewerId) : [...current, reviewerId],
-    );
+    setSelectedIds((current) => {
+      if (current.includes(reviewerId)) return current.filter((id) => id !== reviewerId);
+      return current.length >= MAX_REVIEWERS ? current : [...current, reviewerId];
+    });
   };
 
   return createPortal(
@@ -194,7 +220,9 @@ export function ReviewerSelectionModal({ strategyCaseId, option, onClose, onComp
 
               <div className="mt-4 flex items-center justify-between gap-3">
                 <span className="text-xs text-[color:var(--text-muted)]">같은 이름은 이메일로 구분할 수 있습니다.</span>
-                <Badge variant={selectedIds.length ? 'good' : 'neutral'}>{selectedIds.length}명 선택</Badge>
+                <Badge variant={selectedIds.length ? 'good' : 'neutral'}>
+                  {selectedIds.length}/{MAX_REVIEWERS}명 선택
+                </Badge>
               </div>
 
               {reviewersQuery.isPending ? (
@@ -219,10 +247,13 @@ export function ReviewerSelectionModal({ strategyCaseId, option, onClose, onComp
                 <ul className="mt-4 grid gap-2" aria-label="Reviewer 목록">
                   {filteredReviewers.map((reviewer) => {
                     const checked = selectedIds.includes(reviewer.reviewerId);
+                    const selectionLimitReached = !checked && selectedIds.length >= MAX_REVIEWERS;
                     return (
                       <li key={reviewer.reviewerId}>
                         <label
-                          className={`flex cursor-pointer items-start gap-3 rounded-[var(--radius-card)] border p-4 transition-colors ${
+                          className={`flex items-start gap-3 rounded-[var(--radius-card)] border p-4 transition-colors ${
+                            selectionLimitReached ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                          } ${
                             checked
                               ? 'border-[var(--primary)] bg-[var(--primary-soft)]'
                               : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--border-strong)]'
@@ -230,7 +261,7 @@ export function ReviewerSelectionModal({ strategyCaseId, option, onClose, onComp
                         >
                           <Checkbox
                             checked={checked}
-                            disabled={isSending}
+                            disabled={isSending || selectionLimitReached}
                             onChange={() => toggleReviewer(reviewer.reviewerId)}
                             aria-label={`${reviewer.reviewerName} ${reviewer.email} 선택`}
                           />
@@ -257,20 +288,22 @@ export function ReviewerSelectionModal({ strategyCaseId, option, onClose, onComp
                   {query ? '검색 조건에 맞는 Reviewer가 없습니다.' : '선택할 수 있는 Reviewer가 없습니다.'}
                 </p>
               )}
-
-              {teamsMutation.isError ? (
-                <Alert variant="danger" title="Teams 검토 요청을 전송하지 못했습니다." className="mt-4">
-                  {teamsMutation.error?.message ?? '잠시 후 다시 시도해 주세요.'}
-                </Alert>
-              ) : null}
             </>
           )}
+
+          {teamsMutation.isError ? (
+            <Alert variant="danger" title="Teams 검토 요청을 전송하지 못했습니다." className="mt-4">
+              {teamsMutation.error?.message ?? '잠시 후 다시 시도해 주세요.'}
+            </Alert>
+          ) : null}
         </div>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--card)] px-5 py-4 sm:px-6">
           <p className="text-xs text-[color:var(--text-muted)]">
             {deliveryResult
-              ? '전송 결과를 확인한 뒤 닫아 주세요.'
+              ? failedReviewerIds.length
+                ? '실패한 Reviewer만 다시 전송할 수 있습니다.'
+                : '모든 Reviewer에게 전송했습니다.'
               : 'Reviewer 이메일은 표시용이며 요청에는 reviewerId만 전송합니다.'}
           </p>
           <div className="ml-auto flex gap-2">
@@ -281,10 +314,16 @@ export function ReviewerSelectionModal({ strategyCaseId, option, onClose, onComp
               <Button
                 type="button"
                 disabled={selectedIds.length === 0 || reviewersQuery.isPending || isSending}
-                onClick={() => teamsMutation.mutate()}
+                onClick={() => teamsMutation.mutate(selectedIds)}
               >
                 <Icon icon={Send} size={17} aria-hidden="true" />
                 {isSending ? '전송 중...' : `Teams로 전송${selectedIds.length ? ` (${selectedIds.length}명)` : ''}`}
+              </Button>
+            ) : null}
+            {deliveryResult && failedReviewerIds.length > 0 && deliveryResult.caseStatus === 'GENERATED' ? (
+              <Button type="button" disabled={isSending} onClick={() => teamsMutation.mutate(failedReviewerIds)}>
+                <Icon icon={Send} size={17} aria-hidden="true" />
+                {isSending ? '재전송 중...' : `실패 대상 재시도 (${failedReviewerIds.length}명)`}
               </Button>
             ) : null}
           </div>

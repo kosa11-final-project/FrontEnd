@@ -198,7 +198,7 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
   const [deliveryResult, setDeliveryResult] = useState(null);
   const selectedOption = options.find((option) => option.optionId === selectedOptionId) ?? null;
   const readyToExecute = strategyCase.caseStatus === 'READY_TO_EXECUTE';
-  const optionIdMissing = options.some((option) => !option.optionId);
+  const selectionLocked = readyToExecute || Boolean(deliveryResult);
 
   const closeReviewerModal = useCallback(() => setReviewerModalOpen(false), []);
   const handleTeamsCompleted = useCallback(
@@ -230,11 +230,6 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
         <Alert variant="info" title={`AI가 실행 가능한 전략 ${options.length}개를 생성했습니다.`}>
           모든 대안을 비교한 뒤 최종안 하나를 선택하고 Teams 검토를 요청할 수 있습니다.
         </Alert>
-        {optionIdMissing ? (
-          <Alert variant="warning" title="최종안 선택 식별자가 준비되지 않았습니다.">
-            상세 응답의 각 전략 대안에 optionId가 포함되면 최종안 선택과 Teams 전송을 사용할 수 있습니다.
-          </Alert>
-        ) : null}
         {deliveryResult ? (
           <Alert
             variant={
@@ -266,7 +261,7 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
               onClick={() => setReviewerModalOpen(true)}
             >
               <Icon icon={Send} size={17} aria-hidden="true" />
-              {readyToExecute ? 'Teams 검토 요청 완료' : 'Teams로 전송'}
+              {readyToExecute ? 'Teams 검토 요청 완료' : deliveryResult ? 'Teams 전송 결과' : 'Teams로 전송'}
             </Button>
           </div>
         </div>
@@ -278,7 +273,7 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
               strategyCaseId={strategyCase.strategyCaseId}
               listPath={listPath}
               selected={option.optionId === selectedOptionId}
-              selectionDisabled={!option.optionId || readyToExecute}
+              selectionDisabled={!option.optionId || selectionLocked}
               onSelect={() => {
                 setDeliveryResult(null);
                 setSelectedOptionId(option.optionId);
@@ -292,6 +287,7 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
         <ReviewerSelectionModal
           strategyCaseId={strategyCase.strategyCaseId}
           option={selectedOption}
+          initialDeliveryResult={deliveryResult}
           onClose={closeReviewerModal}
           onCompleted={handleTeamsCompleted}
         />

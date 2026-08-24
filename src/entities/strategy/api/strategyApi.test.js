@@ -178,20 +178,38 @@ describe('AI strategy API', () => {
     postJson.mockResolvedValue({
       data: {
         strategyCaseId: 123,
-        selectedOptionId: 'OPTION-1',
-        caseStatus: 'READY_TO_EXECUTE',
+        selectedOptionId: 'CAND-1',
+        strategyOptionId: 55,
+        finalSelectionId: 44,
+        caseStatus: 'GENERATED',
         deliveryStatus: 'PARTIAL_FAILED',
         reviewers: [
-          { reviewerId: 101, deliveryStatus: 'SENT' },
-          { reviewerId: 102, deliveryStatus: 'FAILED', message: 'Teams 전송 실패' },
+          {
+            reviewerId: 101,
+            reviewerName: '검토자 1',
+            email: 'first@example.com',
+            deliveryStatus: 'SENT',
+            failureCode: null,
+          },
+          {
+            reviewerId: 102,
+            reviewerName: '검토자 2',
+            email: 'second@example.com',
+            deliveryStatus: 'FAILED',
+            failureCode: 'POWER_AUTOMATE_FAILED',
+          },
         ],
       },
     });
-    const payload = { optionId: 'OPTION-1', reviewerIds: [101, 102] };
+    const payload = { optionId: 'CAND-1', reviewerIds: [101, 102] };
 
     await expect(sendAiStrategyTeamsRequest(123, payload)).resolves.toMatchObject({
-      selectedOptionId: 'OPTION-1',
-      caseStatus: 'READY_TO_EXECUTE',
+      selectedOptionId: 'CAND-1',
+      caseStatus: 'GENERATED',
+      reviewers: [
+        { reviewerId: 101, deliveryStatus: 'SENT', failureCode: null },
+        { reviewerId: 102, deliveryStatus: 'FAILED', failureCode: 'POWER_AUTOMATE_FAILED' },
+      ],
     });
     expect(postJson).toHaveBeenCalledWith({
       path: 'v1/ai-strategies/123/teams-requests',
@@ -201,7 +219,7 @@ describe('AI strategy API', () => {
   });
 
   it('rejects a Teams request without a final option or reviewers', async () => {
-    await expect(sendAiStrategyTeamsRequest(123, { optionId: 'OPTION-1', reviewerIds: [] })).rejects.toThrow(
+    await expect(sendAiStrategyTeamsRequest(123, { optionId: 'CAND-1', reviewerIds: [] })).rejects.toThrow(
       '최종 전략과 Reviewer를 한 명 이상 선택해 주세요.',
     );
     expect(postJson).not.toHaveBeenCalled();

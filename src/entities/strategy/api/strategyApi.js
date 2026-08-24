@@ -101,7 +101,20 @@ export async function sendAiStrategyTeamsRequest(strategyCaseId, payload, signal
     throw new Error('Teams 검토 요청 결과를 확인할 수 없습니다.');
   }
 
-  return data;
+  const reviewers = data.reviewers.map((reviewer) => {
+    if (!Number.isInteger(reviewer?.reviewerId) || !['SENT', 'FAILED'].includes(reviewer?.deliveryStatus)) {
+      throw new Error('Teams 검토 요청 결과를 확인할 수 없습니다.');
+    }
+    return {
+      reviewerId: reviewer.reviewerId,
+      reviewerName: reviewer.reviewerName ?? '',
+      email: reviewer.email ?? '',
+      deliveryStatus: reviewer.deliveryStatus,
+      failureCode: reviewer.failureCode ?? null,
+    };
+  });
+
+  return { ...data, reviewers };
 }
 
 export async function adjustAiStrategySimulation(strategyCaseId, candidateId, payload, signal) {

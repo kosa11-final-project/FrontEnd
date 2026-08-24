@@ -64,7 +64,7 @@ function mapOption(option) {
 
   const assumptions = candidate.assumptions ?? [];
   return {
-    optionId: option.optionId ?? null,
+    optionId: candidate.candidateId,
     optionKey: candidate.candidateId,
     rank: option.rank,
     optionName: option.optionName,

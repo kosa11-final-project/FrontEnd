@@ -154,7 +154,6 @@ function toBackendDetail(strategyCase) {
       baselineSimulation: strategyCase.baselineSimulation,
       noRecommendation: null,
       options: strategyCase.options.map((option) => ({
-        optionId: `OPTION-${option.rank}`,
         rank: option.rank,
         optionName: option.optionName,
         recommendationReason: option.recommendationReason,
@@ -193,6 +192,7 @@ function toBackendDetail(strategyCase) {
 
 async function mockAiStrategyDetail(page) {
   const teamsState = new Map();
+  const failedOnce = new Set();
 
   await page.route('**/api/v1/ai-strategies/reviewers', (route) =>
     route.fulfill({
@@ -229,16 +229,25 @@ async function mockAiStrategyDetail(page) {
         .match(/ai-strategies\/(\d+)\/teams-requests$/)?.[1],
     );
     const payload = route.request().postDataJSON();
-    const reviewers = payload.reviewerIds.map((reviewerId) =>
-      reviewerId === 102
-        ? { reviewerId, deliveryStatus: 'FAILED', message: 'Teams 테스트 전송 실패' }
-        : { reviewerId, deliveryStatus: 'SENT' },
-    );
+    const reviewers = payload.reviewerIds.map((reviewerId) => {
+      const shouldFail = reviewerId === 102 && !failedOnce.has(reviewerId);
+      if (shouldFail) failedOnce.add(reviewerId);
+      return {
+        reviewerId,
+        reviewerName: '이주영',
+        email: reviewerId === 101 ? 'first@example.com' : 'second@example.com',
+        deliveryStatus: shouldFail ? 'FAILED' : 'SENT',
+        failureCode: shouldFail ? 'POWER_AUTOMATE_FAILED' : null,
+      };
+    });
+    const allSent = reviewers.every(({ deliveryStatus }) => deliveryStatus === 'SENT');
     const result = {
       strategyCaseId,
       selectedOptionId: payload.optionId,
-      caseStatus: 'READY_TO_EXECUTE',
-      deliveryStatus: reviewers.every(({ deliveryStatus }) => deliveryStatus === 'SENT') ? 'SENT' : 'PARTIAL_FAILED',
+      strategyOptionId: 55,
+      finalSelectionId: 44,
+      caseStatus: allSent ? 'READY_TO_EXECUTE' : 'GENERATED',
+      deliveryStatus: allSent ? 'SENT' : 'PARTIAL_FAILED',
       reviewers,
     };
     teamsState.set(strategyCaseId, result);
@@ -269,7 +278,6 @@ async function mockAiStrategyDetail(page) {
     const sentState = teamsState.get(Number(strategyCaseId));
     if (sentState) {
       detail.caseStatus = sentState.caseStatus;
-      detail.selectedOptionId = sentState.selectedOptionId;
     }
     return route.fulfill({
       status: 200,
@@ -491,11 +499,11 @@ test.describe('AI 전략 생성 목록', () => {
 
   test('최종안을 선택한 뒤 Reviewer를 다중 선택해 ID로 Teams 검토를 요청한다', async ({ page }) => {
     let reviewerRequested = false;
-    let teamsPayload;
+    const teamsPayloads = [];
     page.on('request', (request) => {
       const url = new URL(request.url());
       if (url.pathname === '/api/v1/ai-strategies/reviewers') reviewerRequested = true;
-      if (url.pathname.endsWith('/teams-requests')) teamsPayload = request.postDataJSON();
+      if (url.pathname.endsWith('/teams-requests')) teamsPayloads.push(request.postDataJSON());
     });
 
     await page.goto('/ai-strategy/32');
@@ -517,10 +525,28 @@ test.describe('AI 전략 생성 목록', () => {
     await page.getByLabel('이주영 second@example.com 선택').check();
     await page.getByRole('button', { name: 'Teams로 전송 (2명)' }).click();
 
-    await expect.poll(() => teamsPayload).toEqual({ optionId: 'OPTION-1', reviewerIds: [101, 102] });
+    await expect
+      .poll(() => teamsPayloads[0])
+      .toEqual({
+        optionId: 'opt-transfer-discount',
+        reviewerIds: [101, 102],
+      });
     await expect(page.getByText('1명에게 Teams 검토 요청을 전송했습니다.')).toBeVisible();
     await expect(page.getByText('1명에게 전송하지 못했습니다.')).toBeVisible();
-    await expect(page.getByText('Teams 테스트 전송 실패')).toBeVisible();
+    await expect(page.getByText('POWER_AUTOMATE_FAILED')).toBeVisible();
+    await page.getByRole('button', { name: 'Reviewer 선택 모달 닫기' }).click();
+    await expect(page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).first()).toBeDisabled();
+    await page.getByRole('button', { name: 'Teams 전송 결과' }).click();
+    await expect(page.getByText('POWER_AUTOMATE_FAILED')).toBeVisible();
+    await page.getByRole('button', { name: '실패 대상 재시도 (1명)' }).click();
+    await expect
+      .poll(() => teamsPayloads[1])
+      .toEqual({
+        optionId: 'opt-transfer-discount',
+        reviewerIds: [102],
+      });
+    await expect(page.getByText('2명에게 Teams 검토 요청을 전송했습니다.')).toBeVisible();
+    await expect(page.getByText('Teams 검토 요청 완료')).toBeVisible();
   });
 
   test('전략 요약에서 기존 데모형 시뮬레이션으로 이동하고 대안을 전환한다', async ({ page }) => {
@@ -574,8 +600,14 @@ test.describe('AI 전략 생성 목록', () => {
     await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
 
     await expect(page.getByRole('radio')).toHaveCount(0);
+    const teamsButton = page.getByRole('button', { name: 'Teams 검토 요청' });
+    await expect(teamsButton).toBeDisabled();
     await page.getByRole('button', { name: /이 전략을 최종안으로 선택/ }).click();
     await expect(page.getByText('1안을 최종안으로 표시 중입니다.')).toBeVisible();
+    await expect(teamsButton).toBeEnabled();
+    await teamsButton.click();
+    await expect(page.getByRole('dialog', { name: 'Reviewer 선택' })).toBeVisible();
+    await page.getByRole('button', { name: 'Reviewer 선택 모달 닫기' }).click();
     await page.getByRole('button', { name: /백화점·그리팅몰 판매채널 확대/ }).click();
 
     await expect(page).toHaveURL(/option=opt-channel-expansion/);
