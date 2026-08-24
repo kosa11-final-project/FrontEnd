@@ -255,6 +255,34 @@ export function InventoryFilterBar({
             })}
           </div>
 
+          {/* 검색·채널·상세 필터 그룹의 결합 방식 */}
+          <div
+            className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1"
+            role="group"
+            aria-label="필터 조건 결합 방식"
+          >
+            {['AND', 'OR'].map((operator) => {
+              const isSelected = (filters.filterOperator || 'AND') === operator;
+              return (
+                <button
+                  key={operator}
+                  type="button"
+                  aria-label={`${operator} 조건으로 필터링`}
+                  aria-pressed={isSelected}
+                  title={operator === 'AND' ? '모든 필터 그룹 만족' : '필터 그룹 중 하나 이상 만족'}
+                  onClick={() => onFilterChange({ filterOperator: operator })}
+                  className={`rounded-md px-2.5 py-1.5 text-[11px] font-black transition-colors ${
+                    isSelected
+                      ? 'bg-white text-[#1E8251] shadow-xs ring-1 ring-[#27B06E]/30'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  {operator}
+                </button>
+              );
+            })}
+          </div>
+
           {/* 상세 필터 팝오버 열기 버튼 */}
           <button
             type="button"

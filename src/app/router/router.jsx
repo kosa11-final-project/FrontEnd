@@ -7,13 +7,13 @@ import AiStrategyPage from '@/pages/ai-strategy/AiStrategyPage.jsx';
 import DashboardPage from '@/pages/dashboard/DashboardPage.jsx';
 import ExecutionListPage from '@/pages/execution/ExecutionListPage.jsx';
 import ExecutionDetailPage from '@/pages/execution/ExecutionDetailPage.jsx';
-import InventoryPage from '@/pages/inventory/InventoryPage.jsx';
 import LoginPage from '@/pages/login/LoginPage.jsx';
 import StatisticsPage from '@/pages/statistics/StatisticsPage.jsx';
 import { StateView } from '@/shared/ui';
 
 const HeendiLoaderPage = lazy(() => import('@/pages/heendi-loader/HeendiLoaderPage.jsx'));
 const AiStrategySimulationPage = lazy(() => import('@/pages/ai-strategy/AiStrategySimulationPage.jsx'));
+const InventoryPage = lazy(() => import('@/pages/inventory/InventoryPage.jsx'));
 
 function LazyRoute({ children }) {
   return <Suspense fallback={<StateView state="loading" />}>{children}</Suspense>;
@@ -53,7 +53,14 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate replace to="/dashboard" /> },
           { path: 'dashboard', element: <DashboardPage /> },
-          { path: 'inventory', element: <InventoryPage /> },
+          {
+            path: 'inventory',
+            element: (
+              <LazyRoute>
+                <InventoryPage />
+              </LazyRoute>
+            ),
+          },
           { path: 'ai-strategy', element: <AiStrategyPage /> },
           { path: 'ai-strategy/:strategyCaseId', element: <AiStrategyDetailPage /> },
           {

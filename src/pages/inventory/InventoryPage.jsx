@@ -19,6 +19,46 @@ import { InventorySummaryBar } from '@/widgets/inventory-summary';
 import { InventoryTable } from '@/widgets/inventory-table';
 import { InventoryDetailDrawer } from '@/widgets/inventory-detail-drawer';
 import { StrategyRequestModal } from '@/widgets/strategy-request-modal';
+import { Badge, StatusDot } from '@/shared/ui';
+
+const DB_STATUS_META = Object.freeze({
+  error: {
+    badgeClass: 'border-rose-200 bg-rose-50 text-xs font-semibold text-rose-700',
+    dotClass: 'bg-rose-500',
+    dotTone: 'danger',
+    label: 'DB 연결 확인 필요',
+  },
+  loading: {
+    badgeClass: 'border-gray-200 bg-gray-50 text-xs font-semibold text-gray-600',
+    dotClass: 'animate-pulse bg-gray-400',
+    dotTone: 'ready',
+    label: 'DB 확인 중...',
+  },
+  fetching: {
+    badgeClass: 'border-blue-200 bg-blue-50 text-xs font-semibold text-blue-700',
+    dotClass: 'animate-pulse bg-blue-500',
+    dotTone: 'ready',
+    label: '업데이트 중...',
+  },
+  ready: {
+    badgeClass: 'border-[#B7ECCF] bg-[#DAF7E9] text-xs font-semibold text-[#1E8251]',
+    dotClass: 'bg-[#27B06E]',
+    dotTone: 'good',
+    label: '현재 DB 기준',
+  },
+});
+
+function InventoryDbStatusBadge({ isError, isLoading, isFetching }) {
+  const status = isError ? 'error' : isLoading ? 'loading' : isFetching ? 'fetching' : 'ready';
+  const meta = DB_STATUS_META[status];
+
+  return (
+    <Badge className={meta.badgeClass} role="status" aria-live={status === 'fetching' ? 'polite' : undefined}>
+      <StatusDot tone={meta.dotTone} className={meta.dotClass} />
+      {meta.label}
+    </Badge>
+  );
+}
 
 export default function InventoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -196,20 +236,7 @@ export default function InventoryPage() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">통합 재고 관제</h1>
-            {isListFetching && !isListLoading ? (
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700"
-                aria-live="polite"
-              >
-                <span className="size-1.5 animate-pulse rounded-full bg-blue-500" />
-                업데이트 중...
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#B7ECCF] bg-[#DAF7E9] px-2.5 py-0.5 text-xs font-semibold text-[#1E8251]">
-                <span className="size-1.5 rounded-full bg-[#27B06E]" />
-                현재 DB 기준
-              </span>
-            )}
+            <InventoryDbStatusBadge isError={isListError} isLoading={isListLoading} isFetching={isListFetching} />
           </div>
           <p className="text-xs font-medium text-gray-500">
             통합 판매채널과 물류센터에 적재된 현재 재고 현황과 위험도를 관제합니다.

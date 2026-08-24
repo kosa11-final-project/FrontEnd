@@ -10,6 +10,7 @@ export { DetailLayout, detailLayoutVariants } from './DetailLayout.jsx';
 export { Drawer, drawerVariants } from './Drawer.jsx';
 export { IconButton, iconButtonVariants } from './IconButton.jsx';
 export { Icon } from './Icon.jsx';
+export { ImageLightbox, toRect } from './ImageLightbox.jsx';
 export { Input, inputVariants } from './Input.jsx';
 export { LoadingMedia } from './LoadingMedia.jsx';
 export { LottieLoader, defaultLottiePath } from './LottieLoader.jsx';

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { filterStrategies, strategyExecutionFixtures } from '@/entities/strategy';
 import { defaultStrategyExecutionFilters, STRATEGY_EXECUTION_PAGE_SIZE } from '@/features/strategy-execution-filter';
+import { StorybookProductFrame } from '@/storybook/StorybookProductFrame.jsx';
 import { StrategyExecutionDetailContent } from './ExecutionDetailPage.jsx';
 import { StrategyExecutionListContent } from './ExecutionListPage.jsx';
 
@@ -73,5 +74,21 @@ export const Mobile = {
     <Frame>
       <ListPreview strategies={strategyExecutionFixtures.slice(0, 1)} />
     </Frame>
+  ),
+};
+
+export const ProductFrame = {
+  render: () => (
+    <StorybookProductFrame path="/execution" minHeight="980px">
+      <ListPreview strategies={strategyExecutionFixtures} />
+    </StorybookProductFrame>
+  ),
+};
+
+export const ProductFrameDetail = {
+  render: () => (
+    <StorybookProductFrame path="/execution/102" minHeight="1360px">
+      <StrategyExecutionDetailContent strategy={strategyExecutionFixtures[1]} />
+    </StorybookProductFrame>
   ),
 };

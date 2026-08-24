@@ -1,7 +1,8 @@
+import { useCallback, useState } from 'react';
 import { DocumentText } from 'reicon-react';
 import { formatNumber } from '@/shared/lib/format';
 import { RESULT_STATE } from '@/entities/inventory';
-import { Button, Icon, StateView } from '@/shared/ui';
+import { Button, Icon, ImageLightbox, StateView, toRect } from '@/shared/ui';
 import { InventoryTableDesktop } from './InventoryTableDesktop.jsx';
 import { InventoryTableMobile } from './InventoryTableMobile.jsx';
 import { InventoryPagination } from './InventoryPagination.jsx';
@@ -30,6 +31,25 @@ export function InventoryTable({
   onResetFilters,
   onRowClick,
 }) {
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  const handleImageClick = useCallback((event, item, alt) => {
+    event.stopPropagation();
+    const target = event.currentTarget.querySelector('img') || event.currentTarget;
+    const rect = target.getBoundingClientRect();
+
+    setLightboxImage({
+      id: item.rowId || item.skuCode || alt,
+      src: item.imageUrl,
+      alt,
+      naturalWidth: target.naturalWidth,
+      naturalHeight: target.naturalHeight,
+      originRect: toRect(rect),
+    });
+  }, []);
+
+  const handleImageClose = useCallback(() => setLightboxImage(null), []);
+
   if (isLoading) {
     return (
       <div className="rounded-xl border border-[var(--border)] bg-white p-6 shadow-xs">
@@ -128,6 +148,7 @@ export function InventoryTable({
         maxSelection={maxSelection}
         onSortChange={onSortChange}
         onRowClick={onRowClick}
+        onImageClick={handleImageClick}
       />
 
       {/* 2. 모바일/태블릿 반응형 카드 뷰 (lg 미만) */}
@@ -138,6 +159,7 @@ export function InventoryTable({
         onToggleSelectSku={onToggleSelectSku}
         maxSelection={maxSelection}
         onRowClick={onRowClick}
+        onImageClick={handleImageClick}
       />
 
       {/* 3. 하단 페이지네이션 및 단위 선택 */}
@@ -149,6 +171,7 @@ export function InventoryTable({
         onPageChange={onPageChange}
         onSizeChange={onSizeChange}
       />
+      <ImageLightbox image={lightboxImage} onClose={handleImageClose} />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 
 const SUMMARY_FILTER_KEYS = Object.freeze([
   'q',
+  'filterOperator',
   'channelType',
   'salesPointCode',
   'warehouseCode',

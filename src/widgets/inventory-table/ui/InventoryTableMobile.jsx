@@ -10,6 +10,7 @@ export function InventoryTableMobile({
   onToggleSelectSku,
   maxSelection = 5,
   onRowClick,
+  onImageClick,
 }) {
   return (
     <div className="lg:hidden divide-y divide-gray-100 bg-white">
@@ -68,11 +69,18 @@ export function InventoryTableMobile({
                   />
                 </div>
                 {item.imageUrl ? (
-                  <img
-                    src={item.imageUrl}
-                    alt={skuLabel}
-                    className="size-14 shrink-0 rounded-xl border border-gray-200 object-cover shadow-2xs"
-                  />
+                  <button
+                    type="button"
+                    aria-label={`${skuLabel} 이미지 크게 보기`}
+                    className="group/image size-14 shrink-0 cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
+                    onClick={(event) => onImageClick?.(event, item, skuLabel)}
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={skuLabel}
+                      className="size-full rounded-xl border border-gray-200 object-cover shadow-2xs transition-transform duration-[var(--motion-standard)] group-hover/image:scale-105"
+                    />
+                  </button>
                 ) : (
                   <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-[10px] font-bold text-gray-400">
                     No Img
