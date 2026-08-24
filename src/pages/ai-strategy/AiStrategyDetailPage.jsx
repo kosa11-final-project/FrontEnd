@@ -46,7 +46,7 @@ export default function AiStrategyDetailPage() {
 
   const strategyCase = detailQuery.data;
 
-  if (strategyCase.caseStatus !== 'GENERATED' || !strategyCase.options?.length) {
+  if (!['GENERATED', 'READY_TO_EXECUTE'].includes(strategyCase.caseStatus) || !strategyCase.options?.length) {
     return (
       <main className="page-shell grid gap-4">
         <StateView

@@ -5,9 +5,16 @@ export {
   createAiStrategyCase,
   getAiStrategyCase,
   getAiStrategyCases,
+  getAiStrategyReviewers,
+  sendAiStrategyTeamsRequest,
   serializeAiStrategyListParams,
 } from './api/strategyApi.js';
-export { aiStrategyDetailQueryOptions, aiStrategyKeys, aiStrategyListQueryOptions } from './api/strategyQueries.js';
+export {
+  aiStrategyDetailQueryOptions,
+  aiStrategyKeys,
+  aiStrategyListQueryOptions,
+  aiStrategyReviewerQueryOptions,
+} from './api/strategyQueries.js';
 export { StrategyGenerationProgress } from './ui/StrategyGenerationProgress.jsx';
 export { StrategyGenerationStatus } from './ui/StrategyGenerationStatus.jsx';
 export {

@@ -50,6 +50,60 @@ export async function getAiStrategyCase(strategyCaseId, signal) {
   return mapAiStrategyDetailResponse(response);
 }
 
+function unwrapApiData(response) {
+  return response?.data ?? response;
+}
+
+export async function getAiStrategyReviewers(signal) {
+  const response = await getJson({
+    path: `${aiStrategyPath}/reviewers`,
+    signal,
+  });
+  const data = unwrapApiData(response);
+
+  if (!Array.isArray(data?.reviewers)) {
+    throw new Error('Reviewer 목록 응답 형식이 올바르지 않습니다.');
+  }
+
+  return data.reviewers.map((reviewer) => {
+    if (!Number.isInteger(reviewer?.reviewerId) || !reviewer?.reviewerName || !reviewer?.email) {
+      throw new Error('Reviewer 목록 응답 형식이 올바르지 않습니다.');
+    }
+    return {
+      reviewerId: reviewer.reviewerId,
+      reviewerName: reviewer.reviewerName,
+      email: reviewer.email,
+      organizationName: reviewer.organizationName ?? '',
+      roleName: reviewer.roleName ?? '',
+    };
+  });
+}
+
+export async function sendAiStrategyTeamsRequest(strategyCaseId, payload, signal) {
+  if (!payload?.optionId || !Array.isArray(payload.reviewerIds) || payload.reviewerIds.length === 0) {
+    throw new Error('최종 전략과 Reviewer를 한 명 이상 선택해 주세요.');
+  }
+
+  const response = await postJson({
+    path: `${aiStrategyPath}/${strategyCaseId}/teams-requests`,
+    body: payload,
+    signal,
+  });
+  const data = unwrapApiData(response);
+
+  if (
+    !Number.isInteger(data?.strategyCaseId) ||
+    !data?.selectedOptionId ||
+    !data?.caseStatus ||
+    !data?.deliveryStatus ||
+    !Array.isArray(data?.reviewers)
+  ) {
+    throw new Error('Teams 검토 요청 결과를 확인할 수 없습니다.');
+  }
+
+  return data;
+}
+
 export async function adjustAiStrategySimulation(strategyCaseId, candidateId, payload, signal) {
   const response = await postJson({
     path: `${aiStrategyPath}/${strategyCaseId}/candidates/${encodeURIComponent(candidateId)}/simulations`,

@@ -64,6 +64,7 @@ function mapOption(option) {
 
   const assumptions = candidate.assumptions ?? [];
   return {
+    optionId: option.optionId ?? null,
     optionKey: candidate.candidateId,
     rank: option.rank,
     optionName: option.optionName,
@@ -116,6 +117,7 @@ export function mapAiStrategyDetailResponse(response) {
     caseCode: `#${data.strategyCaseId}`,
     caseName: data.caseName || '이름 없는 AI 전략',
     caseStatus: data.caseStatus,
+    selectedOptionId: data.selectedOptionId ?? null,
     generationStage: data.generationStage,
     sku: data.sku ?? {
       skuId: null,

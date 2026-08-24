@@ -70,6 +70,7 @@ function detailResponse() {
         },
         options: [
           {
+            optionId: 'OPTION-1',
             rank: 1,
             optionName: '판교점 이동 후 할인',
             recommendationReason: '수요가 높습니다.',
@@ -119,6 +120,7 @@ describe('AI strategy detail mapper', () => {
       },
       options: [
         {
+          optionId: 'OPTION-1',
           optionKey: 'CAND-1',
           maxExecutableQty: 10,
           actions: [{ actionOrder: 1, startDate: '2026-08-24' }],

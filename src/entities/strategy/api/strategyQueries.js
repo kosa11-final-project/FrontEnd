@@ -1,5 +1,10 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query';
-import { getAiStrategyCase, getAiStrategyCases, serializeAiStrategyListParams } from './strategyApi.js';
+import {
+  getAiStrategyCase,
+  getAiStrategyCases,
+  getAiStrategyReviewers,
+  serializeAiStrategyListParams,
+} from './strategyApi.js';
 
 const POLLING_INTERVAL_MS = 4_000;
 
@@ -9,6 +14,7 @@ export const aiStrategyKeys = Object.freeze({
   list: (params = {}) => [...aiStrategyKeys.lists(), serializeAiStrategyListParams(params)],
   details: () => [...aiStrategyKeys.all, 'detail'],
   detail: (strategyCaseId) => [...aiStrategyKeys.details(), String(strategyCaseId)],
+  reviewers: () => [...aiStrategyKeys.all, 'reviewers'],
 });
 
 export function aiStrategyListQueryOptions(params = {}) {
@@ -30,6 +36,17 @@ export function aiStrategyDetailQueryOptions(strategyCaseId) {
     enabled: Boolean(strategyCaseId),
     staleTime: 30_000,
     retry: (failureCount, error) => ![404, 410].includes(error?.status) && error?.status >= 500 && failureCount < 1,
+  });
+}
+
+export function aiStrategyReviewerQueryOptions({ enabled = true } = {}) {
+  return queryOptions({
+    queryKey: aiStrategyKeys.reviewers(),
+    queryFn: ({ signal }) => getAiStrategyReviewers(signal),
+    enabled,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    retry: (failureCount, error) => error?.status >= 500 && failureCount < 1,
   });
 }
 
