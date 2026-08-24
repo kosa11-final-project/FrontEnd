@@ -28,6 +28,28 @@ export const INVENTORY_FACT_STATE = Object.freeze({
   AVAILABLE: 'AVAILABLE',
 });
 
+/** 상품 기준 상태 */
+export const PRODUCT_STATUS_LABELS = Object.freeze({
+  DRAFT: '작성 중',
+  ACTIVE: '활성',
+  INACTIVE: '비활성',
+});
+
+/** 판매처 귀속 상태 */
+export const SALES_POINT_STATE_LABELS = Object.freeze({
+  OWNED: '판매처 보유',
+  ALLOCATED_ONLY: '판매처 할당만 됨',
+  CENTER_ONLY: '센터 보관',
+  LOCATION_UNKNOWN: '위치 미확인',
+});
+
+/** 판매 가격 상태 */
+export const PRICE_STATUS_LABELS = Object.freeze({
+  AVAILABLE: '가격 정상',
+  NOT_LOADED: '가격 미적재',
+  STALE: '가격 만료',
+});
+
 /** 조회 결과 상태 */
 export const RESULT_STATE = Object.freeze({
   HAS_DATA: 'HAS_DATA',
@@ -71,6 +93,18 @@ export const FACT_STATE_LABELS = Object.freeze({
   OUT_OF_STOCK: '품절',
   AVAILABLE: '정상 가용',
 });
+
+export function getInventoryFactStateLabel(state) {
+  return FACT_STATE_LABELS[state] || '재고 상태 확인 필요';
+}
+
+export function getSalesPointStateLabel(state) {
+  return SALES_POINT_STATE_LABELS[state] || '귀속 상태 확인 필요';
+}
+
+export function getPriceStatusLabel(status) {
+  return PRICE_STATUS_LABELS[status] || '가격 상태 확인 필요';
+}
 
 /** 채널 코드별 이름 */
 export const CHANNEL_NAMES = Object.freeze({

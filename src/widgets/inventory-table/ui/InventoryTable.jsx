@@ -1,6 +1,7 @@
+import { DocumentText } from 'reicon-react';
 import { formatNumber } from '@/shared/lib/format';
 import { RESULT_STATE } from '@/entities/inventory';
-import { StateView } from '@/shared/ui';
+import { Button, Icon, StateView } from '@/shared/ui';
 import { InventoryTableDesktop } from './InventoryTableDesktop.jsx';
 import { InventoryTableMobile } from './InventoryTableMobile.jsx';
 import { InventoryPagination } from './InventoryPagination.jsx';
@@ -17,6 +18,7 @@ export function InventoryTable({
   onToggleSelectSku,
   onSelectAllSkus,
   onClearSelectedSkus,
+  onGenerateStrategy,
   maxSelection = 5,
   resultState = RESULT_STATE.HAS_DATA,
   isLoading = false,
@@ -109,12 +111,9 @@ export function InventoryTable({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[color:var(--primary-strong)] active:translate-y-px transition-all cursor-pointer"
-          >
-            전략 생성하기
-          </button>
+          <Button type="button" size="sm" disabled={selectedSkuCodes.length === 0} onClick={onGenerateStrategy}>
+            <Icon icon={DocumentText} size={15} aria-hidden="true" /> AI 전략 생성
+          </Button>
         </div>
       </div>
 

@@ -1,13 +1,13 @@
 import {
   CHANNEL_NAMES,
-  FACT_STATE_LABELS,
+  getInventoryFactStateLabel,
   INVENTORY_FACT_STATE,
-  INVENTORY_RISK_GRADES,
   RESULT_STATE,
   RISK_ASSESSMENT_STATUS,
   RISK_GRADE_META,
   STORAGE_NAMES,
 } from './inventory.js';
+import { normalizeRiskGrade } from '@/entities/risk/model/risk.js';
 
 function unwrapApiResponse(response = {}) {
   return response && typeof response === 'object' && response.data !== undefined ? response.data : response;
@@ -97,6 +97,7 @@ function mapSalesPoint(dto = {}, fallback = {}) {
   const sellingPrice = nullableNumber(valueOf(dto, 'sellingPrice', 'selling_price', fallback.sellingPrice));
   const rawPriceStatus = valueOf(dto, 'priceStatus', 'price_status', null);
   return {
+    salesPointId: nullableNumber(valueOf(dto, 'salesPointId', 'sales_point_id', fallback.salesPointId)),
     salesPointCode: valueOf(dto, 'salesPointCode', 'sales_point_code', fallback.salesPointCode || ''),
     salesPointName: valueOf(
       dto,
@@ -108,7 +109,7 @@ function mapSalesPoint(dto = {}, fallback = {}) {
     currentQuantity: nullableNumber(valueOf(dto, 'currentQuantity', 'current_qty')),
     availableQuantity: nullableNumber(valueOf(dto, 'availableQuantity', 'available_qty')),
     reservedQuantity: nullableNumber(valueOf(dto, 'reservedQuantity', 'reserved_qty')),
-    riskGrade: valueOf(dto, 'riskGrade', 'risk_grade', fallback.riskGrade || null),
+    riskGrade: normalizeRiskGrade(valueOf(dto, 'riskGrade', 'risk_grade', fallback.riskGrade || null)),
     salesPointState: valueOf(dto, 'salesPointState', 'sales_point_state', fallback.salesPointState || 'OWNED'),
     priceStatus: rawPriceStatus || (sellingPrice == null ? 'NOT_LOADED' : 'AVAILABLE'),
     warehouseName: valueOf(dto, 'warehouseName', 'warehouse_name', fallback.warehouseName || ''),
@@ -133,6 +134,7 @@ function isUnassignedSalesPoint(salesPoint = {}) {
  */
 export function mapInventoryItem(response = {}) {
   const dto = unwrapApiResponse(response) || {};
+  const skuId = nullableNumber(dto.skuId, dto.sku_id);
   const productCode = dto.productCode || dto.product_code || '';
   const productName = dto.productName || dto.product_name || '상품명 미지정';
   const supplierName = dto.supplierName || dto.supplier_name || '';
@@ -169,7 +171,7 @@ export function mapInventoryItem(response = {}) {
   // 위험 판정 정보
   const riskObj = dto.risk || {};
   const rawRiskGrade = dto.riskGrade ?? dto.risk_grade ?? riskObj.grade ?? null;
-  const riskGrade = rawRiskGrade && Object.values(INVENTORY_RISK_GRADES).includes(rawRiskGrade) ? rawRiskGrade : null;
+  const riskGrade = normalizeRiskGrade(rawRiskGrade);
   const rawAssessmentStatus =
     dto.assessmentStatus ?? dto.assessment_status ?? riskObj.assessmentStatus ?? riskObj.assessment_status ?? null;
   const assessmentStatus =
@@ -261,19 +263,23 @@ export function mapInventoryItem(response = {}) {
     dto.unassigned_reserved_qty,
     centerSalesPoint?.reservedQuantity,
   );
-  const unassignedFactState =
+  const rawUnassignedFactState =
     rawUnassignedInventory?.inventoryFactState ??
     rawUnassignedInventory?.inventory_fact_state ??
     dto.unassignedInventoryFactState ??
     dto.unassigned_inventory_fact_state ??
     null;
-  const unassignedRiskGrade =
+  const unassignedFactState = Object.values(INVENTORY_FACT_STATE).includes(rawUnassignedFactState)
+    ? rawUnassignedFactState
+    : null;
+  const rawUnassignedRiskGrade =
     rawUnassignedInventory?.riskGrade ??
     rawUnassignedInventory?.risk_grade ??
     dto.unassignedRiskGrade ??
     dto.unassigned_risk_grade ??
     centerSalesPoint?.riskGrade ??
     null;
+  const unassignedRiskGrade = normalizeRiskGrade(rawUnassignedRiskGrade);
   const unassignedAssessmentStatus =
     rawUnassignedInventory?.assessmentStatus ??
     rawUnassignedInventory?.assessment_status ??
@@ -337,6 +343,7 @@ export function mapInventoryItem(response = {}) {
 
   return {
     rowId,
+    skuId,
     productCode,
     productName,
     supplierName,
@@ -362,7 +369,7 @@ export function mapInventoryItem(response = {}) {
     reservedQuantity,
     safetyQuantity,
     inventoryFactState,
-    inventoryFactLabel: FACT_STATE_LABELS[inventoryFactState] || inventoryFactState,
+    inventoryFactLabel: inventoryFactState ? getInventoryFactStateLabel(inventoryFactState) : null,
     riskGrade,
     riskMeta: riskGrade ? RISK_GRADE_META[riskGrade] || null : null,
     assessmentStatus,

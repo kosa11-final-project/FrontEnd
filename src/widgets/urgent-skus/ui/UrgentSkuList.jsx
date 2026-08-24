@@ -4,7 +4,66 @@ import { getUrgentSkuInventoryUrl, InventoryRiskBadge } from '@/entities/invento
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { Card, CardDescription, CardHeader, CardTitle, Icon, StateView } from '@/shared/ui';
 
-export function UrgentSkuList({ skus }) {
+function CompactUrgentSkuList({ skus }) {
+  return (
+    <Card asChild padding="none" className="h-full min-w-0 overflow-hidden shadow-[var(--shadow-soft)]">
+      <section className="flex h-full min-h-0 flex-col" aria-labelledby="urgent-skus-title">
+        <CardHeader className="shrink-0 border-b border-[var(--border)] p-4">
+          <CardTitle id="urgent-skus-title" className="flex items-center gap-2 text-[17px]">
+            <Icon icon={AlertTriangle} size={18} className="text-[color:var(--danger)]" aria-hidden="true" />
+            긴급 처리 SKU TOP 5
+          </CardTitle>
+          <CardDescription className="text-[13px] text-[color:var(--text-body)]">
+            위험등급·예상 폐기수량 기준 우선 조치
+          </CardDescription>
+        </CardHeader>
+
+        {skus.length === 0 ? (
+          <StateView state="empty" compact title="긴급 처리 대상 SKU가 없습니다." className="m-4" />
+        ) : (
+          <>
+            <ol className="dashboard-scrollbar min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto px-4 pr-2">
+              {skus.map((sku) => (
+                <li key={sku.id}>
+                  <Link
+                    to={getUrgentSkuInventoryUrl(sku)}
+                    aria-label={`${sku.name} 재고 상세`}
+                    className="-mx-2 grid grid-cols-[30px_minmax(0,1fr)_34px] items-center gap-2.5 rounded-[var(--radius-control)] px-2 py-2.5 transition-colors hover:bg-[var(--surface-subtle)]"
+                  >
+                    <span className="grid size-7 place-items-center rounded-full bg-[var(--danger-soft)] text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] text-[color:var(--danger)]">
+                      {sku.rank}
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="block truncate text-[length:var(--font-size-body)] text-[color:var(--text-heading)]">
+                        {sku.name}
+                      </strong>
+                      <span className="mt-1 block truncate text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
+                        {sku.stockLocation} · 소비기한{' '}
+                        <strong className="text-[color:var(--warning)]">{formatDaysRemaining(sku.expiryDays)}</strong> ·
+                        폐기{' '}
+                        <strong className="text-[color:var(--danger)]">{formatQuantity(sku.expectedDisposal)}</strong>
+                      </span>
+                    </span>
+                    <span className="grid size-8 place-items-center rounded-full text-[color:var(--primary-strong)]">
+                      <Icon icon={ArrowRight} size={16} aria-hidden="true" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+            <p className="shrink-0 border-t border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-2 text-center text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
+              목록 안에서 스크롤해 전체 {skus.length}개 SKU를 확인할 수 있습니다.
+            </p>
+          </>
+        )}
+      </section>
+    </Card>
+  );
+}
+
+export function UrgentSkuList({ compact = false, skus }) {
+  if (compact) return <CompactUrgentSkuList skus={skus} />;
+
   return (
     <Card asChild padding="none" className="min-w-0 overflow-hidden shadow-[var(--shadow-soft)]">
       <section aria-labelledby="urgent-skus-title">

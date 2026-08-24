@@ -1,4 +1,5 @@
 import { formatNumber } from '@/shared/lib/format';
+import { getPriceStatusLabel } from '@/entities/inventory';
 
 export function SkuChannelPriceTable({ channelPrices = [], isUnassigned = false }) {
   if (isUnassigned) {
@@ -50,7 +51,7 @@ export function SkuChannelPriceTable({ channelPrices = [], isUnassigned = false 
           {channelPrices.map((price) => {
             const isAvailable = price.priceStatus === 'AVAILABLE';
             const isStale = price.priceStatus === 'STALE';
-            const statusLabel = isAvailable ? '정상' : isStale ? '만료됨' : '가격 미적재';
+            const statusLabel = getPriceStatusLabel(price.priceStatus);
             return (
               <tr key={price.salesPointCode} className="hover:bg-slate-50/50 transition-colors">
                 <td className="px-3 py-2 font-semibold text-slate-800">

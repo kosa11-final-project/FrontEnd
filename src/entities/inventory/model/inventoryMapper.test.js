@@ -11,6 +11,7 @@ import { INVENTORY_FACT_STATE, RESULT_STATE } from './inventory.js';
 describe('Inventory Mapper', () => {
   it('correctly maps raw backend DTO to standardized view model', () => {
     const rawDto = {
+      sku_id: 1001,
       product_code: 'PROD_MANDU_01',
       product_name: '비비고 왕교자 1.05kg',
       supplier_name: 'CJ제일제당',
@@ -44,6 +45,7 @@ describe('Inventory Mapper', () => {
     const mapped = mapInventoryItem(rawDto);
 
     expect(mapped.rowId).toBe('SKU_MANDU_01_105:STORE_THE_HYUNDAI_SEOUL');
+    expect(mapped.skuId).toBe(1001);
     expect(mapped.productName).toBe('비비고 왕교자 1.05kg');
     expect(mapped.supplierName).toBe('CJ제일제당');
     expect(mapped.currentQuantity).toBe(450);

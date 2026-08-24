@@ -18,10 +18,13 @@ import { InventorySyncControl } from '@/features/inventory-sync';
 import { InventorySummaryBar } from '@/widgets/inventory-summary';
 import { InventoryTable } from '@/widgets/inventory-table';
 import { InventoryDetailDrawer } from '@/widgets/inventory-detail-drawer';
+import { StrategyRequestModal } from '@/widgets/strategy-request-modal';
 
 export default function InventoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedSkuCodes, setSelectedSkuCodes] = useState([]);
+  const [selectedSkuItems, setSelectedSkuItems] = useState([]);
+  const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
+  const selectedSkuCodes = useMemo(() => selectedSkuItems.map((item) => item.skuCode), [selectedSkuItems]);
 
   // 1. URL searchParams로부터 필터 상태 파싱 (SSOT)
   const filters = useMemo(() => parseInventoryFilters(searchParams), [searchParams]);
@@ -149,29 +152,42 @@ export default function InventoryPage() {
   }, [handleFilterChange]);
 
   // 체크박스 다중 선택 핸들러 (최대 5개 제한)
-  const handleToggleSelectSku = useCallback((skuCode) => {
-    setSelectedSkuCodes((prev) => {
-      if (prev.includes(skuCode)) {
-        return prev.filter((code) => code !== skuCode);
-      }
-      if (prev.length >= 5) {
-        return prev;
-      }
-      return [...prev, skuCode];
-    });
-  }, []);
+  const handleToggleSelectSku = useCallback(
+    (skuCode) => {
+      setSelectedSkuItems((prev) => {
+        if (prev.some((item) => item.skuCode === skuCode)) {
+          return prev.filter((item) => item.skuCode !== skuCode);
+        }
+        if (prev.length >= 5) {
+          return prev;
+        }
+        const item = listData?.items?.find((candidate) => candidate.skuCode === skuCode);
+        return item ? [...prev, item] : prev;
+      });
+    },
+    [listData?.items],
+  );
 
-  const handleSelectAllSkus = useCallback((skuCodesToSelect) => {
-    if (Array.isArray(skuCodesToSelect)) {
-      setSelectedSkuCodes(skuCodesToSelect.slice(0, 5));
-    } else {
-      setSelectedSkuCodes([]);
-    }
-  }, []);
+  const handleSelectAllSkus = useCallback(
+    (skuCodesToSelect) => {
+      if (Array.isArray(skuCodesToSelect)) {
+        const selectedCodeSet = new Set(skuCodesToSelect.slice(0, 5));
+        setSelectedSkuItems((listData?.items ?? []).filter((item) => selectedCodeSet.has(item.skuCode)));
+      } else {
+        setSelectedSkuItems([]);
+      }
+    },
+    [listData?.items],
+  );
 
   const handleClearSelectedSkus = useCallback(() => {
-    setSelectedSkuCodes([]);
+    setSelectedSkuItems([]);
   }, []);
+
+  const handleGenerateStrategy = useCallback(() => {
+    if (!selectedSkuItems.length) return;
+    setIsStrategyModalOpen(true);
+  }, [selectedSkuItems.length]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -247,6 +263,7 @@ export default function InventoryPage() {
         onToggleSelectSku={handleToggleSelectSku}
         onSelectAllSkus={handleSelectAllSkus}
         onClearSelectedSkus={handleClearSelectedSkus}
+        onGenerateStrategy={handleGenerateStrategy}
         resultState={listData?.resultState || RESULT_STATE.HAS_DATA}
         isLoading={isListLoading}
         isError={isListError}
@@ -257,6 +274,10 @@ export default function InventoryPage() {
         onResetFilters={handleResetFilters}
         onRowClick={handleRowClick}
       />
+
+      {isStrategyModalOpen ? (
+        <StrategyRequestModal selectedItems={selectedSkuItems} onClose={() => setIsStrategyModalOpen(false)} />
+      ) : null}
 
       {/* 4. 우측 상세 관제 드로어 */}
       <InventoryDetailDrawer

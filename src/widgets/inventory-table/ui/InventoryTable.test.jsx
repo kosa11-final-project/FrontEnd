@@ -106,6 +106,39 @@ describe('InventoryTable pagination', () => {
     expect(onSortChange).toHaveBeenLastCalledWith('availableQuantity,desc');
   });
 
+  it('starts 종합 위험도 sorting from 양호 and toggles to 위험 first', () => {
+    const onSortChange = vi.fn();
+    const { rerender } = render(
+      <InventoryTable
+        items={[item]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+        sort="updatedAt,desc"
+        onSortChange={onSortChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '종합 위험도 오름차순 정렬' }));
+    expect(onSortChange).toHaveBeenLastCalledWith('riskGrade,asc');
+
+    rerender(
+      <InventoryTable
+        items={[item]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+        sort="riskGrade,asc"
+        onSortChange={onSortChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '종합 위험도 내림차순 정렬' }));
+    expect(onSortChange).toHaveBeenLastCalledWith('riskGrade,desc');
+  });
+
   it('uses the explicit retry callback instead of mutating the current page', () => {
     const onRetry = vi.fn();
 
@@ -224,6 +257,26 @@ describe('InventoryTable pagination', () => {
     // SKU-6 checkbox should be disabled
     const sku6Checkboxes = screen.getAllByRole('checkbox', { name: /상품 6 선택/ });
     expect(sku6Checkboxes[0]).toBeDisabled();
+  });
+
+  it('enables AI strategy generation only after selecting a SKU', () => {
+    const onGenerateStrategy = vi.fn();
+    const { rerender } = render(
+      <InventoryTable items={[item]} totalCount={1} selectedSkuCodes={[]} onGenerateStrategy={onGenerateStrategy} />,
+    );
+
+    expect(screen.getByRole('button', { name: 'AI 전략 생성' })).toBeDisabled();
+
+    rerender(
+      <InventoryTable
+        items={[item]}
+        totalCount={1}
+        selectedSkuCodes={[item.skuCode]}
+        onGenerateStrategy={onGenerateStrategy}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성' }));
+    expect(onGenerateStrategy).toHaveBeenCalledTimes(1);
   });
 
   it('triggers onSelectAllSkus([]) to clear selection when clicking header checkbox while items are selected', () => {

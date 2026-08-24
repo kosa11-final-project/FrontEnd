@@ -1,3 +1,5 @@
+import { getOnlineSalesPointLayout, getStoreLayout } from './dashboardLayout.js';
+
 export const distributionCenters = Object.freeze([
   {
     id: 'GYEONGIN_1',
@@ -39,48 +41,6 @@ export const distributionCenters = Object.freeze([
     availableStock: 366,
     nearExpiryStock: 12,
     outboundStock: 44,
-    riskSkuCount: 2,
-  },
-  {
-    id: 'SEONGNAM',
-    name: '성남 스마트푸드센터',
-    shortName: '성남',
-    region: '수도권',
-    description: '그리팅 상품 생산·공급',
-    x: 49,
-    y: 20,
-    currentStock: 956,
-    availableStock: 872,
-    nearExpiryStock: 68,
-    outboundStock: 84,
-    riskSkuCount: 5,
-  },
-  {
-    id: 'DONGTAN',
-    name: '동탄센터',
-    shortName: '동탄',
-    region: '수도권',
-    description: '경기 남부 판매처 공급',
-    x: 52,
-    y: 50,
-    currentStock: 526,
-    availableStock: 472,
-    nearExpiryStock: 29,
-    outboundStock: 54,
-    riskSkuCount: 3,
-  },
-  {
-    id: 'ICHEON_DC',
-    name: '이천 DC',
-    shortName: '이천',
-    region: '수도권',
-    description: '광역 배분·이동 거점',
-    x: 70,
-    y: 37,
-    currentStock: 598,
-    availableStock: 536,
-    nearExpiryStock: 31,
-    outboundStock: 62,
     riskSkuCount: 2,
   },
   {
@@ -383,7 +343,19 @@ export const salesPointInventories = Object.freeze([
 ]);
 
 export const offlineStoreInventories = Object.freeze(
-  salesPointInventories.filter((point) => point.type === '오프라인' && point.active),
+  salesPointInventories
+    .filter((point) => point.type === '오프라인' && point.active)
+    .map((point, index) => ({ ...point, ...getStoreLayout(point.code, index) })),
+);
+
+export const onlineSalesPointInventories = Object.freeze(
+  salesPointInventories
+    .filter((point) => point.type === '온라인' && point.active)
+    .map((point, index) => ({
+      ...point,
+      ...getOnlineSalesPointLayout(point.code, index),
+      storageWarehouseCount: 1,
+    })),
 );
 
 export const riskSalesPoints = offlineStoreInventories;
@@ -441,8 +413,15 @@ export const urgentSkus = Object.freeze([
   },
 ]);
 
+const dashboardInventoryLocations = [
+  ...distributionCenters,
+  ...onlineSalesPointInventories,
+  ...offlineStoreInventories,
+];
+
 export const dashboardInventorySummary = Object.freeze({
-  totalAvailableStock: distributionCenters.reduce((sum, center) => sum + center.availableStock, 0),
+  totalCurrentStock: dashboardInventoryLocations.reduce((sum, location) => sum + location.currentStock, 0),
+  totalAvailableStock: dashboardInventoryLocations.reduce((sum, location) => sum + location.availableStock, 0),
   criticalSkuCount: 5,
   warningSkuCount: 7,
   riskAndCautionSkuCount: 12,

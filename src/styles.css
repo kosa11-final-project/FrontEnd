@@ -588,6 +588,33 @@ a:focus-visible {
   min-width: 0;
 }
 
+.dashboard-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) color-mix(in srgb, var(--primary-soft) 72%, var(--surface));
+  scrollbar-gutter: stable;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-track {
+  margin-block: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-soft) 72%, var(--surface));
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-thumb {
+  min-height: 42px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(var(--primary), var(--primary-strong)) padding-box;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-strong) padding-box;
+}
+
 .page-heading {
   display: flex;
   align-items: flex-end;

@@ -1,5 +1,5 @@
 import { StateView } from '@/shared/ui';
-import { ASSESSMENT_STATUS_LABELS } from '../model/risk.js';
+import { getAssessmentStatusLabel } from '../model/risk.js';
 
 /**
  * 위험도 판정 상태 안내 뷰
@@ -18,7 +18,7 @@ export function RiskAssessmentStateView({ status, onRetry }) {
     <StateView
       state={state}
       compact
-      title={ASSESSMENT_STATUS_LABELS[status] || '위험 판정 정보를 확인할 수 없습니다.'}
+      title={getAssessmentStatusLabel(status)}
       description={
         isLoading
           ? '서버가 현재 재고·안전재고·수요예측·LOT 데이터를 기준으로 판정 중입니다.'

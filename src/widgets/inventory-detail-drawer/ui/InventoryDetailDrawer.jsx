@@ -8,6 +8,7 @@ import {
   DemandForecastStateView,
   DemandForecastTable,
 } from '@/entities/forecast';
+import { inventoryRiskQueryOptions, RiskExplanationPanel } from '@/entities/risk';
 import { formatQuantity } from '@/shared/lib/format';
 import { Button, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
 import { InventoryDetailHeader } from './InventoryDetailHeader.jsx';
@@ -118,10 +119,22 @@ export function InventoryDetailDrawer({
     enabled: Boolean(open && skuCode && effectiveOverviewSalesPointCode),
   });
 
+  // 3) 재고 개요 탭의 서버 위험 판정: 예상 소진일수와 부족 여부를 함께 표시합니다.
+  const riskQuery = useQuery({
+    ...inventoryRiskQueryOptions(skuCode, effectiveOverviewSalesPointCode),
+    enabled: Boolean(
+      open &&
+      activeTab === 'OVERVIEW' &&
+      skuCode &&
+      effectiveOverviewSalesPointCode &&
+      effectiveOverviewSalesPointCode !== 'UNASSIGNED',
+    ),
+  });
+
   const isOverviewUnassigned = effectiveOverviewSalesPointCode === 'UNASSIGNED';
   const isForecastUnassigned = effectiveForecastSalesPointCode === 'UNASSIGNED';
 
-  // 3. 수요예측 쿼리: 수요예측 탭 독립 판매처 기준
+  // 4. 수요예측 쿼리: 수요예측 탭 독립 판매처 기준
   const forecastQuery = useQuery({
     ...demandForecastQueryOptions(skuCode, effectiveForecastSalesPointCode),
     enabled: Boolean(
@@ -336,6 +349,31 @@ export function InventoryDetailDrawer({
               </div>
 
               <div className="lg:col-span-7 flex flex-col p-4 space-y-4 overflow-y-auto h-full min-h-0">
+                {!isOverviewUnassigned && (
+                  <>
+                    {riskQuery.isLoading && (
+                      <div
+                        role="status"
+                        className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500"
+                      >
+                        서버 위험 판정 정보를 불러오는 중입니다...
+                      </div>
+                    )}
+                    {riskQuery.isError && (
+                      <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+                        <span>서버 위험 판정 정보를 불러오지 못했습니다.</span>
+                        <button
+                          type="button"
+                          className="font-semibold underline underline-offset-2"
+                          onClick={() => riskQuery.refetch()}
+                        >
+                          다시 시도
+                        </button>
+                      </div>
+                    )}
+                    {riskQuery.data && <RiskExplanationPanel data={riskQuery.data} />}
+                  </>
+                )}
                 <InventoryLotsSection
                   selectedSalesPoint={selectedOverviewSalesPoint}
                   selectedSalesPointCode={effectiveOverviewSalesPointCode}
