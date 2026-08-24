@@ -97,14 +97,15 @@ export function InventoryFilterBar({
 
   const selectedRegion = Array.isArray(filters.regionCode) ? filters.regionCode[0] || '' : filters.regionCode || '';
 
-  // 상세 필터 활성 조건 개수 계산 (상세 모달에 들어가는 항목들: 카테고리, 보관유형, 위험도, 판정상태, 물류센터, 판매처)
+  // 상세 필터 활성 조건 개수 계산 (카테고리, 보관유형, 위험도, 판정상태, 물류센터, 판매처, 권역)
   const detailFilterCount =
     (filters.categoryId ? 1 : 0) +
     selectedStorageTypes.length +
     selectedRiskGrades.length +
     selectedAssessmentStatuses.length +
     (selectedWarehouse ? 1 : 0) +
-    (selectedSalesPoint ? 1 : 0);
+    (selectedSalesPoint ? 1 : 0) +
+    (selectedRegion ? 1 : 0);
 
   // 검색창 엔터 즉시 제출
   const handleSearchSubmit = (e) => {

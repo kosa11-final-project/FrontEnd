@@ -41,6 +41,7 @@ const filterOptions = {
   ],
   riskGrades: [
     { code: 'SAFE', name: '양호' },
+    { code: 'NORMAL', name: '보통' },
     { code: 'CAUTION', name: '주의' },
     { code: 'DANGER', name: '위험' },
   ],

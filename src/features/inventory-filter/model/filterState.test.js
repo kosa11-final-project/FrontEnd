@@ -65,6 +65,12 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     expect(filters.detailTab).toBe('OVERVIEW');
   });
 
+  it('drops assessment statuses that the inventory API cannot produce', () => {
+    const filters = parseInventoryFilters('?assessmentStatus=STALE&assessmentStatus=ASSESSED');
+
+    expect(filters.assessmentStatus).toEqual(['ASSESSED']);
+  });
+
   it('falls back to OVERVIEW when legacy detailTab=LOTS is passed in URL', () => {
     const filters = parseInventoryFilters('?detailSkuCode=SKU-1&detailTab=LOTS');
     expect(filters.detailTab).toBe('OVERVIEW');
@@ -139,5 +145,12 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     const detailChanged = applyFilterChanges(current, { detailSkuCode: 'SKU-1', detailSalesPointCode: 'SP-1' });
     expect(detailChanged.page).toBe(4);
     expect(detailChanged.detailSkuCode).toBe('SKU-1');
+  });
+
+  it('resets page to 1 when the sort order changes', () => {
+    const changed = applyFilterChanges({ ...DEFAULT_INVENTORY_FILTERS, page: 4 }, { sort: 'riskGrade,asc' });
+
+    expect(changed.sort).toBe('riskGrade,asc');
+    expect(changed.page).toBe(1);
   });
 });

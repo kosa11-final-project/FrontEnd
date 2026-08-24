@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { CloseCircle, Refresh, TickCircle, ChevronRight, Filter } from 'reicon-react';
 import { STORAGE_NAMES } from '@/entities/inventory';
 import { ASSESSMENT_STATUS_LABELS, getRiskGradeLabel, normalizeRiskGrade } from '@/entities/risk';
+import { INVENTORY_ASSESSMENT_STATUSES } from '../model/filterState.js';
 
 const STORAGE_BADGE_COLORS = {
   FROZEN: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
@@ -31,23 +32,6 @@ const ASSESSMENT_STATUS_META = {
     label: ASSESSMENT_STATUS_LABELS.UNASSESSED,
     color: 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100',
   },
-  REASSESSING: {
-    label: ASSESSMENT_STATUS_LABELS.REASSESSING,
-    color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
-  },
-  STALE: {
-    label: ASSESSMENT_STATUS_LABELS.STALE,
-    color: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
-  },
-  FAILED: {
-    label: ASSESSMENT_STATUS_LABELS.FAILED,
-    color: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
-  },
-  ERROR: { label: ASSESSMENT_STATUS_LABELS.ERROR, color: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100' },
-  LOADING: {
-    label: ASSESSMENT_STATUS_LABELS.LOADING,
-    color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
-  },
 };
 
 function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLoading, onClose, onApply }) {
@@ -61,10 +45,13 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
   const riskOptions = filterOptions?.riskGrades || [];
   const warehouseOptions = filterOptions?.warehouses || [];
   const salesPointOptions = filterOptions?.salesPoints || [];
+  const regionOptions = filterOptions?.regions || [];
   const assessmentStatuses = filterOptions?.assessmentStatuses;
   const assessmentStatusOptions = useMemo(
     () =>
-      assessmentStatuses?.length ? assessmentStatuses : ['ASSESSED', 'UNASSESSED', 'REASSESSING', 'STALE', 'FAILED'],
+      (assessmentStatuses?.length ? assessmentStatuses : INVENTORY_ASSESSMENT_STATUSES).filter((option) =>
+        INVENTORY_ASSESSMENT_STATUSES.includes(typeof option === 'string' ? option : option.code),
+      ),
     [assessmentStatuses],
   );
 
@@ -116,6 +103,9 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
   const [draftSalesPointCode, setDraftSalesPointCode] = useState(
     Array.isArray(filters.salesPointCode) ? filters.salesPointCode[0] || '' : filters.salesPointCode || '',
   );
+  const [draftRegionCode, setDraftRegionCode] = useState(
+    Array.isArray(filters.regionCode) ? filters.regionCode[0] || '' : filters.regionCode || '',
+  );
 
   // 카테고리 계층 선택 탐색 상태
   const [selectedL1, setSelectedL1] = useState(initialCategoryHierarchy.l1);
@@ -124,6 +114,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
   const warehouseSelectId = useId();
   const salesPointSelectId = useId();
+  const regionSelectId = useId();
 
   const selectedWarehouseOption = warehouseOptions.find((option) => {
     const code = typeof option === 'string' ? option : option.code || option.warehouseCode;
@@ -268,6 +259,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
     setDraftAssessmentStatuses([]);
     setDraftWarehouseCode('');
     setDraftSalesPointCode('');
+    setDraftRegionCode('');
     setSelectedL1(null);
     setSelectedL2(null);
     setSelectedL3(null);
@@ -284,6 +276,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
       assessmentStatus: draftAssessmentStatuses,
       warehouseCode: draftWarehouseCode ? [draftWarehouseCode] : [],
       salesPointCode: draftSalesPointCode ? [draftSalesPointCode] : [],
+      regionCode: draftRegionCode ? [draftRegionCode] : [],
     });
     onClose();
   };
@@ -295,7 +288,8 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
     draftRiskGrades.length +
     draftAssessmentStatuses.length +
     (draftWarehouseCode ? 1 : 0) +
-    (draftSalesPointCode ? 1 : 0);
+    (draftSalesPointCode ? 1 : 0) +
+    (draftRegionCode ? 1 : 0);
 
   // 현재 선택된 카테고리 브레드크럼 라벨
   const currentCategoryBreadcrumb = [selectedL1?.name, selectedL2?.name, selectedL3?.name].filter(Boolean).join(' › ');
@@ -628,8 +622,8 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
             </div>
           </div>
 
-          {/* 4. 거점 (물류센터 & 상세 판매처) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+          {/* 4. 거점 (물류센터 · 상세 판매처 · 판매처 권역) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-100">
             {/* 물류센터 */}
             <div>
               <label htmlFor={warehouseSelectId} className="text-xs font-bold text-gray-800 mb-1.5 block">
@@ -679,6 +673,31 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                 {salesPointOptions.map((opt) => {
                   const code = typeof opt === 'string' ? opt : opt.code || opt.salesPointCode;
                   const name = typeof opt === 'string' ? opt : opt.name || opt.salesPointName || code;
+                  return (
+                    <option key={code} value={code}>
+                      {name}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* 판매처 권역 */}
+            <div>
+              <label htmlFor={regionSelectId} className="text-xs font-bold text-gray-800 mb-1.5 block">
+                판매처 권역
+              </label>
+              <select
+                id={regionSelectId}
+                value={draftRegionCode}
+                disabled={isFilterOptionsLoading}
+                onChange={(e) => setDraftRegionCode(e.target.value)}
+                className="w-full h-9 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-700 focus:border-[#27B06E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#27B06E]/20"
+              >
+                <option value="">전체 권역</option>
+                {regionOptions.map((opt) => {
+                  const code = typeof opt === 'string' ? opt : opt.code || opt.regionCode;
+                  const name = typeof opt === 'string' ? opt : opt.name || opt.regionName || code;
                   return (
                     <option key={code} value={code}>
                       {name}

@@ -78,6 +78,55 @@ describe('inventoryApi', () => {
     });
   });
 
+  it('forwards every inventory filter group to both list and summary requests', async () => {
+    const filters = {
+      q: '만두',
+      filterOperator: 'OR',
+      channelType: ['GREETING'],
+      salesPointCode: ['GREETING'],
+      warehouseCode: ['GYEONGIN_1'],
+      regionCode: ['GYEONGGI'],
+      categoryId: '301',
+      storageType: ['FROZEN'],
+      riskGrade: ['NORMAL'],
+      assessmentStatus: ['ASSESSED'],
+      page: 2,
+      size: 50,
+      sort: 'riskGrade,asc',
+    };
+    requestJson.mockResolvedValueOnce({ data: { items: [] } }).mockResolvedValueOnce({ data: {} });
+
+    await getInventories(filters);
+    await getInventorySummary(filters);
+
+    expect(requestJson).toHaveBeenNthCalledWith(1, {
+      path: 'v1/inventories',
+      method: 'get',
+      params: filters,
+      signal: undefined,
+    });
+    expect(requestJson).toHaveBeenNthCalledWith(2, {
+      path: 'v1/inventories/summary',
+      method: 'get',
+      params: expect.objectContaining({
+        q: '만두',
+        filterOperator: 'OR',
+        channelType: ['GREETING'],
+        salesPointCode: ['GREETING'],
+        warehouseCode: ['GYEONGIN_1'],
+        regionCode: ['GYEONGGI'],
+        categoryId: '301',
+        storageType: ['FROZEN'],
+        riskGrade: ['NORMAL'],
+        assessmentStatus: ['ASSESSED'],
+      }),
+      signal: undefined,
+    });
+    expect(requestJson.mock.calls[1][0].params).not.toHaveProperty('page');
+    expect(requestJson.mock.calls[1][0].params).not.toHaveProperty('size');
+    expect(requestJson.mock.calls[1][0].params).not.toHaveProperty('sort');
+  });
+
   it('encodes detail identifiers and maps detail and LOT responses', async () => {
     requestJson
       .mockResolvedValueOnce({
