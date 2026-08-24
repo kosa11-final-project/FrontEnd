@@ -1,11 +1,18 @@
 export * from './model/strategy.js';
 export * from './model/strategyRequest.js';
-export { createAiStrategyCase, getAiStrategyCases, serializeAiStrategyListParams } from './api/strategyApi.js';
-export { aiStrategyKeys, aiStrategyListQueryOptions } from './api/strategyQueries.js';
+export {
+  adjustAiStrategySimulation,
+  createAiStrategyCase,
+  getAiStrategyCase,
+  getAiStrategyCases,
+  serializeAiStrategyListParams,
+} from './api/strategyApi.js';
+export { aiStrategyDetailQueryOptions, aiStrategyKeys, aiStrategyListQueryOptions } from './api/strategyQueries.js';
 export { StrategyGenerationProgress } from './ui/StrategyGenerationProgress.jsx';
 export { StrategyGenerationStatus } from './ui/StrategyGenerationStatus.jsx';
 export {
   buildAdjustedStrategyOption,
+  buildStrategyAdjustmentPayload,
   buildStrategyChartData,
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
@@ -14,6 +21,7 @@ export {
   sortStrategyOptions,
   strategyActionTypeMeta,
 } from './model/strategyDetail.js';
+export { applyAdjustedSimulationResult, mapAiStrategyDetailResponse } from './model/strategyDetailMapper.js';
 export { strategyExecutionFixtures } from './testing/fixtures.js';
 export {
   getStrategyExecution,

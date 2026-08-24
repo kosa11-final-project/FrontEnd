@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getJson, postJson } from '@/shared/api';
-import { createAiStrategyCase, getAiStrategyCases, serializeAiStrategyListParams } from './strategyApi.js';
+import {
+  adjustAiStrategySimulation,
+  createAiStrategyCase,
+  getAiStrategyCase,
+  getAiStrategyCases,
+  serializeAiStrategyListParams,
+} from './strategyApi.js';
 
 vi.mock('@/shared/api', () => ({
   getJson: vi.fn(),
@@ -120,5 +126,49 @@ describe('AI strategy API', () => {
     getJson.mockResolvedValue({ data: { content: {}, page: 0 } });
 
     await expect(getAiStrategyCases()).rejects.toThrow('AI 전략 생성 목록 응답 형식이 올바르지 않습니다.');
+  });
+
+  it('fetches and maps an AI strategy detail', async () => {
+    getJson.mockResolvedValue({
+      data: {
+        strategyCaseId: 123,
+        caseName: '상세 전략',
+        caseStatus: 'GENERATING',
+        sku: { skuId: 1, skuCode: 'SKU-1', skuName: '상품', imageUrl: null, category: null },
+        requester: { userId: 7, userName: '이주영' },
+        createdAt: '2026-08-24T10:00:00',
+        requestConditions: null,
+        result: null,
+      },
+    });
+
+    await expect(getAiStrategyCase(123)).resolves.toMatchObject({
+      strategyCaseId: 123,
+      caseCode: '#123',
+      caseStatus: 'GENERATING',
+      options: [],
+    });
+    expect(getJson).toHaveBeenCalledWith({ path: 'v1/ai-strategies/123', signal: undefined });
+  });
+
+  it('posts adjusted simulation conditions and unwraps the response', async () => {
+    const payload = { actionQuantity: 7, discountRate: null, startDate: '2026-08-24', endDate: '2026-08-31' };
+    postJson.mockResolvedValue({
+      data: {
+        strategyCaseId: 123,
+        candidateId: 'CAND/1',
+        adjustedConditions: payload,
+        simulation: { summary: {} },
+      },
+    });
+
+    await expect(adjustAiStrategySimulation(123, 'CAND/1', payload)).resolves.toMatchObject({
+      candidateId: 'CAND/1',
+    });
+    expect(postJson).toHaveBeenCalledWith({
+      path: 'v1/ai-strategies/123/candidates/CAND%2F1/simulations',
+      body: payload,
+      signal: undefined,
+    });
   });
 });
