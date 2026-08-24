@@ -1,6 +1,14 @@
 import { Package } from 'reicon-react';
+import { getLotStatusMeta } from '@/entities/inventory/model/lotStatus';
 import { formatDaysRemaining, formatNumber, formatQuantity } from '@/shared/lib/format';
 import { StateView } from '@/shared/ui';
+
+const LOT_STATUS_BADGE_CLASSES = {
+  AVAILABLE: 'bg-emerald-50 text-emerald-700',
+  SALE_STOPPED: 'bg-amber-50 text-amber-700',
+  EXPIRED: 'bg-red-50 text-red-700',
+  DEPLETED: 'bg-gray-100 text-gray-600',
+};
 
 /**
  * 재고 상세 LOT 목록 및 FEFO 출고 우선순위 섹션
@@ -93,8 +101,14 @@ export function InventoryLotsSection({
                   </span>
                   <strong className="text-xs font-bold font-mono text-gray-900">{lot.lotNumber}</strong>
                   {lot.lotStatus && (
-                    <span className="rounded bg-gray-100 px-1.5 py-0.2 text-[9px] font-semibold text-gray-600">
-                      {lot.lotStatus === 'AVAILABLE' ? '정상' : lot.lotStatus}
+                    <span
+                      title={getLotStatusMeta(lot.lotStatus).description}
+                      aria-label={`로트 상태: ${getLotStatusMeta(lot.lotStatus).label}`}
+                      className={`rounded px-1.5 py-0.2 text-[9px] font-semibold ${
+                        LOT_STATUS_BADGE_CLASSES[getLotStatusMeta(lot.lotStatus).code] || 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {getLotStatusMeta(lot.lotStatus).label}
                     </span>
                   )}
                 </div>

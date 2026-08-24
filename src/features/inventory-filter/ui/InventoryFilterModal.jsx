@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { CloseCircle, Refresh, TickCircle, ChevronRight, Filter } from 'reicon-react';
-import { RISK_GRADE_META, STORAGE_NAMES } from '@/entities/inventory';
+import { STORAGE_NAMES } from '@/entities/inventory';
+import { ASSESSMENT_STATUS_LABELS, getRiskGradeLabel, normalizeRiskGrade } from '@/entities/risk';
 
 const STORAGE_BADGE_COLORS = {
   FROZEN: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
@@ -15,12 +16,38 @@ const RISK_BADGE_COLORS = {
   NORMAL: 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100',
 };
 
+const RISK_BADGE_COLOR_ALIASES = {
+  GOOD: RISK_BADGE_COLORS.SAFE,
+  WARNING: RISK_BADGE_COLORS.CAUTION,
+  CRITICAL: RISK_BADGE_COLORS.DANGER,
+};
+
 const ASSESSMENT_STATUS_META = {
-  ASSESSED: { label: '판정완료', color: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
-  UNASSESSED: { label: '미판정', color: 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100' },
-  REASSESSING: { label: '재판정중', color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100' },
-  STALE: { label: '만료', color: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100' },
-  FAILED: { label: '실패', color: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100' },
+  ASSESSED: {
+    label: ASSESSMENT_STATUS_LABELS.ASSESSED,
+    color: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+  },
+  UNASSESSED: {
+    label: ASSESSMENT_STATUS_LABELS.UNASSESSED,
+    color: 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100',
+  },
+  REASSESSING: {
+    label: ASSESSMENT_STATUS_LABELS.REASSESSING,
+    color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
+  },
+  STALE: {
+    label: ASSESSMENT_STATUS_LABELS.STALE,
+    color: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
+  },
+  FAILED: {
+    label: ASSESSMENT_STATUS_LABELS.FAILED,
+    color: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
+  },
+  ERROR: { label: ASSESSMENT_STATUS_LABELS.ERROR, color: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100' },
+  LOADING: {
+    label: ASSESSMENT_STATUS_LABELS.LOADING,
+    color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
+  },
 };
 
 function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLoading, onClose, onApply }) {
@@ -501,8 +528,16 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                 {riskOptions.map((opt) => {
                   const code = typeof opt === 'string' ? opt : opt.code;
                   const isChecked = draftRiskGrades.includes(code);
-                  const label = RISK_GRADE_META[code]?.label || (typeof opt === 'object' ? opt.name : opt) || code;
-                  const colorClass = RISK_BADGE_COLORS[code] || 'border-gray-200 bg-gray-50 text-gray-700';
+                  const normalizedCode = normalizeRiskGrade(code);
+                  const label = normalizedCode
+                    ? getRiskGradeLabel(normalizedCode)
+                    : typeof opt === 'object' && opt.name
+                      ? opt.name
+                      : '위험 등급 확인 필요';
+                  const colorClass =
+                    RISK_BADGE_COLORS[code] ||
+                    RISK_BADGE_COLOR_ALIASES[code] ||
+                    'border-gray-200 bg-gray-50 text-gray-700';
 
                   return (
                     <button
@@ -533,7 +568,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                 const code = typeof opt === 'string' ? opt : opt.code;
                 const isChecked = draftAssessmentStatuses.includes(code);
                 const meta = ASSESSMENT_STATUS_META[code] || {
-                  label: code,
+                  label: ASSESSMENT_STATUS_LABELS[code] || '판정 상태 확인 필요',
                   color: 'border-gray-200 bg-gray-50 text-gray-700',
                 };
 

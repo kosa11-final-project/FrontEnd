@@ -18,6 +18,8 @@ describe('riskMapper', () => {
       safetyStockQty: 30,
       nearestExpiryDays: 22,
       maxHoldingDays: 14,
+      stockCoverageDays: 37.5,
+      shortageYn: 'Y',
       reasons: [
         {
           code: 'EXPIRY_CRITICAL',
@@ -35,7 +37,8 @@ describe('riskMapper', () => {
     expect(result.riskGrade).toBe('DANGER');
     expect(result.dbRiskGrade).toBe('CRITICAL');
     expect(result.dailySalesVelocity).toBeUndefined();
-    expect(result.stockDays).toBeUndefined();
+    expect(result.stockCoverageDays).toBe(37.5);
+    expect(result.shortageYn).toBe('Y');
     expect(result.nearestExpiryDays).toBe(22);
     expect(result.reasons).toHaveLength(1);
   });
@@ -62,5 +65,15 @@ describe('riskMapper', () => {
     expect(result.availableQty).toBe(150);
     expect(result.shortageQty30).toBe(0);
     expect(result.safetyStockQty).toBeNull();
+  });
+
+  it('부족 여부 fallback은 D+30 예측이 아니라 안전재고 미달을 사용한다', () => {
+    const result = mapRiskAssessmentResponse({
+      availableQty: 10,
+      predictedQtyD30: 20,
+      safetyStockQty: 1,
+    });
+
+    expect(result.shortageYn).toBe('N');
   });
 });

@@ -1,4 +1,4 @@
-import { ASSESSMENT_STATUS_LABELS, RISK_GRADES, RISK_GRADE_META } from '../model/risk.js';
+import { getAssessmentStatusLabel, normalizeRiskGrade, RISK_GRADES, RISK_GRADE_META } from '../model/risk.js';
 
 /**
  * 위험 등급 배지 컴포넌트
@@ -9,13 +9,14 @@ import { ASSESSMENT_STATUS_LABELS, RISK_GRADES, RISK_GRADE_META } from '../model
  * @param {string} [props.className='']
  */
 export function RiskGradeBadge({ grade = null, status = 'ASSESSED', showStatus = false, className = '' }) {
+  const normalizedGrade = normalizeRiskGrade(grade);
   const isUnassessed =
     status === 'UNASSESSED' ||
     status === 'FAILED' ||
     status === 'STALE' ||
     status === 'REASSESSING' ||
-    !Object.values(RISK_GRADES).includes(grade);
-  const targetGrade = isUnassessed ? 'UNASSESSED' : grade;
+    !Object.values(RISK_GRADES).includes(normalizedGrade);
+  const targetGrade = isUnassessed ? 'UNASSESSED' : normalizedGrade;
   const meta = RISK_GRADE_META[targetGrade];
 
   return (
@@ -29,7 +30,7 @@ export function RiskGradeBadge({ grade = null, status = 'ASSESSED', showStatus =
 
       {showStatus && status && status !== 'ASSESSED' && (
         <span className="rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-          {ASSESSMENT_STATUS_LABELS[status] || status}
+          {getAssessmentStatusLabel(status)}
         </span>
       )}
     </div>

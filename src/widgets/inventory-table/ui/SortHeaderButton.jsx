@@ -13,7 +13,7 @@ export function SortIcon({ direction }) {
 export function SortHeaderButton({ label, field, currentSort, onSortChange, align = 'left' }) {
   const [currentField, currentDir] = (currentSort || '').split(',');
   const isSorted = currentField === field ? currentDir : false;
-  const defaultDirection = field === 'nearestExpiryDays' ? 'asc' : 'desc';
+  const defaultDirection = field === 'riskGrade' || field === 'nearestExpiryDays' ? 'asc' : 'desc';
 
   const handleToggle = () => {
     if (!isSorted) {

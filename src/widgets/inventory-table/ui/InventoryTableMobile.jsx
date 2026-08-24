@@ -1,6 +1,7 @@
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory';
-import { STORAGE_BADGE_STYLES, ASSESSMENT_STATUS_LABELS } from './constants.js';
+import { getAssessmentStatusLabel } from '@/entities/risk';
+import { STORAGE_BADGE_STYLES } from './constants.js';
 
 export function InventoryTableMobile({
   items = [],
@@ -101,12 +102,12 @@ export function InventoryTableMobile({
                 <InventoryStatusBadge status={item.riskGrade} />
                 {item.assessmentStatus && item.assessmentStatus !== 'ASSESSED' && (
                   <span className="text-[10px] font-medium text-gray-500">
-                    {ASSESSMENT_STATUS_LABELS[item.assessmentStatus] || item.assessmentStatus}
+                    {getAssessmentStatusLabel(item.assessmentStatus)}
                   </span>
                 )}
                 {item.inventoryFactState && item.inventoryFactState !== 'AVAILABLE' && (
                   <span className="text-[10px] font-medium text-gray-500">
-                    {item.inventoryFactLabel || item.inventoryFactState}
+                    {item.inventoryFactLabel || '재고 상태 확인 필요'}
                   </span>
                 )}
                 {item.nearestExpiryDays != null && (
