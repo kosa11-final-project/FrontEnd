@@ -18,6 +18,7 @@ describe('Inventory Mapper', () => {
       sku_code: 'SKU_MANDU_01_105',
       sku_name: '1.05kg 단품',
       sales_point_code: 'STORE_THE_HYUNDAI_SEOUL',
+      sales_point_id: 77,
       sales_point_name: '더현대 서울',
       channel_type: 'HYUNDAI_DEPT',
       storage_type: 'FROZEN',
@@ -46,6 +47,7 @@ describe('Inventory Mapper', () => {
 
     expect(mapped.rowId).toBe('SKU_MANDU_01_105:STORE_THE_HYUNDAI_SEOUL');
     expect(mapped.skuId).toBe(1001);
+    expect(mapped.salesPoints[0].salesPointId).toBe(77);
     expect(mapped.productName).toBe('비비고 왕교자 1.05kg');
     expect(mapped.supplierName).toBe('CJ제일제당');
     expect(mapped.currentQuantity).toBe(450);
@@ -143,8 +145,20 @@ describe('Inventory Mapper', () => {
       availableQuantity: 24,
       ownerSalesPointCount: 5,
       salesPoints: [
-        { salesPointCode: 'STORE-A', salesPointName: 'A점', channelType: 'HYUNDAI_DEPT', currentQuantity: 10 },
-        { salesPointCode: 'STORE-B', salesPointName: 'B점', channelType: 'HYUNDAI_DEPT', currentQuantity: 20 },
+        {
+          salesPointId: 10,
+          salesPointCode: 'STORE-A',
+          salesPointName: 'A점',
+          channelType: 'HYUNDAI_DEPT',
+          currentQuantity: 10,
+        },
+        {
+          salesPointId: 20,
+          salesPointCode: 'STORE-B',
+          salesPointName: 'B점',
+          channelType: 'HYUNDAI_DEPT',
+          currentQuantity: 20,
+        },
       ],
     });
 
@@ -152,6 +166,7 @@ describe('Inventory Mapper', () => {
     expect(mapped.salesPointCount).toBe(2);
     expect(mapped.ownerSalesPointCount).toBe(5);
     expect(mapped.salesPoints.map((point) => point.salesPointCode)).toEqual(['STORE-A', 'STORE-B']);
+    expect(mapped.salesPoints.map((point) => point.salesPointId)).toEqual([10, 20]);
     expect(mapped.currentQuantity).toBe(30);
   });
 

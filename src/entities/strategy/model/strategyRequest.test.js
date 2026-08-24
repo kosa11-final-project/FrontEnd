@@ -59,6 +59,7 @@ describe('AI 전략 생성 요청 모델', () => {
   it('비어 있는 선택값은 null로 직렬화하고 선택 순서를 보존한다', () => {
     const payload = buildStrategyRequestPayload({
       ...createStrategyRequestDraft({ skuId: 1001 }),
+      sourceSalesPointId: 10,
       strategyTypes: ['RT_TRANSFER', 'PRICE_DISCOUNT'],
       candidateSalesPointIds: [30, 20],
     });
@@ -66,7 +67,7 @@ describe('AI 전략 생성 요청 모델', () => {
     expect(payload).toEqual({
       caseName: null,
       skuId: 1001,
-      sourceSalesPointId: null,
+      sourceSalesPointId: 10,
       lotIds: null,
       candidateSalesPointIds: [30, 20],
       strategyTypes: ['RT_TRANSFER', 'PRICE_DISCOUNT'],
