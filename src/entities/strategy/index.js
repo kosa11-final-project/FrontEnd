@@ -1,5 +1,6 @@
 export * from './model/strategy.js';
 export * from './model/strategyRequest.js';
+export { createAiStrategyCase } from './api/strategyApi.js';
 export { StrategyGenerationProgress } from './ui/StrategyGenerationProgress.jsx';
 export { StrategyGenerationStatus } from './ui/StrategyGenerationStatus.jsx';
 export {
