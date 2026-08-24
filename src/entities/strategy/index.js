@@ -15,6 +15,7 @@ export { strategyExecutionFixtures } from './testing/fixtures.js';
 export {
   getStrategyExecution,
   getStrategyExecutions,
+  mapStrategyExecutionPageResponse,
   mapStrategyExecutionResponse,
 } from './api/strategyExecutionApi.js';
 export { EmptyPerformanceState } from './ui/EmptyPerformanceState.jsx';

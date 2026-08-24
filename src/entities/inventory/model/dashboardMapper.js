@@ -1,4 +1,4 @@
-import { getRegionLabel, getStoreLayout, getWarehouseLayout } from './dashboardLayout.js';
+import { getOnlineSalesPointLayout, getRegionLabel, getStoreLayout, getWarehouseLayout } from './dashboardLayout.js';
 
 function toNumber(value) {
   const number = Number(value);
@@ -49,6 +49,29 @@ function mapOfflineStore(store, index) {
   };
 }
 
+function mapOnlineSalesPoint(salesPoint, index) {
+  const layout = getOnlineSalesPointLayout(salesPoint.salesPointCode, index);
+
+  return {
+    id: salesPoint.salesPointCode ?? String(salesPoint.salesPointId),
+    salesPointId: salesPoint.salesPointId,
+    code: salesPoint.salesPointCode,
+    name: salesPoint.salesPointName,
+    shortName: layout.shortName,
+    type: '온라인',
+    region: layout.region ?? getRegionLabel(salesPoint.regionCode),
+    address: salesPoint.address,
+    storageWarehouseCount: toNumber(salesPoint.storageWarehouseCount),
+    x: layout.x,
+    y: layout.y,
+    currentStock: toNumber(salesPoint.currentStock),
+    availableStock: toNumber(salesPoint.availableStock),
+    nearExpiryStock: toNumber(salesPoint.nearExpiryStock),
+    expectedDisposal: toNumber(salesPoint.expectedDisposalQty),
+    riskSkuCount: toNumber(salesPoint.riskSkuCount),
+  };
+}
+
 function mapRiskSalesPoint(point) {
   return {
     id: String(point.salesPointId),
@@ -88,6 +111,7 @@ export function mapDashboardResponse(response) {
 
   return {
     summary: {
+      totalCurrentStock: toNumber(summary.totalCurrentStock ?? summary.totalAvailableStock),
       totalAvailableStock: toNumber(summary.totalAvailableStock),
       criticalSkuCount: toNumber(summary.criticalSkuCount),
       warningSkuCount: toNumber(summary.warningSkuCount),
@@ -96,6 +120,7 @@ export function mapDashboardResponse(response) {
       expectedDisposal: toNumber(summary.expectedDisposalQty),
     },
     warehouses: (response?.warehouses ?? []).map(mapWarehouse),
+    onlineSalesPoints: (response?.onlineSalesPoints ?? []).map(mapOnlineSalesPoint),
     offlineStores: (response?.offlineStores ?? []).map(mapOfflineStore),
     riskSalesPointsTop10: (response?.riskSalesPointsTop10 ?? []).map(mapRiskSalesPoint),
     urgentSkusTop5: (response?.urgentSkusTop5 ?? []).map(mapUrgentSku),

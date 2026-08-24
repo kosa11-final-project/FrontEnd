@@ -7,11 +7,14 @@ export function SelectMenu({
   value,
   onValueChange,
   options,
+  placeholder,
   'aria-label': ariaLabel,
   className,
   contentClassName,
   disabled = false,
 }) {
+  const selectedOption = options.find((option) => option.value === value);
+
   return (
     <SelectPrimitive.Root value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectPrimitive.Trigger
@@ -23,7 +26,17 @@ export function SelectMenu({
           className,
         )}
       >
-        <SelectPrimitive.Value />
+        <span className="flex min-w-0 items-center gap-2">
+          {selectedOption?.icon ? (
+            <Icon
+              icon={selectedOption.icon}
+              size={15}
+              className="shrink-0 text-[color:var(--primary)]"
+              aria-hidden="true"
+            />
+          ) : null}
+          <SelectPrimitive.Value placeholder={placeholder}>{selectedOption?.label}</SelectPrimitive.Value>
+        </span>
         <SelectPrimitive.Icon asChild>
           <Icon icon={ChevronDown} size={15} className="shrink-0 text-gray-400" aria-hidden="true" />
         </SelectPrimitive.Icon>
@@ -35,19 +48,19 @@ export function SelectMenu({
           sideOffset={6}
           collisionPadding={8}
           className={cn(
-            'z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-lg',
+            'z-50 max-h-[320px] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-lg',
             'data-[state=closed]:animate-out data-[state=open]:animate-in',
             contentClassName,
           )}
         >
-          <SelectPrimitive.Viewport>
+          <SelectPrimitive.Viewport className="max-h-[312px] overflow-y-auto">
             {options.map((option) => (
               <SelectPrimitive.Item
                 key={option.value}
                 value={option.value}
                 disabled={option.disabled}
                 className={cn(
-                  'relative flex h-8 cursor-default select-none items-center rounded-md py-1.5 pl-8 pr-2 text-xs font-medium text-gray-700 outline-none',
+                  'relative flex min-h-9 cursor-default select-none items-center rounded-md py-2 pl-8 pr-2 text-xs font-medium text-gray-700 outline-none',
                   'data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-[#F0FDF4] data-[highlighted]:text-[#166534]',
                 )}
               >
@@ -56,7 +69,24 @@ export function SelectMenu({
                     <Icon icon={TickCircle} size={14} className="text-[#27B06E]" aria-hidden="true" />
                   </SelectPrimitive.ItemIndicator>
                 </span>
-                <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                <span className="flex min-w-0 items-center gap-2.5">
+                  {option.icon ? (
+                    <Icon
+                      icon={option.icon}
+                      size={15}
+                      className="shrink-0 text-[color:var(--text-muted)]"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <span className="min-w-0">
+                    <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                    {option.description ? (
+                      <span className="mt-0.5 block truncate text-[10px] font-normal text-[color:var(--text-muted)]">
+                        {option.description}
+                      </span>
+                    ) : null}
+                  </span>
+                </span>
               </SelectPrimitive.Item>
             ))}
           </SelectPrimitive.Viewport>

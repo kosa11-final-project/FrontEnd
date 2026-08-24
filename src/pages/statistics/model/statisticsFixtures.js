@@ -99,20 +99,56 @@ function createLocation({
 }
 
 function buildDailyTrend() {
-  const start = Date.UTC(2026, 0, 19);
-  return Array.from({ length: 210 }, (_, index) => {
+  const pointCount = 800;
+  const legacyPointCount = 210;
+  const end = Date.UTC(2026, 7, 16);
+  const start = end - (pointCount - 1) * DAY_IN_MILLISECONDS;
+
+  return Array.from({ length: pointCount }, (_, index) => {
+    const seriesIndex = index - (pointCount - legacyPointCount);
     const date = new Date(start + index * DAY_IN_MILLISECONDS).toISOString().slice(0, 10);
-    const campaignLift = index > 142 && index < 157 ? 145 - Math.abs(149 - index) * 13 : 0;
+    const campaignLift = seriesIndex > 142 && seriesIndex < 157 ? 145 - Math.abs(149 - seriesIndex) * 13 : 0;
     const criticalSkuCount = Math.max(
       1_180,
-      Math.round(1_655 - index * 1.72 + Math.sin(index / 4.7) * 34 + campaignLift),
+      Math.round(1_655 - seriesIndex * 1.72 + Math.sin(seriesIndex / 4.7) * 34 + campaignLift),
     );
     const criticalStockQty = Math.max(
-      165_000,
-      Math.round(264_000 - index * 392 + Math.sin(index / 8.2) * 8_600 + campaignLift * 315),
+      260_000,
+      Math.round(355_000 - seriesIndex * 350 + Math.sin(seriesIndex / 8.2) * 8_600 + campaignLift * 315),
     );
 
-    return { date, criticalSkuCount, criticalStockQty };
+    const warningSkuCount = Math.max(
+      2_040,
+      Math.round(2_510 - seriesIndex * 1.75 + Math.sin(seriesIndex / 6.4) * 48 + campaignLift * 0.8),
+    );
+    const warningStockQty = Math.max(
+      620_000,
+      Math.round(830_000 - seriesIndex * 900 + Math.sin(seriesIndex / 10.5) * 16_500 + campaignLift * 510),
+    );
+    const expectedDisposalQty30d = Math.max(
+      420,
+      Math.round(920 - seriesIndex * 1.9 + Math.sin(seriesIndex / 11) * 42 + campaignLift * 0.55),
+    );
+    const shortageSkuCount = Math.max(
+      6_450,
+      Math.round(7_240 - seriesIndex * 2 + Math.sin(seriesIndex / 7.8) * 95 - campaignLift * 0.35),
+    );
+    const totalStockQty = 3_790_195;
+
+    return {
+      date,
+      totalStockQty,
+      criticalSkuCount,
+      warningSkuCount,
+      riskSkuCount: criticalSkuCount + warningSkuCount,
+      riskStockQty: criticalStockQty + warningStockQty,
+      riskStockRatio: ((criticalStockQty + warningStockQty) / totalStockQty) * 100,
+      warningStockQty,
+      expectedDisposalQty30d,
+      expectedDisposalLossAmount30d: expectedDisposalQty30d * 6_500,
+      shortageSkuCount,
+      criticalStockQty,
+    };
   });
 }
 
@@ -293,25 +329,29 @@ const locations = Object.freeze([
     criticalStockQty: 3_720,
     criticalSkuCount: 56,
   }),
-  createLocation({
-    id: 'UNASSIGNED',
-    code: 'UNASSIGNED',
-    name: '공용 미할당',
-    scopeType: 'UNASSIGNED',
-    region: '전국 물류센터',
-    totalStockQty: 58_895,
-    totalSkuCount: 1_440,
-    criticalStockQty: 8_940,
-    criticalSkuCount: 146,
-  }),
 ]);
+
+const previousLocations = Object.freeze(
+  locations.map((location) => ({
+    id: location.id,
+    ...createSummary({
+      totalSkuCount: Math.round(location.totalSkuCount * 1.01),
+      totalStockQty: Math.round(location.totalStockQty * 1.03),
+      availableStockQty: Math.round(location.availableStockQty * 1.025),
+      criticalSkuCount: Math.round(location.criticalSkuCount * 1.08),
+      criticalStockQty: Math.round(location.criticalStockQty * 1.1),
+      shortageSkuCount: Math.round(location.shortageSkuCount * 1.05),
+      expectedDisposalQty30d: Math.round(location.expectedDisposalQty30d * 1.2),
+    }),
+  })),
+);
 
 const nationalSummary = createSummary({
   totalSkuCount: 9_277,
-  totalStockQty: 3_208_895,
-  availableStockQty: 3_070_127,
+  totalStockQty: 3_790_195,
+  availableStockQty: 3_524_881,
   criticalSkuCount: 1_297,
-  criticalStockQty: 182_430,
+  criticalStockQty: 281_260,
   shortageSkuCount: 6_821,
   expectedDisposalQty30d: 519,
   missingCostSkuCount: 12,
@@ -327,8 +367,8 @@ export const inventoryStatisticsFixture = Object.freeze({
     NATIONAL: nationalSummary,
     WAREHOUSE: createSummary({
       totalSkuCount: 9_104,
-      totalStockQty: 2_357_750,
-      availableStockQty: 2_241_420,
+      totalStockQty: 2_353_350,
+      availableStockQty: 2_188_616,
       criticalSkuCount: 1_082,
       criticalStockQty: 169_630,
       shortageSkuCount: 5_104,
@@ -336,10 +376,10 @@ export const inventoryStatisticsFixture = Object.freeze({
     }),
     OFFLINE_STORE: createSummary({
       totalSkuCount: 5_720,
-      totalStockQty: 3_070_127,
-      availableStockQty: 2_914_240,
+      totalStockQty: 1_312_925,
+      availableStockQty: 1_221_020,
       criticalSkuCount: 884,
-      criticalStockQty: 143_520,
+      criticalStockQty: 102_930,
       shortageSkuCount: 2_410,
       expectedDisposalQty30d: 421,
     }),
@@ -352,8 +392,46 @@ export const inventoryStatisticsFixture = Object.freeze({
       shortageSkuCount: 214,
       expectedDisposalQty30d: 46,
     }),
-    UNASSIGNED: locations.find(({ id }) => id === 'UNASSIGNED'),
+  }),
+  previousScopeSummaries: Object.freeze({
+    NATIONAL: createSummary({
+      totalSkuCount: 9_340,
+      totalStockQty: 3_842_600,
+      availableStockQty: 3_562_000,
+      criticalSkuCount: 1_364,
+      criticalStockQty: 306_400,
+      shortageSkuCount: 7_010,
+      expectedDisposalQty30d: 648,
+    }),
+    WAREHOUSE: createSummary({
+      totalSkuCount: 9_160,
+      totalStockQty: 2_381_900,
+      availableStockQty: 2_204_600,
+      criticalSkuCount: 1_144,
+      criticalStockQty: 188_500,
+      shortageSkuCount: 5_400,
+      expectedDisposalQty30d: 410,
+    }),
+    OFFLINE_STORE: createSummary({
+      totalSkuCount: 5_780,
+      totalStockQty: 1_333_100,
+      availableStockQty: 1_236_700,
+      criticalSkuCount: 906,
+      criticalStockQty: 109_400,
+      shortageSkuCount: 2_530,
+      expectedDisposalQty30d: 493,
+    }),
+    ONLINE_STORE: createSummary({
+      totalSkuCount: 3_290,
+      totalStockQty: 127_600,
+      availableStockQty: 120_700,
+      criticalSkuCount: 136,
+      criticalStockQty: 8_500,
+      shortageSkuCount: 229,
+      expectedDisposalQty30d: 51,
+    }),
   }),
   locations,
+  previousLocations,
   dailyTrend: Object.freeze(buildDailyTrend()),
 });

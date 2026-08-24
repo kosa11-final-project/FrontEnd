@@ -1,45 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { Database } from 'reicon-react';
 import { dashboardQueryOptions } from '@/entities/inventory';
 import { DashboardSummary } from '@/widgets/dashboard-summary';
 import { InventoryLocationOverview } from '@/widgets/inventory-location-overview';
 import { RiskSalesPointTable } from '@/widgets/risk-sales-points';
 import { UrgentSkuList } from '@/widgets/urgent-skus';
-import { formatDateTime } from '@/shared/lib/format';
-import { Badge, Card, Icon, StateView } from '@/shared/ui';
+import { StateView } from '@/shared/ui';
 
-function DashboardShell({ calculatedAt, children }) {
+function DashboardShell({ children }) {
   return (
     <main className="page-shell" aria-labelledby="dashboard-page-title">
-      <Card asChild padding="lg" className="mb-6 shadow-[var(--shadow-soft)]">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-card)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
-              <Icon icon={Database} size={22} aria-hidden="true" />
-            </span>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1
-                  id="dashboard-page-title"
-                  className="m-0 text-[length:var(--font-size-page-title)] font-[var(--font-weight-headline1)] leading-[var(--line-height-heading)] tracking-[-0.05em] text-[color:var(--text-heading)]"
-                >
-                  재고 운영 대시보드
-                </h1>
-                <Badge variant="good">전국 재고 거점</Badge>
-              </div>
-              <p className="mt-2 max-w-3xl text-[length:var(--font-size-body)] text-[color:var(--text-muted)]">
-                전체 재고를 요약하고 조치가 필요한 물류센터·판매처·SKU를 빠르게 확인합니다.
-              </p>
-            </div>
-          </div>
-
-          <div className="shrink-0 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-            마지막 정상 동기화
-            <strong className="ml-2 text-[color:var(--text-heading)]">{formatDateTime(calculatedAt)}</strong>
-          </div>
-        </section>
-      </Card>
-
+      <h1 id="dashboard-page-title" className="sr-only">
+        재고 운영 대시보드
+      </h1>
       {children}
     </main>
   );
@@ -47,14 +19,21 @@ function DashboardShell({ calculatedAt, children }) {
 
 export function DashboardPageContent({ dashboard }) {
   return (
-    <DashboardShell calculatedAt={dashboard.calculatedAt}>
-      <div className="space-y-4">
-        <DashboardSummary summary={dashboard.summary} />
-        <InventoryLocationOverview centers={dashboard.warehouses} stores={dashboard.offlineStores} />
+    <DashboardShell>
+      <div className="space-y-3">
+        <DashboardSummary calculatedAt={dashboard.calculatedAt} summary={dashboard.summary} />
 
-        <section className="grid min-w-0 grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.8fr)]">
-          <RiskSalesPointTable points={dashboard.riskSalesPointsTop10} />
-          <UrgentSkuList skus={dashboard.urgentSkusTop5} />
+        <section className="grid min-w-0 grid-cols-1 items-stretch gap-4 2xl:h-[clamp(620px,calc(100dvh-300px),860px)] 2xl:min-h-0 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-rows-[minmax(0,1fr)]">
+          <InventoryLocationOverview
+            centers={dashboard.warehouses}
+            onlineSalesPoints={dashboard.onlineSalesPoints}
+            stores={dashboard.offlineStores}
+          />
+
+          <div className="grid h-full min-h-0 min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-1 2xl:grid-rows-[repeat(2,minmax(0,1fr))]">
+            <UrgentSkuList compact skus={dashboard.urgentSkusTop5} />
+            <RiskSalesPointTable compact points={dashboard.riskSalesPointsTop10} />
+          </div>
         </section>
       </div>
     </DashboardShell>

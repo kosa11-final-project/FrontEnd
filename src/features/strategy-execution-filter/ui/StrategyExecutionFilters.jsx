@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { CloseCircle, Refresh, SearchNormal } from 'reicon-react';
-import { STRATEGY_STATUSES, SUPPORTED_ACTION_TYPES, actionTypeMeta, strategyStatusMeta } from '@/entities/strategy';
+import { SUPPORTED_ACTION_TYPES, actionTypeMeta, strategyStatusMeta } from '@/entities/strategy';
 import { Icon, SelectMenu } from '@/shared/ui';
-import { defaultStrategyExecutionFilters } from '../model/filterState.js';
+import { defaultStrategyExecutionFilters, STRATEGY_EXECUTION_FILTER_STATUSES } from '../model/filterState.js';
 
 function ActiveFilterChip({ label, value, onRemove, tone = 'neutral' }) {
   const toneClasses = {
@@ -68,6 +68,7 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
             ref={searchInputRef}
             id="strategy-execution-search"
             type="search"
+            maxLength={100}
             defaultValue={filters.query}
             placeholder="전략 번호 또는 상품명으로 빠른 검색..."
             className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] pl-10 pr-20 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#27B06E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#27B06E]/20"
@@ -127,7 +128,10 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
               aria-label="전략 전체 상태"
               options={[
                 { value: 'ALL', label: '전체 상태' },
-                ...STRATEGY_STATUSES.map((status) => ({ value: status, label: strategyStatusMeta[status].label })),
+                ...STRATEGY_EXECUTION_FILTER_STATUSES.map((status) => ({
+                  value: status,
+                  label: strategyStatusMeta[status].label,
+                })),
               ]}
             />
           </div>

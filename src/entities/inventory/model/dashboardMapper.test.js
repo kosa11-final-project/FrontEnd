@@ -5,6 +5,7 @@ import { mapDashboardResponse } from './dashboardMapper.js';
 
 const response = {
   summary: {
+    totalCurrentStock: 4800,
     totalAvailableStock: 4062,
     criticalSkuCount: 5,
     warningSkuCount: 7,
@@ -24,6 +25,21 @@ const response = {
       nearExpiryStock: 68,
       outboundStock: 84,
       riskSkuCount: 5,
+    },
+  ],
+  onlineSalesPoints: [
+    {
+      salesPointId: 10,
+      salesPointCode: 'GREETING',
+      salesPointName: '그리팅몰',
+      regionCode: 'ONLINE',
+      address: null,
+      storageWarehouseCount: 2,
+      currentStock: 912,
+      availableStock: 833,
+      nearExpiryStock: 74,
+      expectedDisposalQty: 118,
+      riskSkuCount: 2,
     },
   ],
   offlineStores: [
@@ -80,12 +96,20 @@ describe('dashboard response mapper', () => {
     const dashboard = mapDashboardResponse(response);
 
     expect(dashboard.summary).toMatchObject({
+      totalCurrentStock: 4800,
+      totalAvailableStock: 4062,
       criticalSkuCount: 5,
       warningSkuCount: 7,
       riskAndCautionSkuCount: 12,
       expectedDisposal: 519,
     });
     expect(dashboard.warehouses[0]).toMatchObject({ id: 'SEONGNAM', shortName: '성남', x: 49, y: 20 });
+    expect(dashboard.onlineSalesPoints[0]).toMatchObject({
+      id: 'GREETING',
+      shortName: '그리팅몰',
+      storageWarehouseCount: 2,
+      expectedDisposal: 118,
+    });
     expect(dashboard.offlineStores[0]).toMatchObject({
       id: 'DEPT_PANGYO',
       shortName: '판교',
@@ -107,9 +131,16 @@ describe('dashboard response mapper', () => {
     const dashboard = mapDashboardResponse({ summary: {} });
 
     expect(dashboard.warehouses).toEqual([]);
+    expect(dashboard.onlineSalesPoints).toEqual([]);
     expect(dashboard.offlineStores).toEqual([]);
     expect(dashboard.riskSalesPointsTop10).toEqual([]);
     expect(dashboard.urgentSkusTop5).toEqual([]);
+  });
+
+  it('uses available stock as the current-stock fallback for an older snapshot', () => {
+    const dashboard = mapDashboardResponse({ summary: { totalAvailableStock: 120 } });
+
+    expect(dashboard.summary.totalCurrentStock).toBe(120);
   });
 });
 
@@ -152,6 +183,6 @@ describe('heatmap marker size', () => {
   });
 
   it('uses a stable middle size when all locations have the same stock', () => {
-    expect(getHeatmapMarkerSize(300, 300, 300, 'stores')).toBe(55);
+    expect(getHeatmapMarkerSize(300, 300, 300, 'stores')).toBe(56);
   });
 });

@@ -16,7 +16,7 @@ export function LocationComparisonCard({ locations, scopeType, onScopeTypeChange
             <div>
               <CardTitle id="location-comparison-title">위치별 위험재고 비교</CardTitle>
               <CardDescription className="mt-1">
-                위험재고 비율이 높은 {scopeLabel}부터 확인합니다. 유형 간 수량은 합산하지 않습니다.
+                위험재고 비율이 높은 {scopeLabel}부터 확인합니다. 판매처 미할당 재고는 물류센터로 분류합니다.
               </CardDescription>
             </div>
             <div
