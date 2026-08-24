@@ -5,7 +5,13 @@ export function StrategyActionProgress({ value, label = '진행률', compact = f
   const hasValue = value !== null && value !== undefined && Number.isFinite(numericValue);
   const safeValue = hasValue ? Math.min(100, Math.max(0, numericValue)) : null;
   const barTone =
-    tone === 'danger' ? 'bg-[var(--danger)]' : tone === 'warning' ? 'bg-[var(--warning)]' : 'bg-[var(--primary)]';
+    tone === 'danger'
+      ? 'bg-[var(--danger)]'
+      : tone === 'warning'
+        ? 'bg-[var(--warning)]'
+        : tone === 'accent'
+          ? 'bg-[var(--chart-4)]'
+          : 'bg-[var(--primary)]';
   return (
     <div className={cn('min-w-0', compact ? 'space-y-1' : 'space-y-2')}>
       <div className="flex items-center justify-between gap-3 text-[length:var(--font-size-meta)]">

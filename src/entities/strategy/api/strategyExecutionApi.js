@@ -34,6 +34,18 @@ const normalizeAction = (action = {}) => ({
   kpis: Array.isArray(action.kpis) ? action.kpis : [],
 });
 
+const normalizeInventoryTransfer = (transfer = {}) => ({
+  fromLocationId: transfer.fromLocationId ?? null,
+  fromLocationName: transfer.fromLocationName ?? '',
+  toLocationId: transfer.toLocationId ?? null,
+  toLocationName: transfer.toLocationName ?? '',
+  destinationWarehouseId: transfer.destinationWarehouseId ?? null,
+  destinationWarehouseName: transfer.destinationWarehouseName ?? null,
+  targetSalesPointId: transfer.targetSalesPointId ?? null,
+  targetSalesPointName: transfer.targetSalesPointName ?? null,
+  quantity: transfer.quantity ?? null,
+});
+
 export function mapStrategyExecutionResponse(value = {}) {
   const product = value.product ?? {};
   return {
@@ -54,6 +66,9 @@ export function mapStrategyExecutionResponse(value = {}) {
       .filter((action) => supportedActionTypes.has(action.type))
       .map(normalizeAction),
     inventoryResults: Array.isArray(value.inventoryResults) ? value.inventoryResults : [],
+    inventoryTransfers: (Array.isArray(value.inventoryTransfers) ? value.inventoryTransfers : []).map(
+      normalizeInventoryTransfer,
+    ),
     channelResults: Array.isArray(value.channelResults) ? value.channelResults : [],
     salesDaily: Array.isArray(value.salesDaily) ? value.salesDaily : [],
     salesPointComparison: Array.isArray(value.salesPointComparison) ? value.salesPointComparison : [],

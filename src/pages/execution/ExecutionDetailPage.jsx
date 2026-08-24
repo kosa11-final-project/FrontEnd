@@ -3,11 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'reicon-react';
 import {
   EmptyPerformanceState,
+  formatAchievementRateText,
   getCompletedActionCount,
   getStrategyExecution,
   StrategyActionCard,
   StrategyActionProgress,
+  StrategyChannelPerformanceReport,
   StrategyDailySalesAreaChart,
+  StrategyInventoryComparisonBarChart,
+  StrategyInventoryTransferList,
   StrategyKpiGrid,
   StrategyProductImage,
   StrategyStatusBadge,
@@ -100,7 +104,7 @@ export function StrategyExecutionDetailContent({ strategy }) {
               <p className="mt-3 text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-muted)]">
                 전체 결과
               </p>
-              <p className="mt-1">{strategy.resultSummary ?? '미수집'}</p>
+              <p className="mt-1">{formatAchievementRateText(strategy.resultSummary) ?? '미수집'}</p>
             </div>
             <div className="rounded-[var(--radius-card)] bg-[var(--surface-subtle)] p-4">
               <p className="mb-2 text-[length:var(--font-size-body-sm)]">
@@ -112,18 +116,21 @@ export function StrategyExecutionDetailContent({ strategy }) {
           </div>
         </header>
       </Card>
-      <Section title="다중 액션 실행 흐름" description="번호 순서와 선행·병렬·조건부 관계를 함께 표시합니다.">
-        <div className="space-y-3">
-          {strategy.actions.map((action, index) => (
-            <StrategyActionCard key={action.id} action={action} index={index} actionNames={names} />
-          ))}
-          {!strategy.actions.length ? (
-            <EmptyPerformanceState
-              title="실행 액션이 없습니다."
-              description="최종 선택 전략에 지원 액션이 등록되면 표시됩니다."
-            />
-          ) : null}
-        </div>
+      <Section title="다중 전략 실행 흐름" description="번호 순서와 선행·병렬·조건부 관계를 함께 표시합니다.">
+        {strategy.actions.length ? (
+          <ol aria-label="실행 전략 카드 목록" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {strategy.actions.map((action, index) => (
+              <li key={action.id} className="min-w-0">
+                <StrategyActionCard action={action} index={index} actionNames={names} />
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <EmptyPerformanceState
+            title="실행 액션이 없습니다."
+            description="최종 선택 전략에 지원 액션이 등록되면 표시됩니다."
+          />
+        )}
       </Section>
       <Section
         title="판매처별 SKU 일일 판매량"
@@ -142,56 +149,62 @@ export function StrategyExecutionDetailContent({ strategy }) {
           <EmptyPerformanceState title="전략 전체 성과가 아직 수집되지 않았습니다." />
         )}
       </Section>
+      <Section
+        title="재고 이동 경로"
+        description="전략 실행의 출발·도착 센터와 이동 수량을 표시하며, 대상 판매처는 보조 정보로 제공합니다."
+      >
+        {strategy.inventoryTransfers?.length ? (
+          <StrategyInventoryTransferList transfers={strategy.inventoryTransfers} />
+        ) : (
+          <EmptyPerformanceState
+            title="재고 이동 경로가 없습니다."
+            description="재고 이동이 실행되거나 이동 결과가 동기화되면 표시됩니다."
+          />
+        )}
+      </Section>
       <div className="grid gap-4 2xl:grid-cols-2">
-        <Section title="재고 위치별 이동 전후 결과" description="안전재고는 변경할 수 없는 읽기 전용 가드레일입니다.">
+        <Section
+          title="위치별 재고 변화"
+          description="전략 실행 전후의 위치별 재고를 비교하며, 안전재고는 읽기 전용 가드레일입니다."
+        >
           {strategy.inventoryResults.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] text-left text-[length:var(--font-size-body-sm)]">
-                <thead className="border-b border-[var(--border)] text-[color:var(--text-muted)]">
-                  <tr>
-                    <th className="p-3">재고 위치</th>
-                    <th className="p-3">이동 전</th>
-                    <th className="p-3">이동량</th>
-                    <th className="p-3">이동 후</th>
-                    <th className="p-3">가드레일</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {strategy.inventoryResults.map((row) => (
-                    <tr
-                      key={`${row.locationType ?? 'LOCATION'}-${row.locationId ?? row.location}`}
-                      className="border-b border-[var(--border)] last:border-0"
-                    >
-                      <th className="p-3 font-semibold text-[color:var(--text-heading)]">{row.location}</th>
-                      <td className="p-3">{valueOrMissing(row.before, '개')}</td>
-                      <td className="p-3">{valueOrMissing(row.moved, '개')}</td>
-                      <td className="p-3">{valueOrMissing(row.after, '개')}</td>
-                      <td className="p-3 text-[color:var(--text-muted)]">{row.guardrail}</td>
+            <>
+              <StrategyInventoryComparisonBarChart results={strategy.inventoryResults} />
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] text-left text-[length:var(--font-size-body-sm)]">
+                  <thead className="border-b border-[var(--border)] text-[color:var(--text-muted)]">
+                    <tr>
+                      <th className="p-3">재고 위치</th>
+                      <th className="p-3">이동 전</th>
+                      <th className="p-3">재고 증감</th>
+                      <th className="p-3">이동 후</th>
+                      <th className="p-3">가드레일</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {strategy.inventoryResults.map((row) => (
+                      <tr
+                        key={`${row.locationType ?? 'LOCATION'}-${row.locationId ?? row.location}`}
+                        className="border-b border-[var(--border)] last:border-0"
+                      >
+                        <th className="p-3 font-semibold text-[color:var(--text-heading)]">{row.location}</th>
+                        <td className="p-3">{valueOrMissing(row.before, '개')}</td>
+                        <td className="p-3">{valueOrMissing(row.moved, '개')}</td>
+                        <td className="p-3">{valueOrMissing(row.after, '개')}</td>
+                        <td className="p-3 text-[color:var(--text-muted)]">{row.guardrail}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <EmptyPerformanceState title="이동 결과가 아직 수집되지 않았습니다." />
           )}
         </Section>
-        <Section title="채널별 판매 성과">
+        <Section title="채널별 판매 성과 리포트" description="채널 수와 수집된 성과에 맞는 분석 화면을 제공합니다.">
           {strategy.channelResults.length ? (
-            <div className="grid gap-2">
-              {strategy.channelResults.map((row) => (
-                <div
-                  key={row.salesPointId ?? row.channel}
-                  className="grid gap-2 rounded-[var(--radius-card)] bg-[var(--surface-subtle)] p-3 sm:grid-cols-5"
-                >
-                  <strong className="text-[color:var(--text-heading)]">{row.channel}</strong>
-                  <span>{row.status ?? '상태 미수집'}</span>
-                  <span>판매 {valueOrMissing(row.sales, '개')}</span>
-                  <span>매출 {valueOrMissing(row.revenue, '원')}</span>
-                  <span>잠식 {row.cannibalization ?? '미수집'}</span>
-                </div>
-              ))}
-            </div>
+            <StrategyChannelPerformanceReport results={strategy.channelResults} actions={strategy.actions} />
           ) : (
             <EmptyPerformanceState
               title="채널 판매 성과가 없습니다."

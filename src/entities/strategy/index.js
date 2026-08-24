@@ -21,13 +21,24 @@ export {
 export { EmptyPerformanceState } from './ui/EmptyPerformanceState.jsx';
 export { StrategyActionCard } from './ui/StrategyActionCard.jsx';
 export { StrategyActionProgress } from './ui/StrategyActionProgress.jsx';
+export { StrategyActionStepProgress } from './ui/StrategyActionStepProgress.jsx';
 export { StrategyActionTypeBadge } from './ui/StrategyActionTypeBadge.jsx';
+export {
+  buildChannelPerformanceReport,
+  parseChannelRevenue,
+  StrategyChannelPerformanceReport,
+} from './ui/StrategyChannelPerformanceReport.jsx';
 export {
   StrategyDailySalesAreaChart,
   buildDailySalesChartData,
   buildDailySalesComparisonData,
 } from './ui/StrategyDailySalesAreaChart.jsx';
 export { StrategyKpiGrid } from './ui/StrategyKpiGrid.jsx';
+export {
+  buildInventoryComparisonChartData,
+  StrategyInventoryComparisonBarChart,
+} from './ui/StrategyInventoryComparisonBarChart.jsx';
+export { StrategyInventoryTransferList } from './ui/StrategyInventoryTransferList.jsx';
 export { StrategyProductImage } from './ui/StrategyProductImage.jsx';
 export { StrategyStatusBadge } from './ui/StrategyStatusBadge.jsx';
 export { StrategySyncStatus } from './ui/StrategySyncStatus.jsx';

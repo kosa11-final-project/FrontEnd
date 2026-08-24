@@ -91,7 +91,7 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
           <div
             className="flex flex-wrap items-center gap-1 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-1"
             role="group"
-            aria-label="액션 타입"
+            aria-label="전략 유형"
           >
             <button
               type="button"
@@ -101,7 +101,7 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
                 filters.actionType === 'ALL' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              전체 액션
+              전체 전략
             </button>
             {SUPPORTED_ACTION_TYPES.map((type) => {
               const selected = filters.actionType === type;
@@ -164,7 +164,7 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
             ) : null}
             {filters.actionType !== 'ALL' ? (
               <ActiveFilterChip
-                label="액션"
+                label="전략"
                 value={actionTypeMeta[filters.actionType].label}
                 tone="primary"
                 onRemove={() => setFilter('actionType', 'ALL')}
