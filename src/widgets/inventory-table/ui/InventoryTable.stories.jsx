@@ -1,5 +1,6 @@
 import { fn } from 'storybook/test';
-import { RESULT_STATE } from '@/entities/inventory';
+import { mapInventoryItem, RESULT_STATE } from '@/entities/inventory';
+import { mockRawInventoryItems } from '@/entities/inventory/testing/fixtures.js';
 import { InventoryTable } from './InventoryTable.jsx';
 
 const meta = {
@@ -13,49 +14,22 @@ const meta = {
     onSortChange: fn(),
     onResetFilters: fn(),
     onRowClick: fn(),
+    onRetry: fn(),
+    onToggleSelectSku: fn(),
+    onSelectAllSkus: fn(),
+    onClearSelectedSkus: fn(),
     onGenerateStrategy: fn(),
+    selectedSkuCodes: [],
   },
 };
 
 export default meta;
 
-const items = [
-  {
-    rowId: 'SKU-MANDU-01',
-    skuCode: 'SKU-MANDU-01',
-    skuName: '1.05kg 단품팩',
-    productName: '비비고 왕교자',
-    categoryPathLabel: '식품 > 냉동식품 > 만두',
-    storageType: 'FROZEN',
-    storageName: '냉동',
-    currentQuantity: 450,
-    availableQuantity: 420,
-    reservedQuantity: 30,
-    safetyQuantity: 100,
-    riskGrade: 'SAFE',
-    assessmentStatus: 'ASSESSED',
-    nearestExpiryDays: 43,
-    salesPoints: [
-      {
-        salesPointCode: 'STORE-SEOUL',
-        salesPointName: '더현대 서울점',
-        channelType: 'HYUNDAI_DEPT',
-        currentQuantity: 200,
-        availableQuantity: 180,
-        riskGrade: 'SAFE',
-      },
-      {
-        salesPointCode: 'GREETING',
-        salesPointName: '그리팅 공식몰',
-        channelType: 'GREETING',
-        currentQuantity: 250,
-        availableQuantity: 240,
-        riskGrade: 'SAFE',
-      },
-    ],
-    ownerSalesPointCount: 2,
-  },
-];
+const items = mockRawInventoryItems.slice(0, 3).map((rawItem) => ({
+  ...mapInventoryItem(rawItem),
+  // 원격 이미지 상태에 따라 시각 회귀가 흔들리지 않도록 Storybook에서는 No Img 상태로 고정합니다.
+  imageUrl: null,
+}));
 
 export const Loaded = {
   args: {
@@ -68,11 +42,42 @@ export const Loaded = {
   },
 };
 
+export const SelectedForStrategy = {
+  args: {
+    ...Loaded.args,
+    selectedSkuCodes: items.slice(0, 2).map((item) => item.skuCode),
+  },
+};
+
+export const UnassessedRisk = {
+  args: {
+    ...Loaded.args,
+    items: [
+      {
+        ...items[0],
+        riskGrade: null,
+        assessmentStatus: 'UNASSESSED',
+        riskReason: '수요예측 데이터 적재 후 위험도를 판정합니다.',
+      },
+    ],
+    totalCount: 1,
+    totalPages: 1,
+  },
+};
+
 export const Empty = {
   args: {
     items: [],
     totalCount: 0,
     resultState: RESULT_STATE.NO_DATA,
+  },
+};
+
+export const FilterEmpty = {
+  args: {
+    items: [],
+    totalCount: 0,
+    resultState: RESULT_STATE.FILTER_EMPTY,
   },
 };
 
@@ -89,5 +94,16 @@ export const Loading = {
     items: [],
     totalCount: 0,
     isLoading: true,
+  },
+};
+
+export const Mobile = {
+  parameters: {
+    viewport: { defaultViewport: 'mobile1' },
+  },
+  args: {
+    ...Loaded.args,
+    totalCount: items.length,
+    totalPages: 1,
   },
 };

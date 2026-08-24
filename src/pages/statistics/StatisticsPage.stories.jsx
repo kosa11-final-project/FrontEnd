@@ -1,4 +1,5 @@
 import { MemoryRouter } from 'react-router-dom';
+import { fn, userEvent, within } from 'storybook/test';
 import { StateView } from '@/shared/ui';
 import { StatisticsPageContent, StatisticsPageShell } from './StatisticsPage.jsx';
 import { inventoryStatisticsFixture } from './model/statisticsFixtures.js';
@@ -8,6 +9,10 @@ const meta = {
   component: StatisticsPageContent,
   tags: ['autodocs'],
   parameters: { layout: 'fullscreen' },
+  args: {
+    onQueryParamsChange: fn(),
+    onRetryStrategy: fn(),
+  },
 };
 
 export default meta;
@@ -23,17 +28,48 @@ function StoryFrame({ children }) {
 }
 
 export const Default = {
-  render: () => (
+  render: (args) => (
     <StoryFrame>
-      <StatisticsPageContent statistics={inventoryStatisticsFixture} />
+      <StatisticsPageContent {...args} statistics={inventoryStatisticsFixture} />
     </StoryFrame>
   ),
 };
 
+export const InventoryRiskTrend = {
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('tab', { name: '위험재고 추이' }));
+  },
+};
+
 export const WithoutFinancialPermission = {
-  render: () => (
+  render: (args) => (
     <StoryFrame>
-      <StatisticsPageContent statistics={{ ...inventoryStatisticsFixture, canViewFinancials: false }} />
+      <StatisticsPageContent {...args} statistics={{ ...inventoryStatisticsFixture, canViewFinancials: false }} />
+    </StoryFrame>
+  ),
+};
+
+export const StrategyLoading = {
+  render: (args) => (
+    <StoryFrame>
+      <StatisticsPageContent {...args} statistics={inventoryStatisticsFixture} strategyState="loading" />
+    </StoryFrame>
+  ),
+};
+
+export const StrategyEmpty = {
+  render: (args) => (
+    <StoryFrame>
+      <StatisticsPageContent {...args} statistics={inventoryStatisticsFixture} strategyState="empty" />
+    </StoryFrame>
+  ),
+};
+
+export const StrategyError = {
+  render: (args) => (
+    <StoryFrame>
+      <StatisticsPageContent {...args} statistics={inventoryStatisticsFixture} strategyState="error" />
     </StoryFrame>
   ),
 };

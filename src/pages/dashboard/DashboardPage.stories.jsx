@@ -1,35 +1,10 @@
 import { MemoryRouter } from 'react-router-dom';
-import {
-  dashboardInventorySummary,
-  distributionCenters,
-  offlineStoreInventories,
-  onlineSalesPointInventories,
-  rankRiskSalesPoints,
-  rankUrgentSkus,
-  riskSalesPoints,
-  urgentSkus,
-} from '@/entities/inventory';
+import { mapDashboardResponse } from '@/entities/inventory';
+import { mockDashboardResponse } from '@/entities/inventory/testing/dashboardFixtures.js';
 import { DashboardPageContent } from './DashboardPage.jsx';
 
-const dashboardFixture = {
-  summary: dashboardInventorySummary,
-  warehouses: distributionCenters,
-  onlineSalesPoints: onlineSalesPointInventories,
-  offlineStores: offlineStoreInventories,
-  riskSalesPointsTop10: rankRiskSalesPoints(riskSalesPoints)
-    .slice(0, 10)
-    .map((point, index) => ({ ...point, rank: index + 1 })),
-  urgentSkusTop5: rankUrgentSkus(urgentSkus)
-    .slice(0, 5)
-    .map((sku, index) => ({
-      ...sku,
-      rank: index + 1,
-      skuId: sku.id,
-      stockLocation: sku.salesPoint,
-      saleStopDays: null,
-    })),
-  calculatedAt: '2026-08-15T01:05:00Z',
-};
+// Storybook 전용 API 응답 예시입니다. 운영 엔티티 barrel에는 정적 재고값을 노출하지 않습니다.
+const dashboardFixture = mapDashboardResponse(mockDashboardResponse);
 
 const meta = {
   title: 'Pages/Dashboard',

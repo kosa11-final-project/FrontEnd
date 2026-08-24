@@ -1,4 +1,5 @@
 import { FORECAST_STATUS } from './forecast.js';
+import { getSafetyStockCrossing } from './forecastTimeline.js';
 
 function unwrapApiResponse(response = {}) {
   return response && typeof response === 'object' && response.data !== undefined ? response.data : response;
@@ -62,6 +63,14 @@ export function mapDemandForecastResponse(response) {
     forecastAsOf: rawFreshness.forecastAsOf || rawFreshness.forecast_as_of || baseDate,
   };
 
+  const chartPoints = buildChartTimelinePoints({
+    cumulativeForecast,
+    projectedInventories,
+    availableQty,
+    safetyStockQty,
+    baseDate,
+  });
+
   return {
     status,
     scope,
@@ -79,13 +88,8 @@ export function mapDemandForecastResponse(response) {
     cumulativeForecast,
     projectedInventories,
     freshness,
-    chartPoints: buildChartTimelinePoints({
-      cumulativeForecast,
-      projectedInventories,
-      availableQty,
-      safetyStockQty,
-      baseDate,
-    }),
+    chartPoints,
+    safetyStockCrossing: getSafetyStockCrossing({ chartPoints, safetyStockQty, baseDate }),
   };
 }
 
@@ -101,6 +105,7 @@ function buildChartTimelinePoints({
       date: baseDate || 'BASE',
       label: baseDate ? `${baseDate.slice(5)} (기준일)` : '기준일',
       type: 'CURRENT',
+      offsetDays: 0,
       forecastQty: 0,
       projectedQty: availableQty,
       safetyStockQty,
@@ -118,6 +123,7 @@ function buildChartTimelinePoints({
       date: key,
       label: key,
       type: 'FORECAST',
+      offsetDays: Number(key.slice(2)),
       forecastQty: cum,
       projectedQty: proj,
       safetyStockQty,
