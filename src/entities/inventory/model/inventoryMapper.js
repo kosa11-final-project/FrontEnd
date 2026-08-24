@@ -135,6 +135,7 @@ function isUnassignedSalesPoint(salesPoint = {}) {
 export function mapInventoryItem(response = {}) {
   const dto = unwrapApiResponse(response) || {};
   const skuId = nullableNumber(dto.skuId, dto.sku_id);
+  const salesPointId = nullableNumber(dto.salesPointId, dto.sales_point_id);
   const productCode = dto.productCode || dto.product_code || '';
   const productName = dto.productName || dto.product_name || '상품명 미지정';
   const supplierName = dto.supplierName || dto.supplier_name || '';
@@ -213,6 +214,7 @@ export function mapInventoryItem(response = {}) {
     : salesPointCode || dto.salesPointName || dto.sales_point_name
       ? [
           {
+            salesPointId,
             salesPointCode,
             salesPointName,
             channelType,
