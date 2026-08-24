@@ -9,6 +9,10 @@ import { statisticsKeys } from '@/entities/statistics';
 import { getInventorySync, retryAfterSeconds, startInventorySync } from '../api/inventorySyncApi.js';
 import {
   ACTIVE_STATUSES,
+  isSnapshotRefreshDelayed,
+  isSnapshotRefreshFailed,
+  isSnapshotRefreshPending,
+  inventorySyncKeys,
   inventorySyncLatestQueryOptions,
   inventorySyncRunQueryOptions,
 } from '../model/inventorySyncQueries.js';
@@ -28,6 +32,9 @@ export const SYNC_UI_STATES = Object.freeze({
   TRACKING: 'TRACKING',
   TRACKING_ERROR: 'TRACKING_ERROR',
   RECOVERY_WAITING: 'RECOVERY_WAITING',
+  SNAPSHOT_REFRESHING: 'SNAPSHOT_REFRESHING',
+  SNAPSHOT_REFRESH_FAILED: 'SNAPSHOT_REFRESH_FAILED',
+  SNAPSHOT_REFRESH_DELAYED: 'SNAPSHOT_REFRESH_DELAYED',
   STATUS_UNAVAILABLE: 'STATUS_UNAVAILABLE',
   SUCCEEDED: 'SUCCEEDED',
   FAILED: 'FAILED',
@@ -40,6 +47,7 @@ const ERROR_MESSAGE_MAX_LENGTH = 240;
 const ERROR_UI_STATES = new Set([
   SYNC_UI_STATES.START_UNCERTAIN,
   SYNC_UI_STATES.TRACKING_ERROR,
+  SYNC_UI_STATES.SNAPSHOT_REFRESH_FAILED,
   SYNC_UI_STATES.STATUS_UNAVAILABLE,
   SYNC_UI_STATES.FAILED,
 ]);
@@ -49,9 +57,30 @@ const START_BLOCKED_STATES = new Set([
   SYNC_UI_STATES.TRACKING,
   SYNC_UI_STATES.TRACKING_ERROR,
   SYNC_UI_STATES.RECOVERY_WAITING,
+  SYNC_UI_STATES.SNAPSHOT_REFRESHING,
   SYNC_UI_STATES.STATUS_UNAVAILABLE,
   SYNC_UI_STATES.START_RATE_LIMITED,
 ]);
+const SYNC_BUSY_STATES = new Set([
+  SYNC_UI_STATES.STARTING,
+  SYNC_UI_STATES.TRACKING,
+  SYNC_UI_STATES.SNAPSHOT_REFRESHING,
+]);
+const NEW_REQUEST_UI_STATES = new Set([
+  SYNC_UI_STATES.SUCCEEDED,
+  SYNC_UI_STATES.FAILED,
+  SYNC_UI_STATES.SNAPSHOT_REFRESH_FAILED,
+  SYNC_UI_STATES.SNAPSHOT_REFRESH_DELAYED,
+]);
+
+function hasRefreshedScope(refreshedRunIds, scope, runId) {
+  const previousRunId = refreshedRunIds[scope];
+  return previousRunId != null && Number(previousRunId) >= Number(runId);
+}
+
+function markRefreshedScope(refreshedRunIds, scope, runId) {
+  if (!hasRefreshedScope(refreshedRunIds, scope, runId)) refreshedRunIds[scope] = runId;
+}
 
 function createClientRequestId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -96,10 +125,12 @@ function formatCompletionNotice(run) {
     details.push(`오류 ${formatNumber(run.errorCount)}건`);
   }
   if (run?.completedAt) details.push(formatDateTime(run.completedAt));
-  return [
-    ['동기화 완료', ...details].join(' · '),
-    '통합재고 목록·요약·상세·LOT·위험 판정·대시보드·통계 갱신을 요청했습니다.',
-  ].join(' — ');
+  const changedCount = Number(run?.changedCount);
+  const refreshNotice =
+    Number.isFinite(changedCount) && changedCount === 0
+      ? '변경된 원천 데이터가 없어 조회 API를 다시 호출하지 않았습니다.'
+      : '통합재고 조회와 대시보드·재고통계 캐시를 최신 DB 스냅샷 기준으로 다시 조회했습니다.';
+  return [['동기화 완료', ...details].join(' · '), refreshNotice].join(' — ');
 }
 
 export function inventoryRefreshDelay(random = Math.random) {
@@ -110,6 +141,9 @@ const STATE_ANNOUNCEMENTS = Object.freeze({
   [SYNC_UI_STATES.STARTING]: '재고 동기화 등록을 시작했습니다.',
   [SYNC_UI_STATES.TRACKING]: '재고 동기화가 실행 중입니다.',
   [SYNC_UI_STATES.RECOVERY_WAITING]: '재고 동기화가 중단되어 복구를 기다립니다.',
+  [SYNC_UI_STATES.SNAPSHOT_REFRESHING]: '통합재고 반영 후 대시보드와 재고통계 최신화를 확인하고 있습니다.',
+  [SYNC_UI_STATES.SNAPSHOT_REFRESH_FAILED]: '통합재고 반영은 완료됐지만 후속 집계 최신화에 실패했습니다.',
+  [SYNC_UI_STATES.SNAPSHOT_REFRESH_DELAYED]: '통합재고 반영은 완료됐지만 집계 최신화 완료를 확인하지 못했습니다.',
   [SYNC_UI_STATES.SUCCEEDED]: '재고 동기화가 완료되었습니다.',
   [SYNC_UI_STATES.FAILED]: '재고 동기화에 실패했습니다.',
   [SYNC_UI_STATES.START_UNCERTAIN]: '동기화 실행 등록 결과를 확인할 수 없습니다.',
@@ -124,6 +158,9 @@ const SYNC_LABELS = Object.freeze({
   [SYNC_UI_STATES.START_RATE_LIMITED]: '잠시 후 다시 실행',
   [SYNC_UI_STATES.TRACKING_ERROR]: '상태 확인 필요',
   [SYNC_UI_STATES.RECOVERY_WAITING]: '복구 대기 중',
+  [SYNC_UI_STATES.SNAPSHOT_REFRESHING]: '집계 최신화 중',
+  [SYNC_UI_STATES.SNAPSHOT_REFRESH_FAILED]: '집계 최신화 실패',
+  [SYNC_UI_STATES.SNAPSHOT_REFRESH_DELAYED]: '집계 확인 지연',
   [SYNC_UI_STATES.STATUS_UNAVAILABLE]: '상태 확인 필요',
 });
 
@@ -138,6 +175,9 @@ function resolveSyncUiState({ latestQuery, runQuery, localUiState, syncRunId, ob
   if (observedRunId && runQuery.isError) return SYNC_UI_STATES.TRACKING_ERROR;
   if (observedRun?.status === 'INTERRUPTED') return SYNC_UI_STATES.RECOVERY_WAITING;
   if (observedRun?.status === 'QUEUED' || observedRun?.status === 'RUNNING') return SYNC_UI_STATES.TRACKING;
+  if (isSnapshotRefreshFailed(observedRun)) return SYNC_UI_STATES.SNAPSHOT_REFRESH_FAILED;
+  if (isSnapshotRefreshDelayed(observedRun)) return SYNC_UI_STATES.SNAPSHOT_REFRESH_DELAYED;
+  if (isSnapshotRefreshPending(observedRun)) return SYNC_UI_STATES.SNAPSHOT_REFRESHING;
   if (observedRun?.status && TERMINAL_STATUSES.has(observedRun.status)) {
     return observedRun.status === 'SUCCEEDED' ? SYNC_UI_STATES.SUCCEEDED : SYNC_UI_STATES.FAILED;
   }
@@ -165,6 +205,19 @@ function resolveDisplayNotice({
     return '재고 동기화 중입니다. 이 화면의 실행 버튼을 잠그고 서버에서 중복 실행을 차단합니다.';
   }
   if (uiState === SYNC_UI_STATES.SUCCEEDED) return formatCompletionNotice(observedRun);
+  if (uiState === SYNC_UI_STATES.SNAPSHOT_REFRESHING) {
+    return '통합재고 반영은 완료됐습니다. 저장된 대시보드·재고통계 스냅샷을 확인한 뒤 최신 API를 다시 조회합니다.';
+  }
+  if (uiState === SYNC_UI_STATES.SNAPSHOT_REFRESH_FAILED) {
+    const failedScopes = [
+      observedRun?.snapshotRefresh?.dashboardStatus === 'FAILED' ? '대시보드' : null,
+      observedRun?.snapshotRefresh?.inventoryStatisticsStatus === 'FAILED' ? '재고통계' : null,
+    ].filter(Boolean);
+    return `통합재고 반영은 완료됐지만 ${failedScopes.join('·') || '후속 집계'} 최신화에 실패했습니다. 새 동기화는 실행할 수 있으며 서버의 스냅샷 작업 오류를 확인해 주세요.`;
+  }
+  if (uiState === SYNC_UI_STATES.SNAPSHOT_REFRESH_DELAYED) {
+    return '통합재고 반영은 완료됐지만 5분 안에 대시보드·재고통계 저장 완료를 확인하지 못했습니다. 새 동기화는 실행할 수 있으며 집계 상태는 서버 로그에서 확인해 주세요.';
+  }
   if (uiState === SYNC_UI_STATES.FAILED) {
     return summarizeSyncError(observedRun?.errorMessage) || '재고 동기화에 실패했습니다.';
   }
@@ -296,13 +349,19 @@ export function InventorySyncControl() {
   const [uiState, setUiState] = useState(SYNC_UI_STATES.INITIAL_LOADING);
   const [runSnapshot, setRunSnapshot] = useState(null);
   const [notice, setNotice] = useState('');
-  const refreshedRunIdsRef = useRef(new Set());
+  const refreshedRunIdsRef = useRef({ inventory: null, dashboard: null, inventoryStatistics: null });
   const refreshTimersRef = useRef(new Map());
   const rateLimitTimerRef = useRef(null);
   const latestQuery = useQuery(inventorySyncLatestQueryOptions());
   const globalActiveRun = latestQuery.data && ACTIVE_STATUSES.has(latestQuery.data.status) ? latestQuery.data : null;
   const observedRunId = newestSyncRunId(globalActiveRun?.syncRunId, syncRunId, latestQuery.data?.syncRunId);
   const runQuery = useQuery(inventorySyncRunQueryOptions(observedRunId));
+
+  useEffect(() => {
+    const latestRun = latestQuery.data;
+    if (!latestRun?.syncRunId) return;
+    queryClient.setQueryData(inventorySyncKeys.run(latestRun.syncRunId), latestRun);
+  }, [latestQuery.data, queryClient]);
 
   const observedRun = runQuery.data || globalActiveRun || runSnapshot || latestQuery.data || null;
   const derivedUiState = resolveSyncUiState({
@@ -313,32 +372,62 @@ export function InventorySyncControl() {
     observedRunId,
     observedRun,
   });
-  const succeededRunId = runQuery.data?.status === 'SUCCEEDED' ? runQuery.data.syncRunId : null;
+  const succeededRun = observedRun?.status === 'SUCCEEDED' ? observedRun : null;
+  const succeededRunId = succeededRun?.syncRunId ?? null;
+  const succeededChangedCount = Number(succeededRun?.changedCount);
+  const snapshotRefresh = succeededRun?.snapshotRefresh;
 
   useEffect(() => {
+    const refreshKey = `${succeededRunId}:inventory`;
     if (
       !succeededRunId ||
-      refreshedRunIdsRef.current.has(succeededRunId) ||
-      refreshTimersRef.current.has(succeededRunId)
+      !Number.isFinite(succeededChangedCount) ||
+      succeededChangedCount <= 0 ||
+      hasRefreshedScope(refreshedRunIdsRef.current, 'inventory', succeededRunId) ||
+      refreshTimersRef.current.has(refreshKey)
     ) {
       return;
     }
 
     const refreshTimer = window.setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.summaries() });
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.details() });
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.lots() });
-      queryClient.invalidateQueries({ queryKey: riskQueryKeys.all });
-      // Snapshot creation runs independently after the canonical inventory commit.
-      // Mark both read models stale so the next dashboard/statistics view reads the new snapshot.
-      queryClient.invalidateQueries({ queryKey: dashboardKeys.snapshot() });
-      queryClient.invalidateQueries({ queryKey: statisticsKeys.all });
-      refreshTimersRef.current.delete(succeededRunId);
-      refreshedRunIdsRef.current.add(succeededRunId);
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.lists(), refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.summaries(), refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.details(), refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.lots(), refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: riskQueryKeys.all, refetchType: 'active' });
+      refreshTimersRef.current.delete(refreshKey);
+      markRefreshedScope(refreshedRunIdsRef.current, 'inventory', succeededRunId);
     }, inventoryRefreshDelay());
-    refreshTimersRef.current.set(succeededRunId, refreshTimer);
-  }, [queryClient, succeededRunId]);
+    refreshTimersRef.current.set(refreshKey, refreshTimer);
+  }, [queryClient, succeededChangedCount, succeededRunId]);
+
+  useEffect(() => {
+    if (
+      !succeededRunId ||
+      !Number.isFinite(succeededChangedCount) ||
+      succeededChangedCount <= 0 ||
+      snapshotRefresh?.required === false
+    ) {
+      return;
+    }
+
+    const legacyContract = snapshotRefresh == null;
+    if (
+      (legacyContract || snapshotRefresh.dashboardReady === true) &&
+      !hasRefreshedScope(refreshedRunIdsRef.current, 'dashboard', succeededRunId)
+    ) {
+      markRefreshedScope(refreshedRunIdsRef.current, 'dashboard', succeededRunId);
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.snapshot(), refetchType: 'all' });
+    }
+
+    if (
+      (legacyContract || snapshotRefresh.inventoryStatisticsReady === true) &&
+      !hasRefreshedScope(refreshedRunIdsRef.current, 'inventoryStatistics', succeededRunId)
+    ) {
+      markRefreshedScope(refreshedRunIdsRef.current, 'inventoryStatistics', succeededRunId);
+      queryClient.invalidateQueries({ queryKey: statisticsKeys.all, refetchType: 'all' });
+    }
+  }, [queryClient, snapshotRefresh, succeededChangedCount, succeededRunId]);
 
   useEffect(() => {
     const refreshTimers = refreshTimersRef.current;
@@ -354,9 +443,7 @@ export function InventorySyncControl() {
     // A terminal run is immutable for its idempotency key. Generate a fresh
     // key for a deliberate new attempt, while START_UNCERTAIN keeps the old
     // key so a transport retry can still resolve the original commit.
-    const nextClientRequestId = [SYNC_UI_STATES.SUCCEEDED, SYNC_UI_STATES.FAILED].includes(derivedUiState)
-      ? createClientRequestId()
-      : clientRequestId;
+    const nextClientRequestId = NEW_REQUEST_UI_STATES.has(derivedUiState) ? createClientRequestId() : clientRequestId;
     if (nextClientRequestId !== clientRequestId) {
       setClientRequestId(nextClientRequestId);
       setSyncRunId(null);
@@ -425,6 +512,7 @@ export function InventorySyncControl() {
   }, [derivedUiState, handleStart, latestQuery, observedRunId, runQuery]);
 
   const buttonDisabled = START_BLOCKED_STATES.has(derivedUiState);
+  const isSyncBusy = SYNC_BUSY_STATES.has(derivedUiState);
   const { displayNotice, isErrorState, label, phaseAnnouncement } = resolveSyncPresentation({
     uiState: derivedUiState,
     latestQuery,
@@ -443,15 +531,9 @@ export function InventorySyncControl() {
         onClick={handleStart}
         disabled={buttonDisabled}
         aria-describedby="inventory-sync-status"
-        aria-busy={derivedUiState === SYNC_UI_STATES.STARTING || derivedUiState === SYNC_UI_STATES.TRACKING}
+        aria-busy={isSyncBusy}
       >
-        <Refresh
-          size={15}
-          className={
-            [SYNC_UI_STATES.STARTING, SYNC_UI_STATES.TRACKING].includes(derivedUiState) ? 'animate-spin' : undefined
-          }
-          aria-hidden="true"
-        />
+        <Refresh size={15} className={isSyncBusy ? 'animate-spin' : undefined} aria-hidden="true" />
         {label}
       </Button>
       <p

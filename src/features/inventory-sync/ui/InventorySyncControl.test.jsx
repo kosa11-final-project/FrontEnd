@@ -99,22 +99,36 @@ describe('InventorySyncControl', () => {
   });
 
   it('shows rate-limit guidance, unlocks after Retry-After, and clears a pending timer on unmount', async () => {
-    apiMock.startInventorySync.mockRejectedValue({ status: 429, headers: { 'retry-after': '0.05' } });
-    const { unmount } = renderControl();
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['inventory-sync', 'latest'], null);
+    apiMock.startInventorySync.mockRejectedValue({ status: 429, headers: { 'retry-after': '1' } });
 
-    fireEvent.click(await screen.findByRole('button', { name: '재고 동기화' }));
+    try {
+      const { unmount } = renderControl(queryClient);
+      fireEvent.click(screen.getByRole('button', { name: '재고 동기화' }));
+      await act(async () => {});
 
-    expect(await screen.findByRole('button', { name: '잠시 후 다시 실행' })).toBeDisabled();
-    expect(screen.getByText('0.05초 후 다시 실행할 수 있습니다.')).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: '재고 동기화' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: '잠시 후 다시 실행' })).toBeDisabled();
+      expect(screen.getByText('1초 후 다시 실행할 수 있습니다.')).toBeInTheDocument();
 
-    apiMock.startInventorySync.mockRejectedValue({ status: 429, headers: { 'retry-after': '60' } });
-    fireEvent.click(screen.getByRole('button', { name: '재고 동기화' }));
-    expect(await screen.findByRole('button', { name: '잠시 후 다시 실행' })).toBeDisabled();
-    const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout');
-    unmount();
-    expect(clearTimeoutSpy).toHaveBeenCalled();
-    clearTimeoutSpy.mockRestore();
+      await act(() => vi.advanceTimersByTimeAsync(999));
+      expect(screen.getByRole('button', { name: '잠시 후 다시 실행' })).toBeDisabled();
+      await act(() => vi.advanceTimersByTimeAsync(1));
+      expect(screen.getByRole('button', { name: '재고 동기화' })).toBeEnabled();
+
+      apiMock.startInventorySync.mockRejectedValue({ status: 429, headers: { 'retry-after': '60' } });
+      fireEvent.click(screen.getByRole('button', { name: '재고 동기화' }));
+      await act(async () => {});
+      expect(screen.getByRole('button', { name: '잠시 후 다시 실행' })).toBeDisabled();
+
+      const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout');
+      unmount();
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+      clearTimeoutSpy.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('keeps the start button disabled and exposes retry when an active run detail is unavailable', async () => {
@@ -233,6 +247,7 @@ describe('InventorySyncControl', () => {
       readCount: 1,
       changedCount: 1,
       errorCount: 0,
+      snapshotRefresh: { required: true, dashboardReady: true, inventoryStatisticsReady: true },
     });
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -242,16 +257,133 @@ describe('InventorySyncControl', () => {
 
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledTimes(7));
     expect(invalidateSpy.mock.calls.map(([options]) => options.queryKey)).toEqual([
+      ['dashboard', 'snapshot'],
+      ['statistics'],
       ['inventory', 'list'],
       ['inventory', 'summary'],
       ['inventory', 'detail'],
       ['inventory', 'lots'],
       ['inventory-risk'],
-      ['dashboard', 'snapshot'],
-      ['statistics'],
     ]);
-    expect(screen.getByText(/목록·요약·상세·LOT·위험 판정·대시보드·통계 갱신을 요청했습니다/)).toBeInTheDocument();
+    expect(screen.getByText(/대시보드·재고통계 캐시를 최신 DB 스냅샷 기준으로 다시 조회했습니다/)).toBeInTheDocument();
     randomSpy.mockRestore();
+  });
+
+  it('waits for persisted snapshots before refreshing dashboard and inventory statistics', async () => {
+    vi.useFakeTimers();
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const pendingRun = {
+      syncRunId: 42,
+      status: 'SUCCEEDED',
+      changedCount: 1,
+      snapshotRefresh: { required: true, dashboardReady: false, inventoryStatisticsReady: false },
+    };
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['inventory-sync', 'latest'], pendingRun);
+    queryClient.setQueryData(['inventory-sync', 'run', 42], pendingRun);
+    apiMock.getInventorySyncLatest.mockResolvedValue(pendingRun);
+    apiMock.getInventorySync.mockResolvedValue(pendingRun);
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    try {
+      renderControl(queryClient);
+      await act(async () => {});
+      await act(() => vi.advanceTimersByTimeAsync(0));
+
+      expect(screen.getByRole('button', { name: '집계 최신화 중' })).toBeDisabled();
+      expect(invalidateSpy).toHaveBeenCalledTimes(5);
+      expect(invalidateSpy.mock.calls.map(([options]) => options.queryKey)).not.toContainEqual([
+        'dashboard',
+        'snapshot',
+      ]);
+
+      act(() => {
+        queryClient.setQueryData(['inventory-sync', 'run', 42], {
+          ...pendingRun,
+          snapshotRefresh: { required: true, dashboardReady: true, inventoryStatisticsReady: false },
+        });
+      });
+      await act(() => vi.advanceTimersByTimeAsync(0));
+
+      expect(invalidateSpy).toHaveBeenCalledTimes(6);
+      expect(invalidateSpy.mock.calls.map(([options]) => options.queryKey)).toContainEqual(['dashboard', 'snapshot']);
+      expect(invalidateSpy.mock.calls.map(([options]) => options.queryKey)).not.toContainEqual(['statistics']);
+      expect(screen.getByRole('button', { name: '집계 최신화 중' })).toBeDisabled();
+
+      act(() => {
+        queryClient.setQueryData(['inventory-sync', 'run', 42], {
+          ...pendingRun,
+          snapshotRefresh: { required: true, dashboardReady: true, inventoryStatisticsReady: true },
+        });
+      });
+      await act(() => vi.advanceTimersByTimeAsync(0));
+
+      expect(invalidateSpy).toHaveBeenCalledTimes(7);
+      expect(invalidateSpy.mock.calls.map(([options]) => options.queryKey)).toContainEqual(['statistics']);
+      expect(screen.getByRole('button', { name: '재고 동기화' })).toBeEnabled();
+    } finally {
+      randomSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops waiting and unlocks a new sync when snapshot readiness is delayed for five minutes', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-24T00:05:00.000Z'));
+    const delayedRun = {
+      syncRunId: 42,
+      status: 'SUCCEEDED',
+      changedCount: 1,
+      completedAt: '2026-08-24T00:00:00.000Z',
+      snapshotRefresh: { required: true, dashboardReady: true, inventoryStatisticsReady: false },
+    };
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['inventory-sync', 'latest'], delayedRun);
+    queryClient.setQueryData(['inventory-sync', 'run', 42], delayedRun);
+    apiMock.getInventorySyncLatest.mockResolvedValue(delayedRun);
+    apiMock.getInventorySync.mockResolvedValue(delayedRun);
+
+    try {
+      renderControl(queryClient);
+      await act(async () => {});
+
+      expect(screen.getByRole('button', { name: '집계 확인 지연' })).toBeEnabled();
+      expect(screen.getByText(/5분 안에 대시보드·재고통계 저장 완료를 확인하지 못했습니다/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops polling and unlocks a fresh sync when a durable snapshot task fails', async () => {
+    const failedSnapshotRun = {
+      syncRunId: 42,
+      status: 'SUCCEEDED',
+      changedCount: 1,
+      completedAt: '2026-08-24T00:00:00.000Z',
+      snapshotRefresh: {
+        required: true,
+        dashboardReady: true,
+        inventoryStatisticsReady: false,
+        dashboardStatus: 'SUCCEEDED',
+        inventoryStatisticsStatus: 'FAILED',
+      },
+    };
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(['inventory-sync', 'latest'], failedSnapshotRun);
+    queryClient.setQueryData(['inventory-sync', 'run', 42], failedSnapshotRun);
+    apiMock.getInventorySyncLatest.mockResolvedValue(failedSnapshotRun);
+    apiMock.getInventorySync.mockResolvedValue(failedSnapshotRun);
+
+    renderControl(queryClient);
+
+    const button = await screen.findByRole('button', { name: '집계 최신화 실패' });
+    expect(button).toBeEnabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('재고통계 최신화에 실패했습니다.');
+
+    apiMock.startInventorySync.mockResolvedValue({ syncRunId: 43, status: 'QUEUED' });
+    fireEvent.click(button);
+    await waitFor(() => expect(apiMock.startInventorySync).toHaveBeenCalledOnce());
+    expect(apiMock.startInventorySync.mock.calls[0][0]).not.toBe('');
   });
 
   it('delays a successful inventory refresh by zero to three seconds', () => {
@@ -273,10 +405,10 @@ describe('InventorySyncControl', () => {
     try {
       renderControl(queryClient);
       await act(async () => {});
-      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(invalidateSpy).toHaveBeenCalledTimes(2);
 
       await act(() => vi.advanceTimersByTimeAsync(INVENTORY_REFRESH_JITTER_MS - 1));
-      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(invalidateSpy).toHaveBeenCalledTimes(2);
 
       await act(() => vi.advanceTimersByTimeAsync(1));
       expect(invalidateSpy).toHaveBeenCalledTimes(7);
@@ -293,8 +425,8 @@ describe('InventorySyncControl', () => {
   it('does not cancel an earlier successful run refresh when another run becomes observed', async () => {
     vi.useFakeTimers();
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.999999);
-    const run42 = { syncRunId: 42, status: 'SUCCEEDED' };
-    const run43 = { syncRunId: 43, status: 'SUCCEEDED' };
+    const run42 = { syncRunId: 42, status: 'SUCCEEDED', changedCount: 1 };
+    const run43 = { syncRunId: 43, status: 'SUCCEEDED', changedCount: 1 };
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     queryClient.setQueryData(['inventory-sync', 'latest'], run42);
     queryClient.setQueryData(['inventory-sync', 'run', 42], run42);
@@ -305,13 +437,14 @@ describe('InventorySyncControl', () => {
     try {
       renderControl(queryClient);
       await act(async () => {});
+      expect(invalidateSpy).toHaveBeenCalledTimes(2);
 
       act(() => {
         queryClient.setQueryData(['inventory-sync', 'latest'], { ...run43, status: 'RUNNING' });
         queryClient.setQueryData(['inventory-sync', 'run', 43], run43);
       });
-      await act(async () => {});
-      expect(invalidateSpy).not.toHaveBeenCalled();
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      expect(invalidateSpy).toHaveBeenCalledTimes(4);
 
       await act(() => vi.advanceTimersByTimeAsync(INVENTORY_REFRESH_JITTER_MS));
       expect(invalidateSpy).toHaveBeenCalledTimes(14);
