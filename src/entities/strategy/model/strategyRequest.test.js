@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  STRATEGY_REQUEST_TYPES,
   buildStrategyRequestPayload,
   createStrategyRequestDraft,
   hasStrategyRequestPreference,
@@ -7,6 +8,15 @@ import {
 } from './strategyRequest.js';
 
 describe('AI 전략 생성 요청 모델', () => {
+  it('생성 요청에서 채널 집중 전략을 제외한다', () => {
+    expect(STRATEGY_REQUEST_TYPES.map((type) => type.value)).toEqual([
+      'REALLOCATION',
+      'RT_TRANSFER',
+      'PRICE_DISCOUNT',
+      'CHANNEL_EXPANSION',
+    ]);
+  });
+
   it('선택 SKU로 빈 요청 초안을 만든다', () => {
     expect(createStrategyRequestDraft({ skuId: 1001, skuCode: 'SKU-001' })).toMatchObject({
       skuId: 1001,

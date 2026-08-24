@@ -19,11 +19,6 @@ export const STRATEGY_REQUEST_TYPES = Object.freeze([
     label: '채널 확대',
     description: '다른 온라인몰·오프라인 판매처로 노출을 확대합니다.',
   },
-  {
-    value: 'CHANNEL_CONCENTRATION',
-    label: '채널 집중',
-    description: '판매속도가 빠른 채널에 재고와 노출을 집중합니다.',
-  },
 ]);
 
 const DAY_MS = 86_400_000;
