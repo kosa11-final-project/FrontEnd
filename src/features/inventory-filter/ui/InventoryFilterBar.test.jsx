@@ -21,7 +21,6 @@ describe('InventoryFilterBar', () => {
 
     expect(onFilterChange).toHaveBeenCalledWith({ filterOperator: 'OR' });
   });
-
   it('counts and displays a region-only filter as an active detailed filter', () => {
     render(
       <InventoryFilterBar
