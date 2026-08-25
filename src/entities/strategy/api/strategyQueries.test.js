@@ -32,5 +32,8 @@ describe('AI strategy list query options', () => {
     expect(options.refetchInterval({ state: { data: { statusCounts: { generating: 0 } } } })).toBe(false);
     expect(options.refetchInterval({ state: { data: undefined } })).toBe(false);
     expect(options.placeholderData).toBeTypeOf('function');
+    expect(options.retry(0, { status: 500 })).toBe(true);
+    expect(options.retry(1, { status: 500 })).toBe(false);
+    expect(options.retry(0, { status: 400 })).toBe(false);
   });
 });

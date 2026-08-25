@@ -11,7 +11,7 @@ const listCases = strategyGenerationFixtures.map((fixture) => ({
     skuId: fixture.product.skuId,
     skuCode: fixture.product.skuCode,
     skuName: fixture.product.name,
-    imageUrl: fixture.product.imageUrl,
+    imageUrl: null,
     category: fixture.category
       ? {
           categoryId: fixture.category.id,

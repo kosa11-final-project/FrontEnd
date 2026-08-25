@@ -24,6 +24,22 @@ function getSeoulToday() {
   }).format(new Date());
 }
 
+async function createStrategyCases(requests, createCase) {
+  const settled = await Promise.allSettled(requests.map(({ payload }) => createCase(payload)));
+  return settled.reduce(
+    (result, outcome, index) => {
+      const request = requests[index];
+      if (outcome.status === 'fulfilled') {
+        result.successful.push({ skuCode: request.skuCode, createdCase: outcome.value });
+      } else {
+        result.failed.push({ skuCode: request.skuCode, error: outcome.reason });
+      }
+      return result;
+    },
+    { successful: [], failed: [] },
+  );
+}
+
 function FieldLabel({ htmlFor, children, optional = false }) {
   return (
     <label
@@ -36,7 +52,7 @@ function FieldLabel({ htmlFor, children, optional = false }) {
   );
 }
 
-function ProductTargetTab({ item, index, active, ready, needsAttention, onClick }) {
+function ProductTargetTab({ item, index, active, ready, generated, needsAttention, onClick }) {
   return (
     <button
       type="button"
@@ -59,8 +75,8 @@ function ProductTargetTab({ item, index, active, ready, needsAttention, onClick 
         <strong className="block truncate text-sm text-[color:var(--text-heading)]">{item.productName}</strong>
         <span className="mt-0.5 block truncate text-xs text-[color:var(--text-muted)]">{item.skuCode}</span>
       </span>
-      <Badge variant={needsAttention ? 'danger' : ready ? 'good' : 'neutral'}>
-        {needsAttention ? '확인 필요' : ready ? '입력 완료' : '미입력'}
+      <Badge variant={needsAttention ? 'danger' : generated || ready ? 'good' : 'neutral'}>
+        {needsAttention ? '확인 필요' : generated ? '생성 완료' : ready ? '입력 완료' : '미입력'}
       </Badge>
     </button>
   );
@@ -338,10 +354,24 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
     Object.fromEntries(selectedItems.map((item) => [item.skuCode, createStrategyRequestDraft(item)])),
   );
   const [errorsBySku, setErrorsBySku] = useState({});
+  const [createdCasesBySku, setCreatedCasesBySku] = useState({});
+  const [submissionFailures, setSubmissionFailures] = useState([]);
   const today = getSeoulToday();
   const creationMutation = useMutation({
-    mutationFn: (payloads) => Promise.all(payloads.map((payload) => createCase(payload))),
-    onSuccess: (createdCases) => onCreated?.(createdCases),
+    mutationFn: (requests) => createStrategyCases(requests, createCase),
+    onSuccess: ({ successful, failed }) => {
+      const nextCreatedCasesBySku = { ...createdCasesBySku };
+      successful.forEach(({ skuCode, createdCase }) => {
+        nextCreatedCasesBySku[skuCode] = createdCase;
+      });
+      setCreatedCasesBySku(nextCreatedCasesBySku);
+      setSubmissionFailures(failed);
+      if (failed.length > 0) setActiveSkuCode(failed[0].skuCode);
+
+      if (failed.length === 0 && selectedItems.every((item) => nextCreatedCasesBySku[item.skuCode])) {
+        onCreated?.(selectedItems.map((item) => nextCreatedCasesBySku[item.skuCode]));
+      }
+    },
   });
 
   useEffect(() => {
@@ -373,6 +403,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
 
   const updateDraft = (changes) => {
     creationMutation.reset();
+    setSubmissionFailures([]);
     setDrafts((current) => ({
       ...current,
       [activeItem.skuCode]: { ...current[activeItem.skuCode], ...changes },
@@ -420,8 +451,9 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
   const handleSubmit = () => {
     const nextErrors = {};
     let firstInvalidSku = '';
+    const pendingItems = selectedItems.filter((item) => !createdCasesBySku[item.skuCode]);
 
-    selectedItems.forEach((item) => {
+    pendingItems.forEach((item) => {
       const itemDraft = drafts[item.skuCode];
       const itemErrors = validateStrategyRequestDraft(itemDraft, today);
       if (Object.keys(itemErrors).length) {
@@ -436,7 +468,12 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
       return;
     }
 
-    creationMutation.mutate(selectedItems.map((item) => buildStrategyRequestPayload(drafts[item.skuCode])));
+    creationMutation.mutate(
+      pendingItems.map((item) => ({
+        skuCode: item.skuCode,
+        payload: buildStrategyRequestPayload(drafts[item.skuCode]),
+      })),
+    );
   };
 
   return createPortal(
@@ -488,6 +525,30 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
             </Alert>
           ) : null}
 
+          {submissionFailures.length ? (
+            <Alert
+              variant={Object.keys(createdCasesBySku).length ? 'warning' : 'danger'}
+              title={
+                Object.keys(createdCasesBySku).length
+                  ? '일부 AI 전략 생성 요청을 완료하지 못했습니다.'
+                  : 'AI 전략 생성 요청을 전송하지 못했습니다.'
+              }
+              className="mt-4"
+              role="alert"
+            >
+              생성 완료 {Object.keys(createdCasesBySku).length}건 · 재시도 대상 {submissionFailures.length}건
+              <ul className="mt-2 list-disc space-y-1 pl-4">
+                {submissionFailures.map(({ skuCode, error }) => (
+                  <li key={skuCode}>
+                    <strong>{skuCode}</strong>
+                    <span> — </span>
+                    <span>{error?.message || '잠시 후 다시 시도해 주세요.'}</span>
+                  </li>
+                ))}
+              </ul>
+            </Alert>
+          ) : null}
+
           <section className="mt-5" aria-label="전략 생성 대상 상품 선택">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {selectedItems.map((item, index) => (
@@ -497,6 +558,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                   index={index}
                   active={item.skuCode === activeItem.skuCode}
                   ready={hasStrategyRequestPreference(drafts[item.skuCode])}
+                  generated={Boolean(createdCasesBySku[item.skuCode])}
                   needsAttention={Boolean(Object.keys(errorsBySku[item.skuCode] ?? {}).length)}
                   onClick={() => setActiveSkuCode(item.skuCode)}
                 />

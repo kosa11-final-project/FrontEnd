@@ -56,6 +56,17 @@ describe('AI 전략 생성 요청 모델', () => {
     expect(hasStrategyRequestPreference({ ...emptyDraft, strategyTypes: ['REALLOCATION'] })).toBe(true);
   });
 
+  it('공용 미할당 재고는 판매처 ID 없이 출발 재고로 제출한다', () => {
+    const draft = {
+      ...createStrategyRequestDraft({ skuId: 1001 }),
+      sourceSalesPointCode: 'UNASSIGNED',
+      sourceSalesPointId: null,
+    };
+
+    expect(validateStrategyRequestDraft(draft, '2026-08-23')).toEqual({});
+    expect(buildStrategyRequestPayload(draft).sourceSalesPointId).toBeNull();
+  });
+
   it('명세의 날짜 경계와 전략명 길이를 검증한다', () => {
     expect(
       validateStrategyRequestDraft(

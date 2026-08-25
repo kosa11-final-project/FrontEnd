@@ -265,6 +265,38 @@ describe('InventoryPage Integration', () => {
     expect(screen.getByRole('dialog', { name: 'AI 전략 생성' })).toBeInTheDocument();
   });
 
+  it('keeps successful Cases and retries only failed SKU requests', async () => {
+    const attemptsBySku = new Map();
+    strategyApiMock.createAiStrategyCase.mockImplementation(async (payload) => {
+      const attempt = (attemptsBySku.get(payload.skuId) ?? 0) + 1;
+      attemptsBySku.set(payload.skuId, attempt);
+      if (payload.skuId === 1002 && attempt === 1) throw new Error('한우 전략 생성 실패');
+      return { strategyCaseId: payload.skuId * 10 + attempt, caseStatus: 'GENERATING' };
+    });
+    renderWithProviders(<InventoryPage />);
+
+    fireEvent.click((await screen.findAllByRole('checkbox', { name: /1\.05kg 단품팩 선택/ }))[0]);
+    fireEvent.click((await screen.findAllByRole('checkbox', { name: /500g 냉장팩 선택/ }))[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성' }));
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /현대명품 한우/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
+
+    expect(await screen.findByText('일부 AI 전략 생성 요청을 완료하지 못했습니다.')).toBeInTheDocument();
+    expect(screen.getByText(/생성 완료 1건 · 재시도 대상 1건/)).toBeInTheDocument();
+    expect(strategyApiMock.createAiStrategyCase.mock.calls.map(([payload]) => payload.skuId)).toEqual([1001, 1002]);
+
+    fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
+    await waitFor(() =>
+      expect(strategyApiMock.createAiStrategyCase.mock.calls.map(([payload]) => payload.skuId)).toEqual([
+        1001, 1002, 1002,
+      ]),
+    );
+    expect(screen.queryByRole('dialog', { name: 'AI 전략 생성' })).not.toBeInTheDocument();
+  });
+
   it('renders filter empty state when no items match search query', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: ['/inventory?q=존재하지않는상품검색어xyz'],

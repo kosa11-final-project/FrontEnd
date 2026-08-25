@@ -75,7 +75,8 @@ export function validateStrategyRequestDraft(draft, today) {
     errors.skuId = '상품 식별자를 확인할 수 없습니다. 재고 목록을 새로고침한 뒤 다시 선택해 주세요.';
   }
 
-  if (draft?.sourceSalesPointCode && (!Number.isInteger(draft.sourceSalesPointId) || draft.sourceSalesPointId <= 0)) {
+  const assignedSourceSelected = draft?.sourceSalesPointCode && draft.sourceSalesPointCode !== 'UNASSIGNED';
+  if (assignedSourceSelected && (!Number.isInteger(draft.sourceSalesPointId) || draft.sourceSalesPointId <= 0)) {
     errors.sourceSalesPointId = '선택한 출발 판매처의 식별자를 확인할 수 없습니다.';
   }
 
