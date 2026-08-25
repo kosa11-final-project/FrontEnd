@@ -6,9 +6,16 @@ import { getAssessmentStatusLabel, normalizeRiskGrade, RISK_GRADES, RISK_GRADE_M
  * @param {string | null} [props.grade=null] - 위험 등급 (CRITICAL, WARNING, SAFE 등)
  * @param {string} [props.status='ASSESSED'] - 판정 상태 (ASSESSED, UNASSESSED 등)
  * @param {boolean} [props.showStatus=false] - 판정 상태 텍스트 표시 여부
+ * @param {boolean} [props.showDot=true] - 위험도 라벨 앞의 점 표시 여부
  * @param {string} [props.className='']
  */
-export function RiskGradeBadge({ grade = null, status = 'ASSESSED', showStatus = false, className = '' }) {
+export function RiskGradeBadge({
+  grade = null,
+  status = 'ASSESSED',
+  showStatus = false,
+  showDot = true,
+  className = '',
+}) {
   const normalizedGrade = normalizeRiskGrade(grade);
   const isUnassessed =
     status === 'UNASSESSED' ||
@@ -24,7 +31,7 @@ export function RiskGradeBadge({ grade = null, status = 'ASSESSED', showStatus =
       <span
         className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold ${meta.badgeClass}`}
       >
-        <span className={`size-1.5 rounded-full ${meta.dotClass}`} />
+        {showDot && <span className={`size-1.5 rounded-full ${meta.dotClass}`} />}
         <span>{meta.label}</span>
       </span>
 

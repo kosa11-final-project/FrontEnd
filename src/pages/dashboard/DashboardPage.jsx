@@ -1,9 +1,8 @@
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardQueryOptions } from '@/entities/inventory';
-import { DashboardSummary } from '@/widgets/dashboard-summary';
+import { DashboardOperationsPanel } from '@/widgets/dashboard-operations';
 import { InventoryLocationOverview } from '@/widgets/inventory-location-overview';
-import { RiskSalesPointTable } from '@/widgets/risk-sales-points';
-import { UrgentSkuList } from '@/widgets/urgent-skus';
 import { StateView } from '@/shared/ui';
 
 function DashboardShell({ children }) {
@@ -18,22 +17,43 @@ function DashboardShell({ children }) {
 }
 
 export function DashboardPageContent({ dashboard }) {
+  const [selectedSalesPointId, setSelectedSalesPointId] = useState(
+    () => dashboard.offlineStores[0]?.salesPointId ?? dashboard.onlineSalesPoints[0]?.salesPointId ?? null,
+  );
+  const [tabSelectionVersion, setTabSelectionVersion] = useState(0);
+  const salesPoints = useMemo(
+    () => [...dashboard.offlineStores, ...dashboard.onlineSalesPoints],
+    [dashboard.offlineStores, dashboard.onlineSalesPoints],
+  );
+  const selectedSalesPoint = salesPoints.find((salesPoint) => salesPoint.salesPointId === selectedSalesPointId) ?? null;
+  const urgentSkusBySalesPoint = dashboard.urgentSkusBySalesPoint ?? {};
+  const hasSelectedSalesPointSkus =
+    selectedSalesPointId !== null && Object.prototype.hasOwnProperty.call(urgentSkusBySalesPoint, selectedSalesPointId);
+  const urgentSkus =
+    selectedSalesPointId === null
+      ? []
+      : hasSelectedSalesPointSkus
+        ? (urgentSkusBySalesPoint[selectedSalesPointId] ?? [])
+        : (dashboard.urgentSkusTop5 ?? []).filter((sku) => sku.allocatedSalesPointCode === selectedSalesPoint?.code);
+
   return (
     <DashboardShell>
       <div className="space-y-3">
-        <DashboardSummary calculatedAt={dashboard.calculatedAt} summary={dashboard.summary} />
-
-        <section className="grid min-w-0 grid-cols-1 items-stretch gap-4 2xl:h-[clamp(620px,calc(100dvh-300px),860px)] 2xl:min-h-0 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-rows-[minmax(0,1fr)]">
+        <section className="grid min-w-0 grid-cols-1 items-stretch gap-4 2xl:h-[calc(100dvh-126px)] 2xl:min-h-0 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-rows-[minmax(0,1fr)]">
           <InventoryLocationOverview
             centers={dashboard.warehouses}
             onlineSalesPoints={dashboard.onlineSalesPoints}
             stores={dashboard.offlineStores}
+            onSalesPointSelect={setSelectedSalesPointId}
+            onViewModeChange={() => setTabSelectionVersion((version) => version + 1)}
           />
 
-          <div className="grid h-full min-h-0 min-w-0 gap-4 lg:grid-cols-2 2xl:grid-cols-1 2xl:grid-rows-[repeat(2,minmax(0,1fr))]">
-            <UrgentSkuList compact skus={dashboard.urgentSkusTop5} />
-            <RiskSalesPointTable compact points={dashboard.riskSalesPointsTop10} />
-          </div>
+          <DashboardOperationsPanel
+            accordionResetKey={tabSelectionVersion}
+            selectedSalesPoint={selectedSalesPoint}
+            urgentSkus={urgentSkus}
+            riskSalesPoints={dashboard.riskSalesPointsTop10}
+          />
         </section>
       </div>
     </DashboardShell>

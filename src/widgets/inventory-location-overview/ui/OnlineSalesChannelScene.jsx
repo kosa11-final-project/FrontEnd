@@ -201,13 +201,11 @@ function ChannelTerminal({ index, location, onActivate, onHoverChange, selected 
 
   const handlePointerEnter = (event) => {
     event.stopPropagation();
-    onHoverChange(location.id);
     document.body.style.cursor = 'pointer';
   };
 
   const handlePointerLeave = (event) => {
     event.stopPropagation();
-    onHoverChange(null);
     document.body.style.cursor = 'default';
   };
 
@@ -272,10 +270,10 @@ function ChannelTerminal({ index, location, onActivate, onHoverChange, selected 
             'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border bg-white/95 px-2.5 py-1.5 shadow-[0_8px_20px_rgba(18,66,53,0.14)] backdrop-blur-sm transition-colors',
             selected
               ? 'border-[color:var(--primary)] bg-[var(--primary-strong)] text-white'
-              : 'border-white/85 text-[color:var(--text-heading)] hover:border-[color:var(--primary)]',
+              : 'border-white/85 text-[color:var(--text-heading)]',
+            'hover:border-[color:var(--primary)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary-strong)]',
           )}
         >
-          <i className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: toneColor }} aria-hidden="true" />
           <strong className="text-[12px]">{location.shortName || location.name}</strong>
           <span className="tabular-nums text-[13px] font-[var(--font-weight-bold)]">
             {formatQuantity(location.availableStock)}
@@ -369,7 +367,6 @@ function OnlineScene({ activeLocationId, locations, onActivate, onHoverChange, r
 
         <Html position={[0, 5.05, -0.75]} center>
           <div className="pointer-events-none inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/85 bg-white/95 px-2.5 py-1.5 text-[color:var(--text-heading)] shadow-[0_8px_20px_rgba(18,66,53,0.14)] backdrop-blur-sm">
-            <i className="size-1.5 rounded-full bg-[var(--primary)]" aria-hidden="true" />
             <strong className="text-[12px]">온라인 연동 재고</strong>
             <span className="tabular-nums text-[13px] font-[var(--font-weight-bold)]">
               {formatQuantity(totalAvailableStock)}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseStrategyExecutionPage,
+  STRATEGY_EXECUTION_FILTER_ACTION_TYPES,
   STRATEGY_EXECUTION_PAGE_SIZE,
   toStrategyExecutionQueryParams,
 } from './filterState.js';
@@ -27,6 +28,16 @@ describe('strategy execution filter state', () => {
       status: 'EXECUTING',
       actionType: 'RT_TRANSFER',
     });
+  });
+
+  it('keeps the removed channel concentration out of filter parameters', () => {
+    expect(STRATEGY_EXECUTION_FILTER_ACTION_TYPES).not.toContain('CHANNEL_CONCENTRATION');
+    expect(
+      toStrategyExecutionQueryParams(
+        { strategyStatus: 'EXECUTING', actionType: 'CHANNEL_CONCENTRATION', query: '' },
+        1,
+      ),
+    ).toEqual({ page: 0, size: STRATEGY_EXECUTION_PAGE_SIZE, status: 'EXECUTING' });
   });
 
   it('sends price discount as a supported backend action filter', () => {

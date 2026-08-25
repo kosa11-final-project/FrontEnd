@@ -106,6 +106,17 @@ function mapUrgentSku(sku) {
   };
 }
 
+function mapUrgentSkusBySalesPoint(values) {
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return {};
+
+  return Object.fromEntries(
+    Object.entries(values).map(([salesPointId, skus]) => [
+      toNumber(salesPointId),
+      Array.isArray(skus) ? skus.map(mapUrgentSku) : [],
+    ]),
+  );
+}
+
 export function mapDashboardResponse(response) {
   const summary = response?.summary ?? {};
 
@@ -124,6 +135,7 @@ export function mapDashboardResponse(response) {
     offlineStores: (response?.offlineStores ?? []).map(mapOfflineStore),
     riskSalesPointsTop10: (response?.riskSalesPointsTop10 ?? []).map(mapRiskSalesPoint),
     urgentSkusTop5: (response?.urgentSkusTop5 ?? []).map(mapUrgentSku),
+    urgentSkusBySalesPoint: mapUrgentSkusBySalesPoint(response?.urgentSkusBySalesPoint),
     calculatedAt: response?.calculatedAt ?? null,
   };
 }

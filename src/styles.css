@@ -219,6 +219,7 @@ a:focus-visible {
 
 /* APP SHELL: fixed navigation frame and global application background. */
 .app-shell {
+  --sidebar-width: 248px;
   display: flex;
   min-height: 100vh;
   background:
@@ -234,12 +235,60 @@ a:focus-visible {
   inset: 0 auto 0 0;
   z-index: 10;
   display: flex;
-  width: 248px;
+  width: var(--sidebar-width);
   flex-direction: column;
   padding: 24px 14px 16px;
   color: var(--text-body);
   background: var(--surface);
   border-right: 1px solid var(--border);
+  overflow-x: hidden;
+  transition:
+    width var(--motion-standard) var(--easing-standard),
+    padding var(--motion-standard) var(--easing-standard),
+    border-color var(--motion-standard) var(--easing-standard);
+}
+
+.sidebar-collapsed {
+  --sidebar-width: 76px;
+}
+
+.sidebar-collapsed .sidebar {
+  width: var(--sidebar-width);
+  align-items: center;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+/* WIDGET: inventory detail drawer entrance motion. */
+@keyframes inventory-detail-drawer-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes inventory-detail-drawer-panel-in {
+  from {
+    opacity: 0.98;
+    transform: translate3d(24px, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.inventory-detail-drawer-overlay {
+  animation: inventory-detail-drawer-overlay-in 240ms var(--easing-standard) both;
+}
+
+.inventory-detail-drawer-panel {
+  will-change: transform, opacity;
+  animation: inventory-detail-drawer-panel-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .brand-lockup {
@@ -247,6 +296,30 @@ a:focus-visible {
   align-items: center;
   gap: 11px;
   padding: 0 11px 32px;
+}
+
+.sidebar-collapsed .brand-lockup {
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.brand-logo {
+  display: block;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--color-gray-900) 12%, transparent);
+  border-radius: var(--radius-bar);
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(40, 40, 40, 0.12);
+}
+
+.brand-copy {
+  min-width: 0;
+  flex: 1;
 }
 
 .brand-mark {
@@ -269,7 +342,7 @@ a:focus-visible {
 
 .brand-lockup strong {
   color: var(--text-heading);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-subtitle1);
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.03em;
 }
@@ -278,6 +351,7 @@ a:focus-visible {
   margin-top: 3px;
   color: var(--text-muted);
   font-size: var(--font-size-meta);
+  line-height: var(--line-height-meta);
 }
 
 .main-nav {
@@ -314,6 +388,23 @@ a:focus-visible {
 
 .nav-item > span:nth-child(2) {
   flex: 1;
+}
+
+.sidebar-collapsed .sidebar-content {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.sidebar-collapsed .nav-item > span:nth-child(2),
+.sidebar-collapsed .account-copy,
+.sidebar-collapsed .sidebar-account > svg {
+  display: none;
+}
+
+.sidebar-collapsed .nav-item {
+  width: 52px;
+  justify-content: center;
+  padding: 0;
 }
 
 .sidebar-spacer {
@@ -362,9 +453,17 @@ a:focus-visible {
 
 /* APP SHELL / HEADER: AppHeader widget and route context. */
 .main-content {
-  width: calc(100% - 248px);
+  width: calc(100% - var(--sidebar-width));
   min-width: 0;
-  margin-left: 248px;
+  margin-left: var(--sidebar-width);
+  transition:
+    width var(--motion-standard) var(--easing-standard),
+    margin-left var(--motion-standard) var(--easing-standard);
+}
+
+.sidebar-collapsed .main-content {
+  width: calc(100% - var(--sidebar-width));
+  margin-left: var(--sidebar-width);
 }
 
 .topbar {
@@ -520,8 +619,9 @@ a:focus-visible {
   line-height: var(--line-height-meta);
 }
 
-.mobile-menu {
-  display: none;
+.sidebar-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .strategy-adjustment-range {
@@ -584,6 +684,13 @@ a:focus-visible {
   padding: 28px 20px 48px;
 }
 
+/* The dashboard grid already accounts for the header and page gutters with
+ * its viewport-relative height. Match the bottom gutter to the top gutter so
+ * the outer app never gains an extra page scrollbar. */
+.dashboard-content-wrap {
+  padding-bottom: 28px;
+}
+
 .page-shell {
   min-width: 0;
 }
@@ -639,6 +746,79 @@ a:focus-visible {
   color: var(--text-muted);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
+}
+
+/* PAGE: inventory readability scale. Keep the dense table usable without changing
+ * typography on the other operational screens. */
+.inventory-page {
+  --font-size-body: 0.9375rem;
+  --font-size-body1: 0.9375rem;
+  --font-size-body-sm: 0.8125rem;
+  --font-size-body2: 0.8125rem;
+  --font-size-caption: 0.8125rem;
+  --font-size-description: 0.8125rem;
+  --font-size-filter: 0.8125rem;
+  --font-size-meta: 0.8125rem;
+  --line-height-body: 1.6;
+  --line-height-body1: 1.6;
+  --line-height-body2: 1.5;
+  --line-height-description: 1.5;
+  --line-height-meta: 1.5;
+}
+
+.inventory-page .text-\[10px\],
+.inventory-page .text-\[9px\],
+.inventory-page .text-\[0\.5625rem\],
+.inventory-page .text-\[0\.625rem\] {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+}
+
+.inventory-page .text-\[11px\] {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.inventory-page .text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.inventory-page .text-sm {
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+}
+
+/* The drawer is information-dense and has its own compact component styles.
+ * Give its labels one additional step of size so the two-column detail view
+ * remains readable without enlarging unrelated dialogs. */
+.inventory-page .inventory-detail-drawer-panel {
+  --font-size-body: 1rem;
+  --font-size-body1: 1rem;
+  --font-size-body-sm: 0.875rem;
+  --font-size-body2: 0.875rem;
+  --font-size-caption: 0.875rem;
+  --font-size-description: 0.875rem;
+  --font-size-filter: 0.875rem;
+  --font-size-meta: 0.875rem;
+}
+
+.inventory-page .inventory-detail-drawer-panel .text-\[10px\],
+.inventory-page .inventory-detail-drawer-panel .text-\[9px\],
+.inventory-page .inventory-detail-drawer-panel .text-\[0\.5625rem\],
+.inventory-page .inventory-detail-drawer-panel .text-\[0\.625rem\] {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.inventory-page .inventory-detail-drawer-panel .text-\[11px\] {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.inventory-page .inventory-detail-drawer-panel .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.375rem;
 }
 
 /* PAGE / STATISTICS: range calendar integrates DayPicker with the product tokens. */
@@ -821,18 +1001,25 @@ code {
 
 /* RESPONSIVE: shared shell and page adaptations. Keep component variants above. */
 @media (max-width: 900px) {
+  .app-shell {
+    --sidebar-width: 76px;
+  }
+
   .sidebar {
-    width: 76px;
+    width: var(--sidebar-width);
     align-items: center;
     padding-right: 8px;
     padding-left: 8px;
   }
 
   .brand-lockup {
+    flex-direction: column;
+    gap: 16px;
     padding-right: 0;
     padding-left: 0;
   }
 
+  .brand-lockup > .brand-copy,
   .brand-lockup > div:last-child,
   .nav-item > span:nth-child(2),
   .account-copy,
@@ -844,6 +1031,10 @@ code {
     justify-content: center;
   }
 
+  .sidebar-toggle {
+    margin-left: 0;
+  }
+
   .nav-item {
     width: 52px;
     justify-content: center;
@@ -851,16 +1042,12 @@ code {
   }
 
   .main-content {
-    width: calc(100% - 76px);
-    margin-left: 76px;
+    width: calc(100% - var(--sidebar-width));
+    margin-left: var(--sidebar-width);
   }
 
   .topbar {
     padding: 0 18px;
-  }
-
-  .mobile-menu {
-    display: inline-grid;
   }
 
   .breadcrumb span:first-child,
@@ -870,6 +1057,10 @@ code {
 
   .content-wrap {
     padding: 24px 18px 36px;
+  }
+
+  .dashboard-content-wrap {
+    padding-bottom: 24px;
   }
 
   .page-heading {
@@ -950,5 +1141,227 @@ code {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+/* PAGE: split login composition with a branded illustration and a focused form. */
+.login-page {
+  display: grid;
+  min-height: 100dvh;
+  padding: clamp(16px, 3vw, 42px);
+  place-items: stretch;
+  background:
+    radial-gradient(circle at 9% 12%, color-mix(in srgb, var(--primary-soft) 36%, transparent), transparent 25%),
+    var(--background);
+}
+
+.login-page__frame {
+  display: grid;
+  width: min(1440px, 100%);
+  min-height: min(860px, calc(100dvh - 2 * clamp(16px, 3vw, 42px)));
+  margin: auto;
+  grid-template-columns: minmax(0, 1.08fr) minmax(420px, 0.92fr);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 28px;
+  background: var(--card);
+  box-shadow: 0 22px 70px rgba(40, 40, 40, 0.12);
+}
+
+.login-page__visual {
+  position: relative;
+  min-height: 680px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #eee9df;
+}
+
+.login-page__visual-image,
+.login-page__visual-wash {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.login-page__visual-image {
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.login-page__visual-wash {
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.6) 0%, rgba(255, 253, 247, 0.08) 36%, rgba(33, 72, 53, 0.08) 100%),
+    linear-gradient(90deg, rgba(255, 253, 247, 0.18) 0%, transparent 56%);
+  pointer-events: none;
+}
+
+.login-page__visual-copy {
+  --login-brand-size: clamp(2.75rem, 3.75vw, 3.4rem);
+  position: absolute;
+  z-index: 2;
+  top: clamp(36px, 8vw, 104px);
+  left: clamp(30px, 7vw, 96px);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: min(78%, 460px);
+  color: #234332;
+}
+
+.login-page__visual-logo {
+  width: calc(var(--login-brand-size) * 1.5);
+  height: calc(var(--login-brand-size) * 1.5);
+  flex: 0 0 auto;
+  border: 1px solid rgba(35, 67, 50, 0.12);
+  border-radius: 15px;
+  object-fit: cover;
+  box-shadow: 0 8px 18px rgba(49, 76, 56, 0.16);
+}
+
+.login-page__visual-copy h1 {
+  margin: 0;
+  color: var(--primary);
+  font-size: var(--login-brand-size);
+  font-weight: 750;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.login-page__visual-copy p {
+  max-width: 330px;
+  margin: 8px 0 0;
+  color: rgba(31, 53, 40, 0.74);
+  font-size: clamp(0.7rem, 1vw, 0.88rem);
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  line-height: 1.45;
+}
+
+.login-page__form {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: clamp(40px, 7vw, 96px) clamp(28px, 7vw, 104px);
+  background: #fff;
+}
+
+.login-page__form-inner {
+  width: min(100%, 430px);
+}
+
+.login-page__form-heading {
+  margin-bottom: 40px;
+}
+
+.login-page__form-heading h2 {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: clamp(1.9rem, 3vw, 2.4rem);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.055em;
+  line-height: 1.15;
+}
+
+.login-page__form-heading p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.login-page__form input {
+  min-height: 48px;
+  background: #fff;
+}
+
+.login-page__form .ui-button {
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+}
+
+.login-page__support-copy {
+  margin: 30px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--font-size-body-sm);
+  line-height: 1.55;
+}
+
+@media (max-width: 980px) {
+  .login-page__frame {
+    grid-template-columns: minmax(0, 1fr) minmax(370px, 0.9fr);
+  }
+
+  .login-page__form {
+    padding-right: clamp(24px, 5vw, 56px);
+    padding-left: clamp(24px, 5vw, 56px);
+  }
+
+  .login-page__visual-copy {
+    left: clamp(26px, 5vw, 56px);
+  }
+}
+
+@media (max-width: 760px) {
+  .login-page {
+    padding: 0;
+    background: #fff;
+  }
+
+  .login-page__frame {
+    min-height: 100dvh;
+    grid-template-columns: 1fr;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .login-page__visual {
+    min-height: min(42dvh, 360px);
+    max-height: 360px;
+  }
+
+  .login-page__visual-image {
+    object-position: center 56%;
+  }
+
+  .login-page__visual-copy {
+    top: clamp(26px, 7vw, 48px);
+    left: clamp(24px, 7vw, 52px);
+  }
+
+  .login-page__form {
+    align-items: flex-start;
+    padding: 38px clamp(24px, 7vw, 52px) 32px;
+  }
+
+  .login-page__form-heading {
+    margin-bottom: 32px;
+  }
+}
+
+@media (max-width: 420px) {
+  .login-page__visual {
+    min-height: 260px;
+  }
+
+  .login-page__visual-copy {
+    --login-brand-size: 2.4rem;
+    gap: 10px;
+  }
+
+  .login-page__visual-copy p {
+    max-width: 230px;
+    font-size: 0.68rem;
+  }
+
+  .login-page__form {
+    padding-top: 32px;
   }
 }

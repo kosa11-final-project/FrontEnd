@@ -30,7 +30,7 @@ const storeLayoutByCode = Object.freeze({
   DEPT_DAEGU: { shortName: '대구', x: 70, y: 63 },
   DEPT_ULSAN: { shortName: '울산', x: 86, y: 59 },
   DEPT_CHUNGCHEONG: { shortName: '충청', x: 53, y: 75 },
-  HMART_ASAN_HOSPITAL: { shortName: 'Hmart', x: 67, y: 14 },
+  HMART_ASAN_HOSPITAL: { shortName: 'Hmart 아산병원점', x: 67, y: 14 },
 });
 
 const regionLabels = Object.freeze({

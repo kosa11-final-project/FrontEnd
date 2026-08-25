@@ -16,6 +16,7 @@ export async function requestJson({
   body,
   headers,
   signal,
+  timeout,
   skipSessionExpirationHandling = false,
 }) {
   const normalizedMethod = method.toLowerCase();
@@ -30,6 +31,7 @@ export async function requestJson({
     data: body,
     headers,
     signal,
+    ...(timeout ? { timeout } : {}),
     ...(skipSessionExpirationHandling ? { skipSessionExpirationHandling: true } : {}),
   });
 

@@ -39,6 +39,11 @@ describe('dashboard response mapper', () => {
       allocatedSalesPointCode: 'GREETING',
       saleStopDays: 5,
     });
+    expect(dashboard.urgentSkusBySalesPoint[10][0]).toMatchObject({
+      rank: 1,
+      allocatedSalesPointCode: 'GREETING',
+      skuId: '7',
+    });
     expect(dashboard.calculatedAt).toBe(response.calculatedAt);
   });
 
@@ -50,6 +55,7 @@ describe('dashboard response mapper', () => {
     expect(dashboard.offlineStores).toEqual([]);
     expect(dashboard.riskSalesPointsTop10).toEqual([]);
     expect(dashboard.urgentSkusTop5).toEqual([]);
+    expect(dashboard.urgentSkusBySalesPoint).toEqual({});
   });
 
   it('uses available stock as the current-stock fallback for an older snapshot', () => {

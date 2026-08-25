@@ -1,7 +1,9 @@
-import { Danger } from 'reicon-react';
+import { useState } from 'react';
+import { Danger, HelpCircle } from 'reicon-react';
 import { parseInventoryRiskReason } from '@/entities/inventory';
 import { getRiskReasonSeverityLabel } from '@/entities/risk';
 import { formatDateTime, formatNumber } from '@/shared/lib/format';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui';
 import { RiskGradeBadge } from './RiskGradeBadge.jsx';
 
 /**
@@ -22,18 +24,18 @@ function cleanDecimalsInText(text) {
  * @param {Record<string, any> | null} props.data - 위험도 평가 뷰 모델 데이터
  */
 export function RiskExplanationPanel({ data }) {
+  const [calculationOpen, setCalculationOpen] = useState(false);
+
   if (!data) return null;
 
   const {
     assessmentStatus,
     riskGrade,
     reasonMessage,
-    ruleVersion,
     assessedAt,
     baseDate,
     availableQty,
     safetyStockQty,
-    safetyGapQty,
     stockCoverageDays,
     shortageYn,
     reasons = [],
@@ -51,6 +53,9 @@ export function RiskExplanationPanel({ data }) {
         : availableQty < safetyStockQty
           ? 'Y'
           : 'N');
+  const safetyStockDelta =
+    availableQty != null && safetyStockQty != null ? Number(availableQty) - Number(safetyStockQty) : null;
+  const hasSafetyStockDelta = Number.isFinite(safetyStockDelta);
 
   return (
     <div className="space-y-2.5 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
@@ -58,13 +63,36 @@ export function RiskExplanationPanel({ data }) {
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-800">서버 위험 판정 결과</span>
-          <RiskGradeBadge grade={riskGrade} status={assessmentStatus} showStatus />
+          {calculationEvidence && (
+            <Tooltip open={calculationOpen} onOpenChange={setCalculationOpen}>
+              <TooltipTrigger>
+                <button
+                  type="button"
+                  aria-label="계산 근거 보기"
+                  aria-expanded={calculationOpen}
+                  onClick={() => setCalculationOpen((current) => !current)}
+                  className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+                >
+                  <HelpCircle size={14} aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                tone="light"
+                side="bottom"
+                align="start"
+                className="w-[min(24rem,calc(100vw-2rem))] max-w-none text-left"
+              >
+                <span className="block text-[10px] font-semibold text-slate-500">계산 근거</span>
+                <p className="mt-0.5 break-words text-[11px] leading-4 text-slate-700">{calculationEvidence}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <RiskGradeBadge grade={riskGrade} status={assessmentStatus} showStatus showDot={false} />
         </div>
 
         <div className="flex items-center gap-2 text-[11px] text-slate-400">
-          {ruleVersion && <span>규칙 {ruleVersion}</span>}
-          {baseDate && <span>• 기준일 {baseDate}</span>}
-          {assessedAt && <span>• 판정시각 {formatDateTime(assessedAt)}</span>}
+          {baseDate && <span>기준일 {baseDate}</span>}
+          {assessedAt && <span>판정시각 {formatDateTime(assessedAt)}</span>}
         </div>
       </div>
 
@@ -76,13 +104,6 @@ export function RiskExplanationPanel({ data }) {
           <span>{primaryReason}</span>
         </div>
       </div>
-
-      {calculationEvidence && (
-        <div className="rounded-lg bg-slate-50 px-2.5 py-2 text-[11px] leading-4 text-slate-600">
-          <span className="font-semibold text-slate-500">계산 근거: </span>
-          <span className="break-words">{calculationEvidence}</span>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 px-2.5 py-2">
@@ -112,7 +133,9 @@ export function RiskExplanationPanel({ data }) {
           >
             재고 부족 여부
           </div>
-          <div className="mt-0.5 text-[10px] text-slate-400">안전재고 기준</div>
+          <div className="mt-0.5 text-[10px] text-slate-400">
+            안전재고 기준 {safetyStockQty != null ? `${formatNumber(safetyStockQty)}개` : '산정 불가'}
+          </div>
           <div
             className={`mt-1 text-sm font-bold ${
               resolvedShortageYn === 'Y'
@@ -124,17 +147,21 @@ export function RiskExplanationPanel({ data }) {
           >
             {resolvedShortageYn === 'Y' ? '부족' : resolvedShortageYn === 'N' ? '충족' : '판정 불가'}
           </div>
+          {hasSafetyStockDelta && (
+            <div
+              className={`mt-0.5 text-[10px] font-semibold ${
+                safetyStockDelta >= 0 ? 'text-emerald-700' : 'text-rose-700'
+              }`}
+            >
+              {safetyStockDelta >= 0
+                ? `+${formatNumber(safetyStockDelta)}개 충족`
+                : `${formatNumber(safetyStockDelta)}개 부족`}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 3. 안전재고 미달 경고 */}
-      {safetyGapQty != null && safetyGapQty > 0 && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
-          안전재고 목표치 대비 <strong className="font-bold">{formatNumber(safetyGapQty)}개</strong> 부족 상태입니다.
-        </div>
-      )}
-
-      {/* 4. 세부 평가 사유 목록 (Reasons) */}
+      {/* 3. 세부 평가 사유 목록 (Reasons) */}
       {reasons && reasons.length > 0 && (
         <div className="space-y-1.5 border-t border-slate-100 pt-2 text-xs">
           <h5 className="text-[11px] font-bold text-slate-500">세부 평가 내역 ({reasons.length}건)</h5>

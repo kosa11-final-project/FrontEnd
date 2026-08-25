@@ -46,12 +46,13 @@ export function StorybookProductFrame({
   queryClient,
 }) {
   const [client] = useState(() => queryClient ?? createStoryQueryClient());
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
-        <div className="app-shell mesh-forecast" style={{ minHeight }}>
-          <AppSidebar />
+        <div className={`app-shell mesh-forecast${isSidebarOpen ? '' : ' sidebar-collapsed'}`} style={{ minHeight }}>
+          <AppSidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)} />
           <main className="main-content">
             <AppHeader />
             <div className={`content-wrap ${contentClassName}`.trim()}>{children}</div>

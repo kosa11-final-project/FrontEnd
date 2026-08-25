@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Logout, Menu, User } from 'reicon-react';
+import { Bell, Logout, User } from 'reicon-react';
 import { getNavigationItem } from '../model/navigation.js';
 import { authKeys, currentUserQueryOptions, logout as logoutSession } from '@/entities/auth';
 import { Avatar, Icon, IconButton } from '@/shared/ui';
@@ -55,9 +55,6 @@ export function AppHeader() {
 
   return (
     <header className="topbar">
-      <IconButton className="mobile-menu" label="메뉴 열기">
-        <Icon icon={Menu} size={18} />
-      </IconButton>
       <div className="breadcrumb" aria-label="현재 위치">
         <span>운영 관제</span>
         <span className="breadcrumb-separator">/</span>

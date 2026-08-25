@@ -66,6 +66,20 @@ describe('shared HTTP client helpers', () => {
     });
   });
 
+  it('forwards a request-specific timeout only when requested', async () => {
+    await getJson({ path: 'v1/inventories', timeout: 30_000 });
+
+    expect(request).toHaveBeenCalledWith({
+      method: 'get',
+      url: 'v1/inventories',
+      params: undefined,
+      data: undefined,
+      headers: undefined,
+      signal: undefined,
+      timeout: 30_000,
+    });
+  });
+
   it('rejects unsupported HTTP methods before making a request', async () => {
     await expect(requestJson({ method: 'connect', path: 'v1/inventories' })).rejects.toThrow(
       '지원하지 않는 HTTP 메서드입니다: connect',
