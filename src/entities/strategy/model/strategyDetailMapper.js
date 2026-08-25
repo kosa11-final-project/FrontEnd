@@ -38,6 +38,25 @@ function mapSimulation(simulation) {
   };
 }
 
+function mapAdjustmentConstraints(constraints) {
+  if (!constraints) return null;
+
+  return {
+    minimumStartDate: constraints.minimumStartDate ?? null,
+    latestSelectableEndDate: constraints.latestSelectableEndDate ?? null,
+    maximumPeriodDays: Number.isInteger(constraints.maximumPeriodDays) ? constraints.maximumPeriodDays : null,
+    requiresPeriodAdjustment: Boolean(constraints.requiresPeriodAdjustment),
+  };
+}
+
+function mapChartRange(chartRange) {
+  if (!chartRange?.startDate || !chartRange?.endDate) return null;
+  return {
+    startDate: chartRange.startDate,
+    endDate: chartRange.endDate,
+  };
+}
+
 function mapAction(action, candidate, index) {
   return {
     actionOrder: index + 1,
@@ -114,6 +133,8 @@ function mapOption(option) {
     preference: candidate.preference ?? null,
     assumptions,
     actions,
+    adjustmentConstraints: mapAdjustmentConstraints(option.adjustmentConstraints),
+    chartRange: mapChartRange(option.chartRange),
     ...mappedSimulation,
   };
 }
@@ -204,6 +225,8 @@ export function applyAdjustedSimulationResult(option, response) {
       salesPointGroup: conditions.salesPointGroup,
       maximumDiscountRate: conditions.maximumDiscountRate,
     },
+    adjustmentConstraints: mapAdjustmentConstraints(data.adjustmentConstraints) ?? option.adjustmentConstraints,
+    chartRange: mapChartRange(data.chartRange) ?? option.chartRange,
     actions,
     ...mappedSimulation,
   };

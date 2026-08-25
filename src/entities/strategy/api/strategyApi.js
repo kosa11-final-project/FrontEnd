@@ -124,7 +124,12 @@ export async function adjustAiStrategySimulation(strategyCaseId, candidateId, pa
     signal,
   });
 
-  if (!response?.data?.adjustedConditions || !response?.data?.simulation) {
+  if (
+    !response?.data?.adjustedConditions ||
+    !response?.data?.adjustmentConstraints ||
+    !response?.data?.chartRange ||
+    !response?.data?.simulation
+  ) {
     throw new Error('AI 전략 조정 시뮬레이션 결과를 확인할 수 없습니다.');
   }
   return response.data;
