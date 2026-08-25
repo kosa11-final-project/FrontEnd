@@ -1,5 +1,5 @@
-import { useMutation } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Bar,
@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, ChartBar, Check, DocumentText, Refresh, Send } from 'reicon-react';
 import {
   adjustAiStrategySimulation,
+  aiStrategyKeys,
   applyAdjustedSimulationResult,
   buildAdjustedStrategyOption,
   buildStrategyAdjustmentPayload,
@@ -40,6 +41,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/shared/ui';
+import { ReviewerSelectionModal } from './ReviewerSelectionModal.jsx';
 
 const chartColors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)'];
 
@@ -583,7 +585,10 @@ function resolveMaximumDiscountPercent(option) {
 
 export function StrategySimulationView({ strategyCase, activeOption, listPath, onActiveOptionChange }) {
   const options = useMemo(() => sortStrategyOptions(strategyCase.options), [strategyCase.options]);
+  const queryClient = useQueryClient();
   const [finalOptionKey, setFinalOptionKey] = useState(null);
+  const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
+  const [deliveryResult, setDeliveryResult] = useState(null);
   const adjustmentDefaultsByOption = useMemo(
     () =>
       Object.fromEntries(
@@ -601,6 +606,10 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     mutationFn: ({ optionKey, payload }) => adjustAiStrategySimulation(strategyCase.strategyCaseId, optionKey, payload),
   });
   const comparePath = `/ai-strategy/${strategyCase.strategyCaseId}`;
+  const finalOption = options.find((option) => option.optionKey === finalOptionKey) ?? null;
+  const readyToExecute =
+    strategyCase.caseStatus === 'READY_TO_EXECUTE' || deliveryResult?.caseStatus === 'READY_TO_EXECUTE';
+  const selectionLocked = readyToExecute || Boolean(deliveryResult);
   const adjustmentDefaults = adjustmentDefaultsByOption[activeOption.optionKey];
   const adjustmentState = adjustmentStateByOption[activeOption.optionKey] ?? adjustmentDefaults;
   const adjustment = adjustmentState.values;
@@ -624,6 +633,25 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
           : (simulatedOptionsByKey[option.optionKey] ?? option),
       ),
     [activeOption.optionKey, displayedActiveOption, options, simulatedOptionsByKey],
+  );
+  const closeReviewerModal = useCallback(() => setReviewerModalOpen(false), []);
+  const handleTeamsCompleted = useCallback(
+    (result) => {
+      setDeliveryResult(result);
+      setFinalOptionKey(result.selectedOptionId);
+      queryClient.setQueryData(aiStrategyKeys.detail(strategyCase.strategyCaseId), (current) =>
+        current
+          ? {
+              ...current,
+              caseStatus: result.caseStatus,
+              selectedOptionId: result.selectedOptionId,
+            }
+          : current,
+      );
+      queryClient.invalidateQueries({ queryKey: aiStrategyKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: aiStrategyKeys.detail(strategyCase.strategyCaseId) });
+    },
+    [queryClient, strategyCase.strategyCaseId],
   );
   const maxQuantity =
     Number(displayedActiveOption.maxExecutableQty) ||
@@ -790,7 +818,7 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
               type="button"
               variant="secondary"
               onClick={() => setFinalOptionKey(activeOption.optionKey)}
-              disabled={finalOptionKey === activeOption.optionKey}
+              disabled={finalOptionKey === activeOption.optionKey || selectionLocked}
             >
               <Icon icon={Check} size={16} />
               {finalOptionKey === activeOption.optionKey ? '최종안 선택됨' : '이 전략을 최종안으로 선택'}
@@ -798,13 +826,23 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
             <Button type="button" variant="secondary" disabled>
               <Icon icon={ChartBar} size={16} /> AI 최종 검토
             </Button>
-            <Button type="button" disabled>
-              <Icon icon={Send} size={16} /> Teams 검토 요청
+            <Button type="button" disabled={!finalOption || readyToExecute} onClick={() => setReviewerModalOpen(true)}>
+              <Icon icon={Send} size={16} />
+              {readyToExecute ? 'Teams 검토 요청 완료' : deliveryResult ? 'Teams 전송 결과' : 'Teams 검토 요청'}
             </Button>
           </div>
         </div>
-        <span className="sr-only">후속 API 연결 후 Teams 검토 요청을 사용할 수 있습니다.</span>
       </section>
+
+      {reviewerModalOpen && finalOption ? (
+        <ReviewerSelectionModal
+          strategyCaseId={strategyCase.strategyCaseId}
+          option={finalOption}
+          initialDeliveryResult={deliveryResult}
+          onClose={closeReviewerModal}
+          onCompleted={handleTeamsCompleted}
+        />
+      ) : null}
     </main>
   );
 }

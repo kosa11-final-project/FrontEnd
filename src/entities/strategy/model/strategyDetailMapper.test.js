@@ -119,6 +119,7 @@ describe('AI strategy detail mapper', () => {
       },
       options: [
         {
+          optionId: 'CAND-1',
           optionKey: 'CAND-1',
           maxExecutableQty: 10,
           actions: [{ actionOrder: 1, startDate: '2026-08-24' }],

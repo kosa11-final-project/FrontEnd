@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { mockAuthenticatedSession } from './auth-mocks.js';
+import { strategyDetailFixtures } from '../src/pages/ai-strategy/model/strategyDetailFixtures.js';
 import { strategyGenerationFixtures } from '../src/widgets/strategy-generation-list/model/strategyFixtures.js';
 
 const listCases = strategyGenerationFixtures.map((fixture) => ({
@@ -84,10 +85,257 @@ async function mockAiStrategyList(page) {
   });
 }
 
+function toBackendSimulation(option, baselineSummary) {
+  const summary = option.simulationSummary;
+  const comparison = summary.comparisonToBaseline;
+  return {
+    candidateId: option.optionKey,
+    summary: {
+      expectedSalesQty: summary.expectedSalesQty,
+      expectedRevenue: summary.expectedRevenue,
+      totalContributionMargin: summary.totalContributionMargin,
+      contributionMarginRate: summary.contributionMarginRate,
+      expectedSellThroughDays: summary.expectedSellThroughDays,
+      expectedRemainingQty: summary.expectedRemainingQty,
+      expectedDisposalQty: Math.max(0, baselineSummary.expectedDisposalQty - comparison.reducedDisposalQty),
+      estimatedActionCost: summary.movementCost,
+      netEffect: comparison.incrementalEconomicBenefit,
+    },
+    comparisonToBaseline: {
+      salesQtyDelta: comparison.incrementalSalesQty,
+      revenueDelta: comparison.incrementalRevenue,
+      contributionMarginDelta: comparison.incrementalContributionMargin,
+      remainingQtyReduction: comparison.reducedRemainingQty,
+      disposalQtyReduction: comparison.reducedDisposalQty,
+      netEffect: comparison.incrementalEconomicBenefit,
+    },
+    dailySeries: option.simulationDailySeries,
+    assumptions: [],
+  };
+}
+
+function toBackendDetail(strategyCase) {
+  const conditions = strategyCase.requestConditions;
+  return {
+    strategyCaseId: strategyCase.strategyCaseId,
+    caseName: strategyCase.caseName,
+    caseStatus: strategyCase.caseStatus,
+    generationStage: 'COMPARISON_READY',
+    sku: strategyCase.sku,
+    requester: strategyCase.requestedBy,
+    createdAt: strategyCase.requestedAt,
+    completedAt: strategyCase.completedAt,
+    resultExpiresAt: strategyCase.resultExpiresAt,
+    requestConditions: {
+      sourceSalesPoint: conditions.sourceSalesPointId
+        ? {
+            salesPointId: conditions.sourceSalesPointId,
+            salesPointCode: `SP-${conditions.sourceSalesPointId}`,
+            salesPointName: conditions.sourceSalesPointName,
+          }
+        : null,
+      lots: (conditions.lotIds ?? []).map((lotId, index) => ({
+        lotId,
+        lotCode: conditions.lotLabels?.[index] ?? `LOT-${lotId}`,
+      })),
+      candidateSalesPoints: (conditions.candidateSalesPointIds ?? []).map((salesPointId, index) => ({
+        salesPointId,
+        salesPointCode: `SP-${salesPointId}`,
+        salesPointName: conditions.candidateSalesPointNames?.[index] ?? `판매처 ${salesPointId}`,
+      })),
+      strategyTypes: conditions.strategyTypes ?? [],
+      preferredStartDate: conditions.preferredStartDate,
+      preferredEndDate: conditions.preferredEndDate,
+      forecastStartDate: conditions.preferredStartDate,
+      forecastEndDate: conditions.preferredEndDate,
+    },
+    result: {
+      generatedAt: strategyCase.completedAt,
+      baselineSimulation: strategyCase.baselineSimulation,
+      noRecommendation: null,
+      options: strategyCase.options.map((option) => ({
+        rank: option.rank,
+        optionName: option.optionName,
+        recommendationReason: option.recommendationReason,
+        advantage: option.advantage,
+        caution: option.caution,
+        candidate: {
+          candidateId: option.optionKey,
+          strategyTypes: [...new Set(option.actions.map(({ actionType }) => actionType))],
+          startDate: option.actions[0]?.startDate,
+          endDate: option.actions[0]?.endDate,
+          assumptions: [],
+          preference: null,
+          maxExecutableQty: Math.max(...option.actions.map(({ actionQuantity }) => actionQuantity ?? 0)),
+          actions: option.actions.map((action) => ({
+            actionType: action.actionType,
+            sourceLocation: action.sourceLocation,
+            targetLocation: action.targetLocation,
+            actionQuantity: action.actionQuantity,
+            estimatedActionCost: action.estimatedActionCost,
+            strategyPrice: action.strategyPrice,
+            discountRate: action.discountRate,
+            lotAllocations: (action.lotAllocations ?? []).map((allocation) => ({
+              inventoryBalanceId: allocation.inventoryBalanceId ?? allocation.lotId,
+              lotId: allocation.lotId,
+              lotCode: allocation.lotCode,
+              quantity: allocation.allocatedQuantity,
+              priorityNo: allocation.priorityNo,
+            })),
+          })),
+        },
+        simulation: toBackendSimulation(option, strategyCase.baselineSimulation.summary),
+      })),
+    },
+  };
+}
+
+async function mockAiStrategyDetail(page) {
+  const teamsState = new Map();
+  const failedOnce = new Set();
+
+  await page.route('**/api/v1/ai-strategies/reviewers', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          reviewers: [
+            {
+              reviewerId: 101,
+              reviewerName: '이주영',
+              email: 'first@example.com',
+              organizationName: 'System',
+              roleName: '그린푸드 총괄',
+            },
+            {
+              reviewerId: 102,
+              reviewerName: '이주영',
+              email: 'second@example.com',
+              organizationName: 'System',
+              roleName: '그린푸드 총괄',
+            },
+          ],
+        },
+      }),
+    }),
+  );
+
+  await page.route(/\/api\/v1\/ai-strategies\/\d+\/teams-requests$/, async (route) => {
+    const strategyCaseId = Number(
+      route
+        .request()
+        .url()
+        .match(/ai-strategies\/(\d+)\/teams-requests$/)?.[1],
+    );
+    const payload = route.request().postDataJSON();
+    const reviewers = payload.reviewerIds.map((reviewerId) => {
+      const shouldFail = reviewerId === 102 && !failedOnce.has(reviewerId);
+      if (shouldFail) failedOnce.add(reviewerId);
+      return {
+        reviewerId,
+        reviewerName: '이주영',
+        email: reviewerId === 101 ? 'first@example.com' : 'second@example.com',
+        deliveryStatus: shouldFail ? 'FAILED' : 'SENT',
+        failureCode: shouldFail ? 'POWER_AUTOMATE_FAILED' : null,
+      };
+    });
+    const allSent = reviewers.every(({ deliveryStatus }) => deliveryStatus === 'SENT');
+    const result = {
+      strategyCaseId,
+      selectedOptionId: payload.optionId,
+      strategyOptionId: 55,
+      finalSelectionId: 44,
+      caseStatus: allSent ? 'READY_TO_EXECUTE' : 'GENERATED',
+      deliveryStatus: allSent ? 'SENT' : 'PARTIAL_FAILED',
+      reviewers,
+    };
+    teamsState.set(strategyCaseId, result);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: result }) });
+  });
+
+  await page.route(/\/api\/v1\/ai-strategies\/\d+$/, (route) => {
+    const strategyCaseId = route
+      .request()
+      .url()
+      .match(/\/(\d+)$/)?.[1];
+    const strategyCase = strategyDetailFixtures.find((item) => String(item.strategyCaseId) === strategyCaseId);
+    if (!strategyCase) {
+      return route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'AI_STRATEGY_CASE_NOT_FOUND', message: 'Case를 찾을 수 없습니다.' }),
+      });
+    }
+    if (strategyCase.caseStatus === 'EXPIRED') {
+      return route.fulfill({
+        status: 410,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'AI_STRATEGY_RESULT_EXPIRED', message: '결과가 만료되었습니다.' }),
+      });
+    }
+    const detail = toBackendDetail(strategyCase);
+    const sentState = teamsState.get(Number(strategyCaseId));
+    if (sentState) {
+      detail.caseStatus = sentState.caseStatus;
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: detail }),
+    });
+  });
+
+  await page.route(/\/api\/v1\/ai-strategies\/\d+\/candidates\/[^/]+\/simulations$/, async (route) => {
+    const request = route.request();
+    const [, strategyCaseId, encodedCandidateId] = request
+      .url()
+      .match(/\/ai-strategies\/(\d+)\/candidates\/([^/]+)\/simulations$/);
+    const candidateId = decodeURIComponent(encodedCandidateId);
+    const strategyCase = strategyDetailFixtures.find((item) => String(item.strategyCaseId) === strategyCaseId);
+    const option = strategyCase?.options.find((item) => item.optionKey === candidateId);
+    const conditions = request.postDataJSON();
+    const original = toBackendSimulation(option, strategyCase.baselineSimulation.summary);
+    const expectedSalesQty = Math.min(Number(conditions.actionQuantity), original.summary.expectedSalesQty);
+    const expectedRemainingQty = Math.max(0, 40 - expectedSalesQty);
+    const salesQtyDelta = expectedSalesQty - strategyCase.baselineSimulation.summary.expectedSalesQty;
+    const dailyCount = original.dailySeries.length;
+    const dailySeries = original.dailySeries.map((point, index) => ({
+      ...point,
+      expectedRemainingQty: Math.round(40 - expectedSalesQty * (index / Math.max(1, dailyCount - 1))),
+    }));
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          strategyCaseId: Number(strategyCaseId),
+          candidateId,
+          adjustedConditions: {
+            ...conditions,
+            strategyPrice: option.actions.find(({ actionType }) => actionType === 'PRICE_DISCOUNT')?.strategyPrice,
+            maximumExecutableQuantity: 40,
+            salesPointGroup: 'GENERAL',
+            maximumDiscountRate: 0.3,
+          },
+          simulation: {
+            ...original,
+            summary: { ...original.summary, expectedSalesQty, expectedRemainingQty },
+            comparisonToBaseline: { ...original.comparisonToBaseline, salesQtyDelta },
+            dailySeries,
+          },
+        },
+      }),
+    });
+  });
+}
+
 test.describe('AI 전략 생성 목록', () => {
   test.beforeEach(async ({ page }) => {
     await mockAuthenticatedSession(page);
     await mockAiStrategyList(page);
+    await mockAiStrategyDetail(page);
     await page.goto('/ai-strategy');
   });
 
@@ -249,6 +497,58 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByRole('row').filter({ hasText: '#32' })).toBeVisible();
   });
 
+  test('최종안을 선택한 뒤 Reviewer를 다중 선택해 ID로 Teams 검토를 요청한다', async ({ page }) => {
+    let reviewerRequested = false;
+    const teamsPayloads = [];
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (url.pathname === '/api/v1/ai-strategies/reviewers') reviewerRequested = true;
+      if (url.pathname.endsWith('/teams-requests')) teamsPayloads.push(request.postDataJSON());
+    });
+
+    await page.goto('/ai-strategy/32');
+    const teamsButton = page.getByRole('button', { name: 'Teams로 전송' });
+    await expect(teamsButton).toBeDisabled();
+    expect(reviewerRequested).toBe(false);
+
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).first().click();
+    await expect(teamsButton).toBeEnabled();
+    await teamsButton.click();
+    await expect(page.getByRole('dialog', { name: 'Reviewer 선택' })).toBeVisible();
+    await expect.poll(() => reviewerRequested).toBe(true);
+    await expect(page.getByText('first@example.com')).toBeVisible();
+    await expect(page.getByText('second@example.com')).toBeVisible();
+
+    const submitButton = page.getByRole('button', { name: 'Teams로 전송' }).last();
+    await expect(submitButton).toBeDisabled();
+    await page.getByLabel('이주영 first@example.com 선택').check();
+    await page.getByLabel('이주영 second@example.com 선택').check();
+    await page.getByRole('button', { name: 'Teams로 전송 (2명)' }).click();
+
+    await expect
+      .poll(() => teamsPayloads[0])
+      .toEqual({
+        optionId: 'opt-transfer-discount',
+        reviewerIds: [101, 102],
+      });
+    await expect(page.getByText('1명에게 Teams 검토 요청을 전송했습니다.')).toBeVisible();
+    await expect(page.getByText('1명에게 전송하지 못했습니다.')).toBeVisible();
+    await expect(page.getByText('POWER_AUTOMATE_FAILED')).toBeVisible();
+    await page.getByRole('button', { name: 'Reviewer 선택 모달 닫기' }).click();
+    await expect(page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).first()).toBeDisabled();
+    await page.getByRole('button', { name: 'Teams 전송 결과' }).click();
+    await expect(page.getByText('POWER_AUTOMATE_FAILED')).toBeVisible();
+    await page.getByRole('button', { name: '실패 대상 재시도 (1명)' }).click();
+    await expect
+      .poll(() => teamsPayloads[1])
+      .toEqual({
+        optionId: 'opt-transfer-discount',
+        reviewerIds: [102],
+      });
+    await expect(page.getByText('2명에게 Teams 검토 요청을 전송했습니다.')).toBeVisible();
+    await expect(page.getByText('Teams 검토 요청 완료')).toBeVisible();
+  });
+
   test('전략 요약에서 기존 데모형 시뮬레이션으로 이동하고 대안을 전환한다', async ({ page }) => {
     await page.goto('/ai-strategy/32');
     await page
@@ -263,16 +563,17 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByLabel('이동 수량')).toBeEnabled();
     await expect(page.getByLabel('할인 적용 수량')).toBeEnabled();
     await expect(page.getByLabel('할인율')).toBeEnabled();
-    await expect(page.getByRole('button', { name: /조정안 저장/ })).toBeEnabled();
+    await expect(page.getByRole('button', { name: /조건 적용/ })).toBeDisabled();
     await expect(page.getByRole('button', { name: /Teams 검토 요청/ })).toBeDisabled();
 
     const expectedSalesRow = page.getByRole('row').filter({ hasText: '예상 판매량' });
     const recommendedResult = await expectedSalesRow.textContent();
     await page.getByLabel('이동 수량').fill('10');
     await expect(expectedSalesRow).not.toHaveText(recommendedResult);
+    await expect(page.getByText('예상 미리보기')).toBeVisible();
 
-    await page.getByRole('button', { name: /조정안 저장/ }).click();
-    await expect(page.getByText('조정안 저장됨')).toBeVisible();
+    await page.getByRole('button', { name: /조건 적용/ }).click();
+    await expect(page.getByText('서버 계산 완료')).toBeVisible();
 
     await page.getByRole('button', { name: /고수요 판매처 중심 재고 재할당/ }).click();
     await expect(page).toHaveURL(/option=opt-reallocation/);
@@ -299,8 +600,14 @@ test.describe('AI 전략 생성 목록', () => {
     await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
 
     await expect(page.getByRole('radio')).toHaveCount(0);
+    const teamsButton = page.getByRole('button', { name: 'Teams 검토 요청' });
+    await expect(teamsButton).toBeDisabled();
     await page.getByRole('button', { name: /이 전략을 최종안으로 선택/ }).click();
     await expect(page.getByText('1안을 최종안으로 표시 중입니다.')).toBeVisible();
+    await expect(teamsButton).toBeEnabled();
+    await teamsButton.click();
+    await expect(page.getByRole('dialog', { name: 'Reviewer 선택' })).toBeVisible();
+    await page.getByRole('button', { name: 'Reviewer 선택 모달 닫기' }).click();
     await page.getByRole('button', { name: /백화점·그리팅몰 판매채널 확대/ }).click();
 
     await expect(page).toHaveURL(/option=opt-channel-expansion/);

@@ -1,8 +1,11 @@
-import { ArrowRight, Calendar, InfoCircle, Layers, Store } from 'reicon-react';
+import { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowRight, Calendar, Check, InfoCircle, Layers, Send, Store } from 'reicon-react';
 import { Link } from 'react-router-dom';
-import { resolveStrategyActionType, sortStrategyOptions } from '@/entities/strategy';
+import { aiStrategyKeys, resolveStrategyActionType, sortStrategyOptions } from '@/entities/strategy';
 import { formatCurrency, formatDate, formatNumber, formatQuantity } from '@/shared/lib/format';
 import { Alert, Badge, Button, Card, Icon } from '@/shared/ui';
+import { ReviewerSelectionModal } from './ReviewerSelectionModal.jsx';
 import { StrategyCaseSummary, StrategyDetailHeader } from './StrategyDetailShared.jsx';
 
 function ConditionItem({ icon, label, children }) {
@@ -49,14 +52,19 @@ function RequestConditions({ conditions }) {
   );
 }
 
-function StrategyOptionSummaryCard({ option, strategyCaseId, listPath }) {
+function StrategyOptionSummaryCard({ option, strategyCaseId, listPath, selected, selectionDisabled, onSelect }) {
   const summary = option.simulationSummary;
   const effect = summary.comparisonToBaseline.incrementalEconomicBenefit;
   const effectIsPositive = effect > 0;
   const effectIsNegative = effect < 0;
 
   return (
-    <Card padding="none" className="flex min-w-0 flex-col overflow-hidden">
+    <Card
+      padding="none"
+      className={`flex min-w-0 flex-col overflow-hidden ${
+        selected ? 'border-[var(--primary)] ring-2 ring-[var(--ring-soft)]' : ''
+      }`}
+    >
       <div className="border-b border-[var(--border)] p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -158,8 +166,18 @@ function StrategyOptionSummaryCard({ option, strategyCaseId, listPath }) {
         </ol>
       </div>
 
-      <div className="border-t border-[var(--border)] p-4">
-        <Button asChild className="w-full">
+      <div className="grid gap-2 border-t border-[var(--border)] p-4 sm:grid-cols-2">
+        <Button
+          type="button"
+          variant={selected ? 'primary' : 'secondary'}
+          disabled={selectionDisabled}
+          aria-pressed={selected}
+          onClick={onSelect}
+        >
+          <Icon icon={Check} size={16} aria-hidden="true" />
+          {selected ? '최종안 선택됨' : '이 전략을 최종안으로 선택'}
+        </Button>
+        <Button asChild>
           <Link
             to={`/ai-strategy/${strategyCaseId}/simulation?option=${encodeURIComponent(option.optionKey)}`}
             state={{ from: listPath }}
@@ -174,6 +192,33 @@ function StrategyOptionSummaryCard({ option, strategyCaseId, listPath }) {
 
 export function StrategyComparisonView({ strategyCase, listPath }) {
   const options = sortStrategyOptions(strategyCase.options);
+  const queryClient = useQueryClient();
+  const [selectedOptionId, setSelectedOptionId] = useState(strategyCase.selectedOptionId ?? null);
+  const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
+  const [deliveryResult, setDeliveryResult] = useState(null);
+  const selectedOption = options.find((option) => option.optionId === selectedOptionId) ?? null;
+  const readyToExecute = strategyCase.caseStatus === 'READY_TO_EXECUTE';
+  const selectionLocked = readyToExecute || Boolean(deliveryResult);
+
+  const closeReviewerModal = useCallback(() => setReviewerModalOpen(false), []);
+  const handleTeamsCompleted = useCallback(
+    (result) => {
+      setDeliveryResult(result);
+      setSelectedOptionId(result.selectedOptionId);
+      queryClient.setQueryData(aiStrategyKeys.detail(strategyCase.strategyCaseId), (current) =>
+        current
+          ? {
+              ...current,
+              caseStatus: result.caseStatus,
+              selectedOptionId: result.selectedOptionId,
+            }
+          : current,
+      );
+      queryClient.invalidateQueries({ queryKey: aiStrategyKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: aiStrategyKeys.detail(strategyCase.strategyCaseId) });
+    },
+    [queryClient, strategyCase.strategyCaseId],
+  );
 
   return (
     <main className="page-shell" aria-labelledby="page-title">
@@ -183,8 +228,19 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
         <StrategyCaseSummary strategyCase={strategyCase} />
         <RequestConditions conditions={strategyCase.requestConditions} />
         <Alert variant="info" title={`AI가 실행 가능한 전략 ${options.length}개를 생성했습니다.`}>
-          모든 대안을 비교한 뒤 시뮬레이션 상세에서 최종안 하나를 선택할 수 있습니다.
+          모든 대안을 비교한 뒤 최종안 하나를 선택하고 Teams 검토를 요청할 수 있습니다.
         </Alert>
+        {deliveryResult ? (
+          <Alert
+            variant={
+              deliveryResult.reviewers.every((reviewer) => reviewer.deliveryStatus === 'SENT') ? 'good' : 'warning'
+            }
+            title="Teams 검토 요청 결과가 반영되었습니다."
+          >
+            전송 성공 {deliveryResult.reviewers.filter((reviewer) => reviewer.deliveryStatus === 'SENT').length}명 ·
+            전송 실패 {deliveryResult.reviewers.filter((reviewer) => reviewer.deliveryStatus !== 'SENT').length}명
+          </Alert>
+        ) : null}
       </div>
 
       <section className="mt-7" aria-labelledby="strategy-options-title">
@@ -195,9 +251,19 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
               추천 전략 요약 비교
             </h2>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-xs text-[color:var(--text-muted)]">
-            <Icon icon={InfoCircle} size={15} /> 추천 순위는 최종 선택이 아닙니다.
-          </span>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <span className="inline-flex items-center gap-1.5 text-xs text-[color:var(--text-muted)]">
+              <Icon icon={InfoCircle} size={15} /> 추천 순위는 최종 선택이 아닙니다.
+            </span>
+            <Button
+              type="button"
+              disabled={!selectedOption || readyToExecute}
+              onClick={() => setReviewerModalOpen(true)}
+            >
+              <Icon icon={Send} size={17} aria-hidden="true" />
+              {readyToExecute ? 'Teams 검토 요청 완료' : deliveryResult ? 'Teams 전송 결과' : 'Teams로 전송'}
+            </Button>
+          </div>
         </div>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {options.map((option) => (
@@ -206,10 +272,26 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
               option={option}
               strategyCaseId={strategyCase.strategyCaseId}
               listPath={listPath}
+              selected={option.optionId === selectedOptionId}
+              selectionDisabled={!option.optionId || selectionLocked}
+              onSelect={() => {
+                setDeliveryResult(null);
+                setSelectedOptionId(option.optionId);
+              }}
             />
           ))}
         </div>
       </section>
+
+      {reviewerModalOpen && selectedOption ? (
+        <ReviewerSelectionModal
+          strategyCaseId={strategyCase.strategyCaseId}
+          option={selectedOption}
+          initialDeliveryResult={deliveryResult}
+          onClose={closeReviewerModal}
+          onCompleted={handleTeamsCompleted}
+        />
+      ) : null}
     </main>
   );
 }

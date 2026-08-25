@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { aiStrategyDetailQueryOptions, aiStrategyKeys, aiStrategyListQueryOptions } from './strategyQueries.js';
+import {
+  aiStrategyDetailQueryOptions,
+  aiStrategyKeys,
+  aiStrategyListQueryOptions,
+  aiStrategyReviewerQueryOptions,
+} from './strategyQueries.js';
 
 describe('AI strategy list query options', () => {
   it('includes the complete normalized search condition in the query key', () => {
@@ -44,5 +49,12 @@ describe('AI strategy list query options', () => {
     expect(options.retry(0, { status: 404 })).toBe(false);
     expect(options.retry(0, { status: 410 })).toBe(false);
     expect(options.retry(0, { status: 500 })).toBe(true);
+  });
+
+  it('uses a shared reviewer key and can defer fetching until the modal opens', () => {
+    const options = aiStrategyReviewerQueryOptions({ enabled: false });
+
+    expect(options.queryKey).toEqual(['ai-strategies', 'reviewers']);
+    expect(options.enabled).toBe(false);
   });
 });

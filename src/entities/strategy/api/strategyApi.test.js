@@ -5,6 +5,8 @@ import {
   createAiStrategyCase,
   getAiStrategyCase,
   getAiStrategyCases,
+  getAiStrategyReviewers,
+  sendAiStrategyTeamsRequest,
   serializeAiStrategyListParams,
 } from './strategyApi.js';
 
@@ -149,6 +151,78 @@ describe('AI strategy API', () => {
       options: [],
     });
     expect(getJson).toHaveBeenCalledWith({ path: 'v1/ai-strategies/123', signal: undefined });
+  });
+
+  it('fetches reviewers and keeps reviewer IDs separate from display emails', async () => {
+    getJson.mockResolvedValue({
+      data: {
+        reviewers: [
+          {
+            reviewerId: 101,
+            reviewerName: '이주영',
+            email: 'first@example.com',
+            organizationName: 'System',
+            roleName: '그린푸드 총괄',
+          },
+        ],
+      },
+    });
+
+    await expect(getAiStrategyReviewers()).resolves.toEqual([
+      expect.objectContaining({ reviewerId: 101, reviewerName: '이주영', email: 'first@example.com' }),
+    ]);
+    expect(getJson).toHaveBeenCalledWith({ path: 'v1/ai-strategies/reviewers', signal: undefined });
+  });
+
+  it('sends only optionId and reviewerIds in a Teams review request', async () => {
+    postJson.mockResolvedValue({
+      data: {
+        strategyCaseId: 123,
+        selectedOptionId: 'CAND-1',
+        strategyOptionId: 55,
+        finalSelectionId: 44,
+        caseStatus: 'GENERATED',
+        deliveryStatus: 'PARTIAL_FAILED',
+        reviewers: [
+          {
+            reviewerId: 101,
+            reviewerName: '검토자 1',
+            email: 'first@example.com',
+            deliveryStatus: 'SENT',
+            failureCode: null,
+          },
+          {
+            reviewerId: 102,
+            reviewerName: '검토자 2',
+            email: 'second@example.com',
+            deliveryStatus: 'FAILED',
+            failureCode: 'POWER_AUTOMATE_FAILED',
+          },
+        ],
+      },
+    });
+    const payload = { optionId: 'CAND-1', reviewerIds: [101, 102] };
+
+    await expect(sendAiStrategyTeamsRequest(123, payload)).resolves.toMatchObject({
+      selectedOptionId: 'CAND-1',
+      caseStatus: 'GENERATED',
+      reviewers: [
+        { reviewerId: 101, deliveryStatus: 'SENT', failureCode: null },
+        { reviewerId: 102, deliveryStatus: 'FAILED', failureCode: 'POWER_AUTOMATE_FAILED' },
+      ],
+    });
+    expect(postJson).toHaveBeenCalledWith({
+      path: 'v1/ai-strategies/123/teams-requests',
+      body: payload,
+      signal: undefined,
+    });
+  });
+
+  it('rejects a Teams request without a final option or reviewers', async () => {
+    await expect(sendAiStrategyTeamsRequest(123, { optionId: 'CAND-1', reviewerIds: [] })).rejects.toThrow(
+      '최종 전략과 Reviewer를 한 명 이상 선택해 주세요.',
+    );
+    expect(postJson).not.toHaveBeenCalled();
   });
 
   it('posts adjusted simulation conditions and unwraps the response', async () => {
