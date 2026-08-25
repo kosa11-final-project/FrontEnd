@@ -23,8 +23,8 @@ const validStatuses = new Set(statusTabs.map(({ value }) => value));
 const columnHelper = createColumnHelper();
 
 function ProductThumbnail({ product }) {
-  const [failed, setFailed] = useState(false);
-  const showImage = Boolean(product.imageUrl) && !failed;
+  const [failedSrc, setFailedSrc] = useState(null);
+  const showImage = Boolean(product.imageUrl) && failedSrc !== product.imageUrl;
 
   return (
     <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)]">
@@ -34,7 +34,8 @@ function ProductThumbnail({ product }) {
           alt=""
           className="size-full object-cover"
           loading="lazy"
-          onError={() => setFailed(true)}
+          decoding="async"
+          onError={() => setFailedSrc(product.imageUrl)}
         />
       ) : (
         <span data-product-fallback={product.skuCode} aria-hidden="true">
@@ -292,105 +293,109 @@ export function StrategyGenerationList() {
     window.requestAnimationFrame(() => actionButtonRefs.current.get(triggerStrategyId)?.focus());
   }
 
-  function handleStrategyAction(strategy) {
-    if (strategy.caseStatus === 'GENERATED') {
-      const currentSearch = searchParams.toString();
-      navigate(`/ai-strategy/${strategy.id}`, {
-        state: { from: `/ai-strategy${currentSearch ? `?${currentSearch}` : ''}` },
-      });
-      return;
-    }
-    drawerTriggerStrategyIdRef.current = strategy.id;
-    setSelectedStrategy(strategy);
-  }
+  const listPath = `/ai-strategy${searchParams.size ? `?${searchParams.toString()}` : ''}`;
+  const handleStrategyAction = useCallback(
+    (strategy) => {
+      if (strategy.caseStatus === 'GENERATED') {
+        navigate(`/ai-strategy/${strategy.id}`, { state: { from: listPath } });
+        return;
+      }
+      drawerTriggerStrategyIdRef.current = strategy.id;
+      setSelectedStrategy(strategy);
+    },
+    [listPath, navigate],
+  );
 
-  const columns = [
-    columnHelper.accessor('strategyNumber', {
-      header: '전략 번호',
-      enableSorting: false,
-      cell: ({ getValue }) => (
-        <span className="font-mono text-[length:var(--font-size-meta)] font-bold text-[color:var(--text-body)]">
-          {getValue()}
-        </span>
-      ),
-      meta: { width: '130px' },
-    }),
-    columnHelper.accessor('strategyName', {
-      header: '전략명 · 최종 카테고리',
-      enableSorting: false,
-      cell: ({ row, getValue }) => (
-        <div className="min-w-0">
-          <strong className="block line-clamp-2 text-[length:var(--font-size-body)] leading-5 text-[color:var(--text-heading)]">
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('strategyNumber', {
+        header: '전략 번호',
+        enableSorting: false,
+        cell: ({ getValue }) => (
+          <span className="font-mono text-[length:var(--font-size-meta)] font-bold text-[color:var(--text-body)]">
             {getValue()}
-          </strong>
-          <Badge variant="neutral" className="mt-2">
-            {row.original.category?.name ?? '미분류'}
-          </Badge>
-        </div>
-      ),
-      meta: { width: '250px' },
-    }),
-    columnHelper.accessor('product', {
-      header: '상품',
-      enableSorting: false,
-      cell: ({ getValue }) => <StrategyProductCell product={getValue()} />,
-      meta: { width: '270px' },
-    }),
-    columnHelper.accessor('caseStatus', {
-      header: '상태',
-      enableSorting: false,
-      cell: ({ row, getValue }) => (
-        <div className="grid gap-3">
-          <StrategyGenerationStatus status={getValue()} className="w-fit" />
-          <StrategyGenerationProgress status={getValue()} currentStage={row.original.generationStage} />
-        </div>
-      ),
-      meta: { width: '250px' },
-    }),
-    columnHelper.accessor('createdAt', {
-      header: '생성일자',
-      enableSorting: false,
-      cell: ({ getValue }) => {
-        const formatted = formatDateTime(getValue());
-        const [date, time] = formatted.split(' ');
-        return (
-          <time dateTime={getValue()} className="whitespace-nowrap tabular-nums text-[color:var(--text-body)]">
-            <span className="block font-medium">{date}</span>
-            <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-              {time}
-            </span>
-          </time>
-        );
-      },
-      meta: { width: '110px' },
-    }),
-    columnHelper.display({
-      id: 'action',
-      header: '상세',
-      enableSorting: false,
-      cell: ({ row }) => {
-        const strategy = row.original;
-        const actionLabel =
-          strategy.caseStatus === 'GENERATED'
-            ? `${strategy.strategyNumber} 비교·시뮬레이션으로 이동`
-            : `${strategy.strategyNumber} 생성 상태 상세 보기`;
-        return (
-          <IconButton
-            ref={(node) => {
-              if (node) actionButtonRefs.current.set(strategy.id, node);
-              else actionButtonRefs.current.delete(strategy.id);
-            }}
-            label={actionLabel}
-            variant="ghost"
-            onClick={() => handleStrategyAction(strategy)}
-          >
-            <Icon icon={ArrowRight} size={18} />
-          </IconButton>
-        );
-      },
-      meta: { width: '64px', align: 'center' },
-    }),
-  ];
+          </span>
+        ),
+        meta: { width: '130px' },
+      }),
+      columnHelper.accessor('strategyName', {
+        header: '전략명 · 최종 카테고리',
+        enableSorting: false,
+        cell: ({ row, getValue }) => (
+          <div className="min-w-0">
+            <strong className="block line-clamp-2 text-[length:var(--font-size-body)] leading-5 text-[color:var(--text-heading)]">
+              {getValue()}
+            </strong>
+            <Badge variant="neutral" className="mt-2">
+              {row.original.category?.name ?? '미분류'}
+            </Badge>
+          </div>
+        ),
+        meta: { width: '250px' },
+      }),
+      columnHelper.accessor('product', {
+        header: '상품',
+        enableSorting: false,
+        cell: ({ getValue }) => <StrategyProductCell product={getValue()} />,
+        meta: { width: '270px' },
+      }),
+      columnHelper.accessor('caseStatus', {
+        header: '상태',
+        enableSorting: false,
+        cell: ({ row, getValue }) => (
+          <div className="grid gap-3">
+            <StrategyGenerationStatus status={getValue()} className="w-fit" />
+            <StrategyGenerationProgress status={getValue()} currentStage={row.original.generationStage} />
+          </div>
+        ),
+        meta: { width: '250px' },
+      }),
+      columnHelper.accessor('createdAt', {
+        header: '생성일자',
+        enableSorting: false,
+        cell: ({ getValue }) => {
+          const formatted = formatDateTime(getValue());
+          const [date, time] = formatted.split(' ');
+          return (
+            <time dateTime={getValue()} className="whitespace-nowrap tabular-nums text-[color:var(--text-body)]">
+              <span className="block font-medium">{date}</span>
+              <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+                {time}
+              </span>
+            </time>
+          );
+        },
+        meta: { width: '110px' },
+      }),
+      columnHelper.display({
+        id: 'action',
+        header: '상세',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const strategy = row.original;
+          const actionLabel =
+            strategy.caseStatus === 'GENERATED'
+              ? `${strategy.strategyNumber} 비교·시뮬레이션으로 이동`
+              : `${strategy.strategyNumber} 생성 상태 상세 보기`;
+          return (
+            <IconButton
+              ref={(node) => {
+                if (node) actionButtonRefs.current.set(strategy.id, node);
+                else actionButtonRefs.current.delete(strategy.id);
+              }}
+              label={actionLabel}
+              variant="ghost"
+              onClick={() => handleStrategyAction(strategy)}
+            >
+              <Icon icon={ArrowRight} size={18} />
+            </IconButton>
+          );
+        },
+        meta: { width: '64px', align: 'center' },
+      }),
+    ],
+    [handleStrategyAction],
+  );
 
   return (
     <div className="grid min-w-0 gap-4" data-widget="strategy-generation-list">

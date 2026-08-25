@@ -8,23 +8,24 @@ const sizeClasses = Object.freeze({
   lg: 'size-24 rounded-[var(--radius-panel)]',
 });
 
-function ProductImageContent({ src, alt, size, className }) {
-  const [failed, setFailed] = useState(false);
+export function StrategyProductImage({ src, alt, size = 'md', loading = 'lazy', className }) {
+  const [failedSrc, setFailedSrc] = useState(null);
   const sizeClassName = sizeClasses[size] ?? sizeClasses.md;
+  const showImage = Boolean(src) && failedSrc !== src;
 
-  if (src && !failed) {
+  if (showImage) {
     return (
       <img
         src={src}
         alt={alt}
-        loading="lazy"
+        loading={loading}
         decoding="async"
         className={cn(
           'shrink-0 border border-[var(--border)] bg-[var(--surface-subtle)] object-cover shadow-[var(--shadow-soft)]',
           sizeClassName,
           className,
         )}
-        onError={() => setFailed(true)}
+        onError={() => setFailedSrc(src)}
       />
     );
   }
@@ -41,11 +42,5 @@ function ProductImageContent({ src, alt, size, className }) {
     >
       <Icon icon={Package} size={size === 'lg' ? 28 : 22} aria-hidden="true" />
     </div>
-  );
-}
-
-export function StrategyProductImage({ src, alt, size = 'md', className }) {
-  return (
-    <ProductImageContent key={src || 'empty-product-image'} src={src} alt={alt} size={size} className={className} />
   );
 }
