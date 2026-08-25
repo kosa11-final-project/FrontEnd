@@ -169,6 +169,20 @@ export function buildStrategyAdjustmentPayload(option, adjustment) {
   };
 }
 
+export function buildStrategySelectionPayload(option, appliedAdjustment) {
+  if (!option?.optionId) throw new Error('선택할 전략 정보를 확인할 수 없습니다.');
+
+  const recommendedConditions = buildStrategyAdjustmentPayload(option, getStrategyAdjustmentDefaults(option));
+  const appliedConditions = buildStrategyAdjustmentPayload(option, appliedAdjustment);
+  const adjusted = Object.keys(recommendedConditions).some(
+    (key) => recommendedConditions[key] !== appliedConditions[key],
+  );
+
+  return adjusted
+    ? { optionId: option.optionId, adjustedConditions: appliedConditions }
+    : { optionId: option.optionId };
+}
+
 export function buildStrategyChartData(strategyCase, chartRange = null) {
   const baseline = strategyCase?.baselineSimulation?.dailySeries ?? [];
   const options = sortStrategyOptions(strategyCase?.options);

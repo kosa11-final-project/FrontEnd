@@ -78,6 +78,7 @@ function ReviewerDeliveryResult({ result, reviewersById }) {
 export function ReviewerSelectionModal({
   strategyCaseId,
   option,
+  selectionPayload,
   initialDeliveryResult,
   onClose,
   onCompleted,
@@ -93,7 +94,7 @@ export function ReviewerSelectionModal({
   const teamsMutation = useMutation({
     mutationFn: (reviewerIds) =>
       sendAiStrategyTeamsRequest(strategyCaseId, {
-        optionId: option.optionId,
+        ...selectionPayload,
         reviewerIds,
       }),
     onSuccess: (result) => {
