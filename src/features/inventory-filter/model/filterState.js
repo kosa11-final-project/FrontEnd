@@ -1,7 +1,8 @@
 export const INVENTORY_CHANNEL_TYPES = ['GREETING', 'ECOMMERCE', 'HYUNDAI_DEPT', 'HMART'];
 export const INVENTORY_STORAGE_TYPES = ['FROZEN', 'COLD', 'ROOM_TEMP'];
 export const INVENTORY_RISK_GRADES = ['SAFE', 'NORMAL', 'CAUTION', 'DANGER'];
-export const INVENTORY_ASSESSMENT_STATUSES = ['ASSESSED', 'UNASSESSED', 'STALE', 'FAILED', 'REASSESSING'];
+export const INVENTORY_ASSESSMENT_STATUSES = ['ASSESSED', 'UNASSESSED'];
+export const INVENTORY_FILTER_OPERATORS = ['AND', 'OR'];
 export const INVENTORY_DETAIL_TABS = ['OVERVIEW', 'FORECAST'];
 export const INVENTORY_SORT_FIELDS = [
   'updatedAt',
@@ -17,6 +18,7 @@ export const INVENTORY_SORT_DIRECTIONS = ['asc', 'desc'];
 
 export const DEFAULT_INVENTORY_FILTERS = Object.freeze({
   q: '',
+  filterOperator: 'AND',
   channelType: [],
   salesPointCode: [],
   warehouseCode: [],
@@ -35,6 +37,7 @@ export const DEFAULT_INVENTORY_FILTERS = Object.freeze({
 
 const INVENTORY_API_FILTER_KEYS = Object.freeze([
   'q',
+  'filterOperator',
   'channelType',
   'salesPointCode',
   'warehouseCode',
@@ -124,6 +127,10 @@ export function parseInventoryFilters(rawParams) {
   };
 
   const q = getString('q', '').slice(0, 100);
+  const rawFilterOperator = getString('filterOperator', DEFAULT_INVENTORY_FILTERS.filterOperator).toUpperCase();
+  const filterOperator = INVENTORY_FILTER_OPERATORS.includes(rawFilterOperator)
+    ? rawFilterOperator
+    : DEFAULT_INVENTORY_FILTERS.filterOperator;
   const channelType = getArray('channelType', INVENTORY_CHANNEL_TYPES);
   const salesPointCode = getArray('salesPointCode');
   const warehouseCode = getArray('warehouseCode');
@@ -144,6 +151,7 @@ export function parseInventoryFilters(rawParams) {
 
   return {
     q,
+    filterOperator,
     channelType,
     salesPointCode,
     warehouseCode,
@@ -170,6 +178,9 @@ export function toInventoryQueryParams(filters = {}) {
   const normalized = parseInventoryFilters(filters);
   return INVENTORY_API_FILTER_KEYS.reduce((params, key) => {
     const value = normalized[key];
+    if (key === 'filterOperator' && value === DEFAULT_INVENTORY_FILTERS.filterOperator) {
+      return params;
+    }
     if (Array.isArray(value)) {
       if (value.length > 0) params[key] = value;
     } else if (value !== '' && value != null) {
@@ -190,6 +201,9 @@ export function serializeInventoryFilters(filters) {
   const params = new URLSearchParams();
 
   if (normalized.q) params.set('q', normalized.q);
+  if (normalized.filterOperator !== DEFAULT_INVENTORY_FILTERS.filterOperator) {
+    params.set('filterOperator', normalized.filterOperator);
+  }
 
   const arrayKeys = [
     'channelType',
@@ -229,7 +243,7 @@ export function serializeInventoryFilters(filters) {
  * @returns {typeof DEFAULT_INVENTORY_FILTERS}
  */
 export function applyFilterChanges(currentFilters, changes) {
-  const nonResetKeys = ['page', 'sort', 'detailSkuCode', 'detailSalesPointCode', 'detailTab'];
+  const nonResetKeys = ['page', 'detailSkuCode', 'detailSalesPointCode', 'detailTab'];
   const isNonResetChangeOnly = Object.keys(changes).every((key) => nonResetKeys.includes(key));
   const resetPage = !isNonResetChangeOnly;
 

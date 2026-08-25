@@ -11,6 +11,7 @@ describe('Inventory Filter State (URL SearchParams)', () => {
   it('returns default values when params are empty', () => {
     const filters = parseInventoryFilters('');
     expect(filters).toEqual(DEFAULT_INVENTORY_FILTERS);
+    expect(filters.filterOperator).toBe('AND');
     expect(filters.page).toBe(1);
     expect(filters.size).toBe(20);
     expect(filters.channelType).toEqual([]);
@@ -19,13 +20,14 @@ describe('Inventory Filter State (URL SearchParams)', () => {
 
   it('correctly parses valid search params and repeated multi-value keys', () => {
     const raw =
-      '?q=만두&channelType=GREETING&channelType=HMART&storageType=FROZEN&riskGrade=CAUTION&page=2&size=50&sort=availableQuantity,asc&detailSkuCode=SKU-1&detailSalesPointCode=SP-1&detailTab=FORECAST';
+      '?q=만두&channelType=GREETING&channelType=HMART&storageType=FROZEN&riskGrade=CAUTION&filterOperator=OR&page=2&size=50&sort=availableQuantity,asc&detailSkuCode=SKU-1&detailSalesPointCode=SP-1&detailTab=FORECAST';
     const filters = parseInventoryFilters(raw);
 
     expect(filters.q).toBe('만두');
     expect(filters.channelType).toEqual(['GREETING', 'HMART']);
     expect(filters.storageType).toEqual(['FROZEN']);
     expect(filters.riskGrade).toEqual(['CAUTION']);
+    expect(filters.filterOperator).toBe('OR');
     expect(filters.page).toBe(2);
     expect(filters.size).toBe(50);
     expect(filters.sort).toBe('availableQuantity,asc');
@@ -51,14 +53,22 @@ describe('Inventory Filter State (URL SearchParams)', () => {
   });
 
   it('rejects invalid enum values and falls back safely', () => {
-    const raw = '?channelType=INVALID_CHANNEL&riskGrade=SUPER_RISK&storageType=WARM&page=-5&detailTab=INVALID_TAB';
+    const raw =
+      '?channelType=INVALID_CHANNEL&riskGrade=SUPER_RISK&storageType=WARM&filterOperator=XOR&page=-5&detailTab=INVALID_TAB';
     const filters = parseInventoryFilters(raw);
 
     expect(filters.channelType).toEqual([]);
     expect(filters.riskGrade).toEqual([]);
     expect(filters.storageType).toEqual([]);
+    expect(filters.filterOperator).toBe('AND');
     expect(filters.page).toBe(1);
     expect(filters.detailTab).toBe('OVERVIEW');
+  });
+
+  it('drops assessment statuses that the inventory API cannot produce', () => {
+    const filters = parseInventoryFilters('?assessmentStatus=STALE&assessmentStatus=ASSESSED');
+
+    expect(filters.assessmentStatus).toEqual(['ASSESSED']);
   });
 
   it('falls back to OVERVIEW when legacy detailTab=LOTS is passed in URL', () => {
@@ -99,6 +109,7 @@ describe('Inventory Filter State (URL SearchParams)', () => {
       warehouseCode: ['GYEONGIN_1'],
       storageType: ['COLD', 'FROZEN'],
       riskGrade: ['DANGER'],
+      filterOperator: 'OR',
       page: 3,
       size: 30,
       sort: 'currentQuantity,desc',
@@ -134,5 +145,12 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     const detailChanged = applyFilterChanges(current, { detailSkuCode: 'SKU-1', detailSalesPointCode: 'SP-1' });
     expect(detailChanged.page).toBe(4);
     expect(detailChanged.detailSkuCode).toBe('SKU-1');
+  });
+
+  it('resets page to 1 when the sort order changes', () => {
+    const changed = applyFilterChanges({ ...DEFAULT_INVENTORY_FILTERS, page: 4 }, { sort: 'riskGrade,asc' });
+
+    expect(changed.sort).toBe('riskGrade,asc');
+    expect(changed.page).toBe(1);
   });
 });

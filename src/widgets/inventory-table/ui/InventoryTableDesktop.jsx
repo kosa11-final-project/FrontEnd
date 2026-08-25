@@ -54,6 +54,7 @@ export function InventoryTableDesktop({
   maxSelection = 5,
   onSortChange,
   onRowClick,
+  onImageClick,
 }) {
   const currentItemSkuCodes = items.map((i) => i.skuCode).filter(Boolean);
   const selectedInCurrentPage = currentItemSkuCodes.filter((code) => selectedSkuCodes.includes(code));
@@ -217,11 +218,18 @@ export function InventoryTableDesktop({
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-3.5">
                     {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={skuLabel}
-                        className="size-12 shrink-0 rounded-lg border border-[var(--border)] object-cover shadow-2xs transition-transform group-hover:scale-105"
-                      />
+                      <button
+                        type="button"
+                        aria-label={`${skuLabel} 이미지 크게 보기`}
+                        className="group/image size-12 shrink-0 cursor-zoom-in rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
+                        onClick={(event) => onImageClick?.(event, item, skuLabel)}
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt={skuLabel}
+                          className="size-full rounded-lg border border-[var(--border)] object-cover shadow-2xs transition-transform duration-[var(--motion-standard)] group-hover/image:scale-105"
+                        />
+                      </button>
                     ) : (
                       <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[#F3F4F6] text-[11px] font-medium text-gray-400">
                         No Img

@@ -1,6 +1,7 @@
 import { MemoryRouter } from 'react-router-dom';
 import { fn, userEvent, within } from 'storybook/test';
 import { StateView } from '@/shared/ui';
+import { StorybookProductFrame } from '@/storybook/StorybookProductFrame.jsx';
 import { StatisticsPageContent, StatisticsPageShell } from './StatisticsPage.jsx';
 import { inventoryStatisticsFixture } from './model/statisticsFixtures.js';
 
@@ -33,6 +34,25 @@ export const Default = {
       <StatisticsPageContent {...args} statistics={inventoryStatisticsFixture} />
     </StoryFrame>
   ),
+};
+
+export const ProductFrame = {
+  render: (args) => (
+    <StorybookProductFrame path="/statistics" minHeight="1140px">
+      <StatisticsPageContent {...args} statistics={inventoryStatisticsFixture} />
+    </StorybookProductFrame>
+  ),
+};
+
+export const ProductFrameInventoryRiskTrend = {
+  render: (args) => (
+    <StorybookProductFrame path="/statistics" minHeight="1140px">
+      <StatisticsPageContent {...args} statistics={inventoryStatisticsFixture} />
+    </StorybookProductFrame>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('tab', { name: '위험재고 추이' }));
+  },
 };
 
 export const InventoryRiskTrend = {

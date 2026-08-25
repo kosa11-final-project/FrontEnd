@@ -4,7 +4,7 @@ import { TooltipProvider } from '@/shared/ui';
 import { InventoryDetailKpiRibbon } from './InventoryDetailKpiRibbon.jsx';
 
 describe('InventoryDetailKpiRibbon', () => {
-  it('keeps the risk reason in the detail panel instead of duplicating the tooltip', () => {
+  it('exposes the persisted risk reason from the compact KPI ribbon', () => {
     render(
       <TooltipProvider>
         <InventoryDetailKpiRibbon
@@ -24,6 +24,6 @@ describe('InventoryDetailKpiRibbon', () => {
     );
 
     expect(screen.getByText('위험 판정')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '재고 위험 판정 이유 보기' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '재고 위험 판정 이유 보기' })).toBeInTheDocument();
   });
 });

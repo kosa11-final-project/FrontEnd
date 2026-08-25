@@ -97,14 +97,15 @@ export function InventoryFilterBar({
 
   const selectedRegion = Array.isArray(filters.regionCode) ? filters.regionCode[0] || '' : filters.regionCode || '';
 
-  // 상세 필터 활성 조건 개수 계산 (상세 모달에 들어가는 항목들: 카테고리, 보관유형, 위험도, 판정상태, 물류센터, 판매처)
+  // 상세 필터 활성 조건 개수 계산 (카테고리, 보관유형, 위험도, 판정상태, 물류센터, 판매처, 권역)
   const detailFilterCount =
     (filters.categoryId ? 1 : 0) +
     selectedStorageTypes.length +
     selectedRiskGrades.length +
     selectedAssessmentStatuses.length +
     (selectedWarehouse ? 1 : 0) +
-    (selectedSalesPoint ? 1 : 0);
+    (selectedSalesPoint ? 1 : 0) +
+    (selectedRegion ? 1 : 0);
 
   // 검색창 엔터 즉시 제출
   const handleSearchSubmit = (e) => {
@@ -250,6 +251,34 @@ export function InventoryFilterBar({
                   }`}
                 >
                   {typeof option === 'string' ? CHANNEL_NAMES[type] || type : option.name || type}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 검색·채널·상세 필터 그룹의 결합 방식 */}
+          <div
+            className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1"
+            role="group"
+            aria-label="필터 조건 결합 방식"
+          >
+            {['AND', 'OR'].map((operator) => {
+              const isSelected = (filters.filterOperator || 'AND') === operator;
+              return (
+                <button
+                  key={operator}
+                  type="button"
+                  aria-label={`${operator} 조건으로 필터링`}
+                  aria-pressed={isSelected}
+                  title={operator === 'AND' ? '모든 필터 그룹 만족' : '필터 그룹 중 하나 이상 만족'}
+                  onClick={() => onFilterChange({ filterOperator: operator })}
+                  className={`rounded-md px-2.5 py-1.5 text-[11px] font-black transition-colors ${
+                    isSelected
+                      ? 'bg-white text-[#1E8251] shadow-xs ring-1 ring-[#27B06E]/30'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  {operator}
                 </button>
               );
             })}

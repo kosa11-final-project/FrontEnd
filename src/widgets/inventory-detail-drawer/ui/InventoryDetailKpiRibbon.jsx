@@ -1,6 +1,6 @@
 import { CheckCircle, Danger, Package, Warning } from 'reicon-react';
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
-import { InventoryStatusBadge } from '@/entities/inventory';
+import { InventoryRiskReasonTooltip, InventoryStatusBadge } from '@/entities/inventory';
 import { getAssessmentStatusLabel } from '@/entities/risk';
 
 /**
@@ -42,6 +42,7 @@ export function InventoryDetailKpiRibbon({ item, showRisk = true }) {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <span className="text-[10px] font-semibold text-gray-500">위험 판정</span>
+              <InventoryRiskReasonTooltip reason={item.riskReason} />
             </div>
             <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
               <InventoryStatusBadge status={item.riskGrade} />

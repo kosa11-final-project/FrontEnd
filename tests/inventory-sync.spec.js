@@ -102,10 +102,16 @@ test.describe('통합재고 동기화', () => {
     await page.goto('/inventory');
 
     await expect(page.getByRole('button', { name: '재고 동기화', exact: true })).toBeEnabled();
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event('offline'));
+      window.dispatchEvent(new Event('online'));
+    });
     const lockedButton = page.getByRole('button', { name: '재고 동기화 중입니다', exact: true });
     await expect(lockedButton).toBeDisabled({ timeout: 8_000 });
     await expect(lockedButton.locator('svg')).toHaveClass(/animate-spin/);
-    await expect(page.getByText('완료될 때까지 모든 사용자의 실행 버튼이 잠깁니다.')).toBeVisible();
+    await expect(
+      page.getByText('재고 동기화 중입니다. 이 화면의 실행 버튼을 잠그고 서버에서 중복 실행을 차단합니다.'),
+    ).toBeVisible();
     expect(startRequestCount).toBe(0);
   });
 
@@ -154,6 +160,23 @@ test.describe('통합재고 동기화', () => {
     await page.route('**/api/v1/inventories/SKU-TOOLTIP/sales-points/GREETING/lots', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: apiBody({ items: [], totalCount: 0 }) }),
     );
+    await page.route('**/api/v1/inventories/SKU-TOOLTIP/sales-points/GREETING/risk', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: apiBody({
+          assessmentStatus: 'ASSESSED',
+          riskGrade: 'CAUTION',
+          reasonMessage: persistedReason,
+          ruleVersion: 'v1.1.0',
+          availableQty: 100,
+          safetyStockQty: 30,
+          shortageQty30: 40,
+          shortageYn: 'Y',
+          reasons: [],
+        }),
+      }),
+    );
     await page.route('**/api/v1/inventories/SKU-TOOLTIP/sales-points/GREETING', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: apiBody(inventory) }),
     );
@@ -198,7 +221,7 @@ test.describe('통합재고 동기화', () => {
     const tooltip = page.getByRole('tooltip');
     await expect(tooltip).toBeVisible();
     await expect(tooltip).toContainText('D+30 예상 수요가 가용재고를 초과합니다.');
-    await expect(tooltip).toContainText('가용재고=100, D+30부족량=max(0, 140-100)=40');
+    await expect(tooltip).toContainText('가용 재고: 100개, 30일 부족 수량: 40개');
     await expect(tooltip).toContainText('마지막 재고 동기화에서 서버 규칙으로 판정해 DB에 저장한 결과입니다.');
   });
 });

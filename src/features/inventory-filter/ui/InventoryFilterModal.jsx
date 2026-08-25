@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { CloseCircle, Refresh, TickCircle, ChevronRight, Filter } from 'reicon-react';
 import { STORAGE_NAMES } from '@/entities/inventory';
 import { ASSESSMENT_STATUS_LABELS, getRiskGradeLabel, normalizeRiskGrade } from '@/entities/risk';
+import { INVENTORY_ASSESSMENT_STATUSES } from '../model/filterState.js';
 
 const STORAGE_BADGE_COLORS = {
   FROZEN: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
@@ -31,23 +32,6 @@ const ASSESSMENT_STATUS_META = {
     label: ASSESSMENT_STATUS_LABELS.UNASSESSED,
     color: 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100',
   },
-  REASSESSING: {
-    label: ASSESSMENT_STATUS_LABELS.REASSESSING,
-    color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
-  },
-  STALE: {
-    label: ASSESSMENT_STATUS_LABELS.STALE,
-    color: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
-  },
-  FAILED: {
-    label: ASSESSMENT_STATUS_LABELS.FAILED,
-    color: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
-  },
-  ERROR: { label: ASSESSMENT_STATUS_LABELS.ERROR, color: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100' },
-  LOADING: {
-    label: ASSESSMENT_STATUS_LABELS.LOADING,
-    color: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
-  },
 };
 
 function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLoading, onClose, onApply }) {
@@ -61,10 +45,13 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
   const riskOptions = filterOptions?.riskGrades || [];
   const warehouseOptions = filterOptions?.warehouses || [];
   const salesPointOptions = filterOptions?.salesPoints || [];
+  const regionOptions = filterOptions?.regions || [];
   const assessmentStatuses = filterOptions?.assessmentStatuses;
   const assessmentStatusOptions = useMemo(
     () =>
-      assessmentStatuses?.length ? assessmentStatuses : ['ASSESSED', 'UNASSESSED', 'REASSESSING', 'STALE', 'FAILED'],
+      (assessmentStatuses?.length ? assessmentStatuses : INVENTORY_ASSESSMENT_STATUSES).filter((option) =>
+        INVENTORY_ASSESSMENT_STATUSES.includes(typeof option === 'string' ? option : option.code),
+      ),
     [assessmentStatuses],
   );
 
@@ -96,6 +83,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
   // 모달 내부 로컬 드래프트 상태 (마운트 시 초기화)
   const [draftCategoryId, setDraftCategoryId] = useState(filters.categoryId || '');
+  const [draftFilterOperator, setDraftFilterOperator] = useState(filters.filterOperator === 'OR' ? 'OR' : 'AND');
   const [draftStorageTypes, setDraftStorageTypes] = useState(
     Array.isArray(filters.storageType) ? filters.storageType : filters.storageType ? [filters.storageType] : [],
   );
@@ -115,6 +103,9 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
   const [draftSalesPointCode, setDraftSalesPointCode] = useState(
     Array.isArray(filters.salesPointCode) ? filters.salesPointCode[0] || '' : filters.salesPointCode || '',
   );
+  const [draftRegionCode, setDraftRegionCode] = useState(
+    Array.isArray(filters.regionCode) ? filters.regionCode[0] || '' : filters.regionCode || '',
+  );
 
   // 카테고리 계층 선택 탐색 상태
   const [selectedL1, setSelectedL1] = useState(initialCategoryHierarchy.l1);
@@ -123,6 +114,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
   const warehouseSelectId = useId();
   const salesPointSelectId = useId();
+  const regionSelectId = useId();
 
   const selectedWarehouseOption = warehouseOptions.find((option) => {
     const code = typeof option === 'string' ? option : option.code || option.warehouseCode;
@@ -260,12 +252,14 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
   // 로컬 전체 초기화
   const handleResetDraft = () => {
+    setDraftFilterOperator('AND');
     setDraftCategoryId('');
     setDraftStorageTypes([]);
     setDraftRiskGrades([]);
     setDraftAssessmentStatuses([]);
     setDraftWarehouseCode('');
     setDraftSalesPointCode('');
+    setDraftRegionCode('');
     setSelectedL1(null);
     setSelectedL2(null);
     setSelectedL3(null);
@@ -275,12 +269,14 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
   const handleApply = () => {
     // URL을 유일한 조회 상태 저장소로 사용하고 부모에 한 번만 방출합니다.
     onApply({
+      filterOperator: draftFilterOperator,
       categoryId: draftCategoryId || '',
       storageType: draftStorageTypes,
       riskGrade: draftRiskGrades,
       assessmentStatus: draftAssessmentStatuses,
       warehouseCode: draftWarehouseCode ? [draftWarehouseCode] : [],
       salesPointCode: draftSalesPointCode ? [draftSalesPointCode] : [],
+      regionCode: draftRegionCode ? [draftRegionCode] : [],
     });
     onClose();
   };
@@ -292,7 +288,8 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
     draftRiskGrades.length +
     draftAssessmentStatuses.length +
     (draftWarehouseCode ? 1 : 0) +
-    (draftSalesPointCode ? 1 : 0);
+    (draftSalesPointCode ? 1 : 0) +
+    (draftRegionCode ? 1 : 0);
 
   // 현재 선택된 카테고리 브레드크럼 라벨
   const currentCategoryBreadcrumb = [selectedL1?.name, selectedL2?.name, selectedL3?.name].filter(Boolean).join(' › ');
@@ -324,7 +321,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
               <h2 id="filter-modal-title" className="text-base font-bold text-gray-900">
                 상세 필터 설정
               </h2>
-              <p className="text-xs text-gray-500">카테고리 계층, 보관유형, 위험등급, 거점 조건을 조합합니다.</p>
+              <p className="text-xs text-gray-500">검색어, 채널, 상세 필터 그룹을 AND 또는 OR로 조합합니다.</p>
             </div>
           </div>
           <button
@@ -346,6 +343,41 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
 
         {/* 모달 바디 (스크롤 영역) */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          <fieldset className="rounded-xl border border-gray-200 bg-gray-50/80 p-3.5">
+            <legend className="px-1 text-xs font-bold text-gray-800">조건 결합 방식</legend>
+            <div className="flex flex-col gap-2 sm:flex-row" role="group" aria-label="필터 조건 결합 방식">
+              {[
+                { value: 'AND', label: '모든 조건 만족 (AND)', description: '선택한 각 필터 그룹을 모두 만족' },
+                { value: 'OR', label: '하나 이상 만족 (OR)', description: '선택한 필터 그룹 중 하나 이상 만족' },
+              ].map((option) => {
+                const isSelected = draftFilterOperator === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-label={option.label}
+                    aria-pressed={isSelected}
+                    onClick={() => setDraftFilterOperator(option.value)}
+                    className={`flex flex-1 items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors ${
+                      isSelected
+                        ? 'border-[#27B06E] bg-[#EBF7F0] text-[#1E8251] shadow-2xs'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>
+                      <span className="block text-xs font-bold">{option.label}</span>
+                      <span className="mt-0.5 block text-[11px] font-normal opacity-80">{option.description}</span>
+                    </span>
+                    {isSelected && <TickCircle size={15} aria-hidden="true" />}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-gray-500">
+              같은 그룹에서 여러 값을 선택하면 그 값들은 항상 하나 이상 일치(OR)로 처리됩니다.
+            </p>
+          </fieldset>
+
           {/* 1. 카테고리 3단계 계층 브라우저 */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -590,8 +622,8 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
             </div>
           </div>
 
-          {/* 4. 거점 (물류센터 & 상세 판매처) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+          {/* 4. 거점 (물류센터 · 상세 판매처 · 판매처 권역) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-100">
             {/* 물류센터 */}
             <div>
               <label htmlFor={warehouseSelectId} className="text-xs font-bold text-gray-800 mb-1.5 block">
@@ -641,6 +673,31 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                 {salesPointOptions.map((opt) => {
                   const code = typeof opt === 'string' ? opt : opt.code || opt.salesPointCode;
                   const name = typeof opt === 'string' ? opt : opt.name || opt.salesPointName || code;
+                  return (
+                    <option key={code} value={code}>
+                      {name}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* 판매처 권역 */}
+            <div>
+              <label htmlFor={regionSelectId} className="text-xs font-bold text-gray-800 mb-1.5 block">
+                판매처 권역
+              </label>
+              <select
+                id={regionSelectId}
+                value={draftRegionCode}
+                disabled={isFilterOptionsLoading}
+                onChange={(e) => setDraftRegionCode(e.target.value)}
+                className="w-full h-9 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-700 focus:border-[#27B06E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#27B06E]/20"
+              >
+                <option value="">전체 권역</option>
+                {regionOptions.map((opt) => {
+                  const code = typeof opt === 'string' ? opt : opt.code || opt.regionCode;
+                  const name = typeof opt === 'string' ? opt : opt.name || opt.regionName || code;
                   return (
                     <option key={code} value={code}>
                       {name}
