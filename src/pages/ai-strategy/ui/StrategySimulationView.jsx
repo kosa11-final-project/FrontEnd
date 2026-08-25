@@ -671,10 +671,10 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   const [simulatedOptionsByKey, setSimulatedOptionsByKey] = useState({});
   const [adjustmentErrorsByOption, setAdjustmentErrorsByOption] = useState({});
   const adjustmentRevisionByOptionRef = useRef({});
-  const applyAdjustmentRef = useRef(null);
   const simulationMutation = useMutation({
     mutationFn: ({ optionKey, payload }) => adjustAiStrategySimulation(strategyCase.strategyCaseId, optionKey, payload),
   });
+  const applySimulation = simulationMutation.mutateAsync;
   const comparePath = `/ai-strategy/${strategyCase.strategyCaseId}`;
   const finalOption = options.find((option) => option.optionKey === finalOptionKey) ?? null;
   const readyToExecute =
@@ -776,12 +776,12 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     });
   }
 
-  async function handleApplyAdjustment() {
+  const handleApplyAdjustment = useCallback(async () => {
     const optionKey = activeOption.optionKey;
     const requestRevision = adjustmentRevisionByOptionRef.current[optionKey] ?? 0;
     try {
       const payload = buildStrategyAdjustmentPayload(displayedActiveOption, adjustment);
-      const result = await simulationMutation.mutateAsync({ optionKey, payload });
+      const result = await applySimulation({ optionKey, payload });
       if ((adjustmentRevisionByOptionRef.current[optionKey] ?? 0) !== requestRevision) return;
       const adjustedOption = applyAdjustedSimulationResult(displayedActiveOption, result);
       const adjustedValues = getStrategyAdjustmentDefaults(adjustedOption);
@@ -797,9 +797,7 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
         setAdjustmentErrorsByOption((current) => ({ ...current, [optionKey]: error }));
       }
     }
-  }
-
-  applyAdjustmentRef.current = handleApplyAdjustment;
+  }, [activeOption.optionKey, adjustment, applySimulation, displayedActiveOption]);
 
   useEffect(() => {
     const appliedValues = adjustmentState.appliedValues ?? adjustmentDefaults.values;
@@ -808,10 +806,16 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     if (!hasUnappliedChanges || validationError) return undefined;
 
     const timeoutId = window.setTimeout(() => {
-      void applyAdjustmentRef.current?.();
+      void handleApplyAdjustment();
     }, 500);
     return () => window.clearTimeout(timeoutId);
-  }, [adjustment, adjustmentDefaults.values, adjustmentState.appliedValues, displayedActiveOption]);
+  }, [
+    adjustment,
+    adjustmentDefaults.values,
+    adjustmentState.appliedValues,
+    displayedActiveOption,
+    handleApplyAdjustment,
+  ]);
 
   function handleResetAdjustment() {
     adjustmentRevisionByOptionRef.current[activeOption.optionKey] =
