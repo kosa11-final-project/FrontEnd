@@ -266,29 +266,54 @@ describe('InventoryPage Integration', () => {
     expect(screen.getByText('요청 조건 입력 0/1')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
+    expect(screen.getByText('현재·출발 판매처를 선택해 주세요.')).toBeInTheDocument();
     expect(
-      screen.getByText('조건을 하나 이상 입력하거나 조건 전체를 AI에게 추천받기를 선택해 주세요.'),
+      screen.getByText(
+        '출발 판매처 외 조건을 하나 이상 입력하거나 나머지 조건 전체를 AI에게 추천받기를 선택해 주세요.',
+      ),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
+    const sourceSalesPointSelect = screen.getByLabelText(/^현재·출발 판매처/);
+    fireEvent.change(sourceSalesPointSelect, {
       target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
     });
-    expect(await screen.findByRole('checkbox', { name: /LOT-GF-20260729-01 LOT 선택/ })).toBeInTheDocument();
+    const lotCheckbox = await screen.findByRole('checkbox', { name: /LOT-GF-20260729-01 LOT 선택/ });
     expect(inventoryApiMock.getInventoryLots).toHaveBeenCalledWith(
       'SKU_MANDU_001_105',
       'STORE_THE_HYUNDAI_SEOUL',
       expect.anything(),
     );
+    expect(screen.getByText('요청 조건 입력 0/1')).toBeInTheDocument();
+
+    const candidateCheckbox = screen.getAllByRole('checkbox', { name: /후보 판매처 선택/ })[0];
+    const strategyTypeCheckbox = screen.getByRole('checkbox', { name: '재고 재할당' });
+    fireEvent.click(lotCheckbox);
+    fireEvent.click(candidateCheckbox);
+    fireEvent.click(strategyTypeCheckbox);
+    fireEvent.change(startDateInput, { target: { value: startDateInput.getAttribute('min') } });
+    fireEvent.change(endDateInput, { target: { value: endDateInput.getAttribute('max') } });
     expect(screen.getByText('요청 조건 입력 1/1')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건 전체를 AI에게 추천받기/ }));
+    expect(sourceSalesPointSelect).toHaveValue('STORE_THE_HYUNDAI_SEOUL');
+    expect(sourceSalesPointSelect).toBeEnabled();
+    expect(lotCheckbox).not.toBeChecked();
+    expect(lotCheckbox).toBeDisabled();
+    expect(candidateCheckbox).not.toBeChecked();
+    expect(candidateCheckbox).toBeDisabled();
+    expect(strategyTypeCheckbox).not.toBeChecked();
+    expect(strategyTypeCheckbox).toBeDisabled();
+    expect(startDateInput).toHaveValue('');
+    expect(startDateInput).toBeDisabled();
+    expect(endDateInput).toHaveValue('');
+    expect(endDateInput).toBeDisabled();
     expect(screen.getByText('요청 조건 입력 1/1')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
     await waitFor(() =>
       expect(strategyApiMock.createAiStrategyCase).toHaveBeenCalledWith({
         caseName: null,
         skuId: 1001,
-        sourceSalesPointId: null,
+        sourceSalesPointId: 101,
         lotIds: null,
         candidateSalesPointIds: null,
         strategyTypes: null,
@@ -306,7 +331,10 @@ describe('InventoryPage Integration', () => {
     const productCheckboxes = await screen.findAllByRole('checkbox', { name: /1\.05kg 단품팩 선택/ });
     fireEvent.click(productCheckboxes[0]);
     fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
+    fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
+      target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건 전체를 AI에게 추천받기/ }));
     fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
 
     expect(await screen.findByText('AI 전략 생성 요청을 전송하지 못했습니다.')).toBeInTheDocument();
@@ -328,9 +356,15 @@ describe('InventoryPage Integration', () => {
     fireEvent.click((await screen.findAllByRole('checkbox', { name: /500g 냉장팩 선택/ }))[0]);
     fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성' }));
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
+    fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
+      target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건 전체를 AI에게 추천받기/ }));
     fireEvent.click(screen.getByRole('button', { name: /현대명품 한우/ }));
-    fireEvent.click(screen.getByRole('checkbox', { name: /조건 전체를 AI에게 추천받기/ }));
+    fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
+      target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건 전체를 AI에게 추천받기/ }));
     fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
 
     expect(await screen.findByText('일부 AI 전략 생성 요청을 완료하지 못했습니다.')).toBeInTheDocument();

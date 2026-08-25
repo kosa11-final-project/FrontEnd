@@ -5,6 +5,7 @@ import {
   createStrategyRequestDraft,
   getStrategyRequestMaximumDate,
   hasStrategyRequestPreference,
+  hasStrategyRequestSource,
   validateStrategyRequestDraft,
 } from './strategyRequest.js';
 
@@ -48,12 +49,25 @@ describe('AI 전략 생성 요청 모델', () => {
 
   it('상품별로 직접 조건 하나 또는 전체 AI 추천 선택을 요구한다', () => {
     const emptyDraft = createStrategyRequestDraft({ skuId: 1001 });
+    const sourceOnlyDraft = {
+      ...emptyDraft,
+      sourceSalesPointCode: 'STORE-1',
+      sourceSalesPointId: 10,
+    };
 
     expect(hasStrategyRequestPreference(emptyDraft)).toBe(false);
     expect(validateStrategyRequestDraft(emptyDraft, '2026-08-23')).toMatchObject({
+      sourceSalesPointCode: expect.any(String),
       requestPreference: expect.any(String),
     });
-    expect(validateStrategyRequestDraft({ ...emptyDraft, recommendAllConditions: true }, '2026-08-23')).toEqual({});
+    expect(hasStrategyRequestSource(sourceOnlyDraft)).toBe(true);
+    expect(hasStrategyRequestPreference(sourceOnlyDraft)).toBe(false);
+    expect(validateStrategyRequestDraft(sourceOnlyDraft, '2026-08-23')).toMatchObject({
+      requestPreference: expect.any(String),
+    });
+    expect(validateStrategyRequestDraft({ ...sourceOnlyDraft, recommendAllConditions: true }, '2026-08-23')).toEqual(
+      {},
+    );
     expect(hasStrategyRequestPreference({ ...emptyDraft, strategyTypes: ['REALLOCATION'] })).toBe(true);
   });
 
@@ -62,8 +76,10 @@ describe('AI 전략 생성 요청 모델', () => {
       ...createStrategyRequestDraft({ skuId: 1001 }),
       sourceSalesPointCode: 'UNASSIGNED',
       sourceSalesPointId: null,
+      recommendAllConditions: true,
     };
 
+    expect(hasStrategyRequestSource(draft)).toBe(true);
     expect(validateStrategyRequestDraft(draft, '2026-08-23')).toEqual({});
     expect(buildStrategyRequestPayload(draft).sourceSalesPointId).toBeNull();
   });
@@ -75,6 +91,9 @@ describe('AI 전략 생성 요청 모델', () => {
       validateStrategyRequestDraft(
         {
           ...createStrategyRequestDraft({ skuId: 1001 }),
+          sourceSalesPointCode: 'STORE-1',
+          sourceSalesPointId: 10,
+          strategyTypes: ['REALLOCATION'],
           caseName: 'a'.repeat(201),
           preferredStartDate: '2026-08-22',
           preferredEndDate: '2027-01-01',
@@ -90,6 +109,9 @@ describe('AI 전략 생성 요청 모델', () => {
       validateStrategyRequestDraft(
         {
           ...createStrategyRequestDraft({ skuId: 1001 }),
+          sourceSalesPointCode: 'STORE-1',
+          sourceSalesPointId: 10,
+          strategyTypes: ['REALLOCATION'],
           preferredStartDate: '2026-08-23',
           preferredEndDate: '2026-11-20',
         },
@@ -101,6 +123,9 @@ describe('AI 전략 생성 요청 모델', () => {
       validateStrategyRequestDraft(
         {
           ...createStrategyRequestDraft({ skuId: 1001 }),
+          sourceSalesPointCode: 'STORE-1',
+          sourceSalesPointId: 10,
+          strategyTypes: ['REALLOCATION'],
           preferredStartDate: '2026-08-23',
           preferredEndDate: '2026-11-22',
         },
@@ -114,6 +139,7 @@ describe('AI 전략 생성 요청 모델', () => {
   it('비어 있는 선택값은 null로 직렬화하고 선택 순서를 보존한다', () => {
     const payload = buildStrategyRequestPayload({
       ...createStrategyRequestDraft({ skuId: 1001 }),
+      sourceSalesPointCode: 'STORE-1',
       sourceSalesPointId: 10,
       strategyTypes: ['RT_TRANSFER', 'PRICE_DISCOUNT'],
       candidateSalesPointIds: [30, 20],

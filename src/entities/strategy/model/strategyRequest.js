@@ -59,7 +59,6 @@ export function createStrategyRequestDraft(item = {}) {
 
 export function hasStrategyRequestPreference(draft = {}) {
   return Boolean(
-    draft.sourceSalesPointCode ||
     draft.lotIds?.length ||
     draft.candidateSalesPointCodes?.length ||
     draft.strategyTypes?.length ||
@@ -67,6 +66,12 @@ export function hasStrategyRequestPreference(draft = {}) {
     draft.preferredEndDate ||
     draft.recommendAllConditions,
   );
+}
+
+export function hasStrategyRequestSource(draft = {}) {
+  if (!draft.sourceSalesPointCode) return false;
+  if (draft.sourceSalesPointCode === 'UNASSIGNED') return draft.sourceSalesPointId == null;
+  return Number.isInteger(draft.sourceSalesPointId) && draft.sourceSalesPointId > 0;
 }
 
 export function validateStrategyRequestDraft(draft, today) {
@@ -80,8 +85,9 @@ export function validateStrategyRequestDraft(draft, today) {
     errors.skuId = '상품 식별자를 확인할 수 없습니다. 재고 목록을 새로고침한 뒤 다시 선택해 주세요.';
   }
 
-  const assignedSourceSelected = draft?.sourceSalesPointCode && draft.sourceSalesPointCode !== 'UNASSIGNED';
-  if (assignedSourceSelected && (!Number.isInteger(draft.sourceSalesPointId) || draft.sourceSalesPointId <= 0)) {
+  if (!draft?.sourceSalesPointCode) {
+    errors.sourceSalesPointCode = '현재·출발 판매처를 선택해 주세요.';
+  } else if (!hasStrategyRequestSource(draft)) {
     errors.sourceSalesPointId = '선택한 출발 판매처의 식별자를 확인할 수 없습니다.';
   }
 
@@ -90,7 +96,8 @@ export function validateStrategyRequestDraft(draft, today) {
   }
 
   if (!hasStrategyRequestPreference(draft)) {
-    errors.requestPreference = '조건을 하나 이상 입력하거나 조건 전체를 AI에게 추천받기를 선택해 주세요.';
+    errors.requestPreference =
+      '출발 판매처 외 조건을 하나 이상 입력하거나 나머지 조건 전체를 AI에게 추천받기를 선택해 주세요.';
   }
 
   if (caseName.length > 200) {
@@ -118,7 +125,7 @@ export function buildStrategyRequestPayload(draft) {
   return {
     caseName: draft.caseName.trim() || null,
     skuId: draft.skuId,
-    sourceSalesPointId: draft.sourceSalesPointId,
+    sourceSalesPointId: draft.sourceSalesPointCode === 'UNASSIGNED' ? null : draft.sourceSalesPointId,
     lotIds: draft.lotIds.length ? draft.lotIds : null,
     candidateSalesPointIds: draft.candidateSalesPointIds.length ? draft.candidateSalesPointIds : null,
     strategyTypes: draft.strategyTypes.length ? draft.strategyTypes : null,

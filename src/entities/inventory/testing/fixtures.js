@@ -5,21 +5,21 @@
 
 // 현대백화점 15개 전 지점 공통 템플릿
 const HYUNDAI_DEPT_15_STORES = [
-  { code: 'STORE_THE_HYUNDAI_SEOUL', name: '더현대 서울점' },
-  { code: 'STORE_APGUJEONG', name: '압구정본점' },
-  { code: 'STORE_TRADE_CENTER', name: '무역센터점' },
-  { code: 'STORE_CHEONHO', name: '천호점' },
-  { code: 'STORE_SINCHON', name: '신촌점' },
-  { code: 'STORE_MIA', name: '미아점' },
-  { code: 'STORE_MOKDONG', name: '목동점' },
-  { code: 'STORE_JUNG_DONG', name: '중동점' },
-  { code: 'STORE_KINTEX', name: '킨텍스점' },
-  { code: 'STORE_DCUBE', name: '디큐브시티' },
-  { code: 'STORE_PANGYO', name: '판교점' },
-  { code: 'STORE_ULSAN', name: '울산점' },
-  { code: 'STORE_ULSAN_DONGGU', name: '울산동구점' },
-  { code: 'STORE_CHUNGCHEONG', name: '충청점' },
-  { code: 'STORE_DAEGU', name: '대구점' },
+  { id: 101, code: 'STORE_THE_HYUNDAI_SEOUL', name: '더현대 서울점' },
+  { id: 102, code: 'STORE_APGUJEONG', name: '압구정본점' },
+  { id: 103, code: 'STORE_TRADE_CENTER', name: '무역센터점' },
+  { id: 104, code: 'STORE_CHEONHO', name: '천호점' },
+  { id: 105, code: 'STORE_SINCHON', name: '신촌점' },
+  { id: 106, code: 'STORE_MIA', name: '미아점' },
+  { id: 107, code: 'STORE_MOKDONG', name: '목동점' },
+  { id: 108, code: 'STORE_JUNG_DONG', name: '중동점' },
+  { id: 109, code: 'STORE_KINTEX', name: '킨텍스점' },
+  { id: 110, code: 'STORE_DCUBE', name: '디큐브시티' },
+  { id: 111, code: 'STORE_PANGYO', name: '판교점' },
+  { id: 112, code: 'STORE_ULSAN', name: '울산점' },
+  { id: 113, code: 'STORE_ULSAN_DONGGU', name: '울산동구점' },
+  { id: 114, code: 'STORE_CHUNGCHEONG', name: '충청점' },
+  { id: 115, code: 'STORE_DAEGU', name: '대구점' },
 ];
 
 export const mockRawInventoryItems = [
@@ -56,6 +56,7 @@ export const mockRawInventoryItems = [
     sales_points: [
       // 1. 그리팅 공식몰 (자사 온라인몰)
       {
+        sales_point_id: 201,
         sales_point_code: 'GREETING_ONLINE',
         sales_point_name: '그리팅 공식몰',
         channel_type: 'GREETING',
@@ -67,6 +68,7 @@ export const mockRawInventoryItems = [
       },
       // 2. 모두의맛집 (이커머스/외부몰)
       {
+        sales_point_id: 202,
         sales_point_code: 'ECOMMERCE_MODOO',
         sales_point_name: '모두의맛집 온라인스토어',
         channel_type: 'ECOMMERCE',
@@ -78,6 +80,7 @@ export const mockRawInventoryItems = [
       },
       // 3. H마트 역삼점 (오프라인 점포)
       {
+        sales_point_id: 203,
         sales_point_code: 'HMART_STORE_01',
         sales_point_name: 'H마트 역삼점',
         channel_type: 'HMART',
@@ -127,6 +130,7 @@ export const mockRawInventoryItems = [
         }
 
         return {
+          sales_point_id: st.id,
           sales_point_code: st.code,
           sales_point_name: st.name,
           channel_type: 'HYUNDAI_DEPT',
@@ -235,6 +239,7 @@ export const mockRawInventoryItems = [
         grade = 'CAUTION';
       }
       return {
+        sales_point_id: st.id,
         sales_point_code: st.code,
         sales_point_name: st.name,
         channel_type: 'HYUNDAI_DEPT',
