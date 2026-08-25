@@ -9,6 +9,7 @@ import {
   buildStrategyRequestPayload,
   createAiStrategyCase,
   createStrategyRequestDraft,
+  getStrategyRequestMaximumDate,
   hasStrategyRequestPreference,
   validateStrategyRequestDraft,
 } from '@/entities/strategy';
@@ -357,6 +358,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
   const [createdCasesBySku, setCreatedCasesBySku] = useState({});
   const [submissionFailures, setSubmissionFailures] = useState([]);
   const today = getSeoulToday();
+  const maximumDate = getStrategyRequestMaximumDate(today);
   const creationMutation = useMutation({
     mutationFn: (requests) => createStrategyCases(requests, createCase),
     onSuccess: ({ successful, failed }) => {
@@ -734,6 +736,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                       id="preferred-start-date"
                       type="date"
                       min={today}
+                      max={maximumDate}
                       value={draft.preferredStartDate}
                       disabled={draft.recommendAllConditions}
                       tone={errors.preferredStartDate ? 'error' : 'default'}
@@ -751,6 +754,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                       id="preferred-end-date"
                       type="date"
                       min={draft.preferredStartDate || today}
+                      max={maximumDate}
                       value={draft.preferredEndDate}
                       disabled={draft.recommendAllConditions}
                       tone={errors.preferredEndDate ? 'error' : 'default'}

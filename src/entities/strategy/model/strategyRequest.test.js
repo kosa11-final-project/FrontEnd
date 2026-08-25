@@ -3,6 +3,7 @@ import {
   STRATEGY_REQUEST_TYPES,
   buildStrategyRequestPayload,
   createStrategyRequestDraft,
+  getStrategyRequestMaximumDate,
   hasStrategyRequestPreference,
   validateStrategyRequestDraft,
 } from './strategyRequest.js';
@@ -68,6 +69,8 @@ describe('AI 전략 생성 요청 모델', () => {
   });
 
   it('명세의 날짜 경계와 전략명 길이를 검증한다', () => {
+    expect(getStrategyRequestMaximumDate('2026-08-23')).toBe('2026-11-21');
+
     expect(
       validateStrategyRequestDraft(
         {
@@ -93,6 +96,19 @@ describe('AI 전략 생성 요청 모델', () => {
         '2026-08-23',
       ),
     ).toEqual({});
+
+    expect(
+      validateStrategyRequestDraft(
+        {
+          ...createStrategyRequestDraft({ skuId: 1001 }),
+          preferredStartDate: '2026-08-23',
+          preferredEndDate: '2026-11-22',
+        },
+        '2026-08-23',
+      ),
+    ).toMatchObject({
+      preferredEndDate: expect.any(String),
+    });
   });
 
   it('비어 있는 선택값은 null로 직렬화하고 선택 순서를 보존한다', () => {

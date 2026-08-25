@@ -36,6 +36,10 @@ function addDays(value, days) {
   return new Date(date.getTime() + days * DAY_MS).toISOString().slice(0, 10);
 }
 
+export function getStrategyRequestMaximumDate(today) {
+  return addDays(today, 90);
+}
+
 export function createStrategyRequestDraft(item = {}) {
   return {
     caseName: '',
@@ -70,6 +74,7 @@ export function validateStrategyRequestDraft(draft, today) {
   const caseName = draft?.caseName?.trim() ?? '';
   const startDate = draft?.preferredStartDate ?? '';
   const endDate = draft?.preferredEndDate ?? '';
+  const maximumDate = getStrategyRequestMaximumDate(today);
 
   if (!Number.isInteger(draft?.skuId) || draft.skuId <= 0) {
     errors.skuId = '상품 식별자를 확인할 수 없습니다. 재고 목록을 새로고침한 뒤 다시 선택해 주세요.';
@@ -94,18 +99,16 @@ export function validateStrategyRequestDraft(draft, today) {
 
   if (startDate && startDate < today) {
     errors.preferredStartDate = '시작일은 오늘보다 빠를 수 없습니다.';
-  } else if (startDate && startDate > addDays(today, 90)) {
+  } else if (startDate && startDate > maximumDate) {
     errors.preferredStartDate = '시작일은 오늘부터 90일 이내여야 합니다.';
   }
 
   if (startDate && endDate && endDate < startDate) {
     errors.preferredEndDate = '종료일은 시작일보다 빠를 수 없습니다.';
-  } else if (startDate && endDate && endDate > addDays(startDate, 89)) {
-    errors.preferredEndDate = '시작일과 종료일을 포함해 최대 90일까지 선택할 수 있습니다.';
   } else if (!startDate && endDate && endDate < today) {
     errors.preferredEndDate = '종료일은 오늘보다 빠를 수 없습니다.';
-  } else if (!startDate && endDate && endDate > addDays(today, 179)) {
-    errors.preferredEndDate = '종료일만 지정할 때는 오늘부터 179일 이내여야 합니다.';
+  } else if (endDate && endDate > maximumDate) {
+    errors.preferredEndDate = '종료일은 오늘부터 90일 이내여야 합니다.';
   }
 
   return errors;

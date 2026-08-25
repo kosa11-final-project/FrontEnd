@@ -119,14 +119,26 @@ function DrawerDetails({ strategy }) {
   );
 }
 
-function StrategySearchInput({ initialValue, onDebouncedChange }) {
-  const [value, setValue] = useState(initialValue);
+function StrategySearchInput({ value: externalValue, onDebouncedChange }) {
+  const [value, setValue] = useState(externalValue);
+  const lastEmittedValueRef = useRef(externalValue);
 
   useEffect(() => {
-    if (value === initialValue) return undefined;
-    const timeoutId = window.setTimeout(() => onDebouncedChange(value), 300);
+    if (externalValue === lastEmittedValueRef.current) return;
+
+    lastEmittedValueRef.current = externalValue;
+    setValue(externalValue);
+  }, [externalValue]);
+
+  useEffect(() => {
+    if (value === externalValue) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      lastEmittedValueRef.current = value;
+      onDebouncedChange(value);
+    }, 300);
     return () => window.clearTimeout(timeoutId);
-  }, [initialValue, onDebouncedChange, value]);
+  }, [externalValue, onDebouncedChange, value]);
 
   return (
     <Input
@@ -196,7 +208,7 @@ function StrategyFilterBar({ status, counts, query, from, to, onFilterChange, on
               aria-hidden="true"
               className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2 text-[color:var(--text-muted)]"
             />
-            <StrategySearchInput key={query} initialValue={query} onDebouncedChange={onQueryChange} />
+            <StrategySearchInput value={query} onDebouncedChange={onQueryChange} />
           </span>
         </label>
       </div>

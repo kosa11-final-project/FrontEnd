@@ -256,8 +256,12 @@ describe('InventoryPage Integration', () => {
     expect(screen.getByLabelText(/^전략명/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^현재·출발 판매처/)).toBeInTheDocument();
     expect(screen.getByText('희망 전략 타입')).toBeInTheDocument();
-    expect(screen.getByLabelText(/^시작일/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^종료일/)).toBeInTheDocument();
+    const startDateInput = screen.getByLabelText(/^시작일/);
+    const endDateInput = screen.getByLabelText(/^종료일/);
+    expect(startDateInput).toBeInTheDocument();
+    expect(endDateInput).toBeInTheDocument();
+    expect(startDateInput).toHaveAttribute('max');
+    expect(endDateInput).toHaveAttribute('max', startDateInput.getAttribute('max'));
     expect(screen.getByText('출발 판매처를 먼저 선택해 주세요.')).toBeInTheDocument();
     expect(screen.getByText('요청 조건 입력 0/1')).toBeInTheDocument();
 

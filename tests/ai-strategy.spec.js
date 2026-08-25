@@ -111,12 +111,14 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByRole('row').filter({ hasText: '#32' })).toHaveCount(0);
 
     await page.getByRole('button', { name: /^전체/ }).click();
-    await page.getByPlaceholder('Case ID, 전략명, SKU·상품명 검색').fill('닭가슴살 샐러드');
+    const searchInput = page.getByPlaceholder('Case ID, 전략명, SKU·상품명 검색');
+    await searchInput.fill('닭가슴살 샐러드');
     await expect(page).toHaveURL(/q=/);
+    await expect(searchInput).toBeFocused();
     await expect(page.getByRole('row').filter({ hasText: '#22' })).toBeVisible();
     await expect(page.getByText('총 1건')).toBeVisible();
 
-    await page.getByPlaceholder('Case ID, 전략명, SKU·상품명 검색').fill('');
+    await searchInput.fill('');
     await page.getByLabel('시작일').fill('2026-08-16');
     await page.getByLabel('종료일').fill('2026-08-17');
     await expect(page).toHaveURL(/from=2026-08-16/);
