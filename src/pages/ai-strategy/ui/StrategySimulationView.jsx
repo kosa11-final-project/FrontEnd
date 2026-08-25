@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   CartesianGrid,
@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ArrowLeft, Check, DocumentText, Refresh, Send } from 'reicon-react';
+import { ArrowLeft, Check, Refresh, Send } from 'reicon-react';
 import {
   adjustAiStrategySimulation,
   aiStrategyKeys,
@@ -22,6 +22,7 @@ import {
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
   resolveStrategyActionType,
+  resolveStrategyLocationPresentation,
   sortStrategyOptions,
 } from '@/entities/strategy';
 import { formatCurrency, formatDate, formatNumber, formatQuantity } from '@/shared/lib/format';
@@ -147,9 +148,6 @@ function StrategySwitcher({ strategyCase, options, activeOptionKey, finalOptionK
           </div>
         </div>
       </div>
-      <p className="mt-2 text-right text-xs text-[color:var(--text-muted)]">
-        전략 버튼은 비교 대상만 전환하며, 최종안은 하단 버튼에서 확정합니다.
-      </p>
     </section>
   );
 }
@@ -227,17 +225,15 @@ function DateRangeFields({ actionOrder, values, minimumDate, maximumDate, onChan
 
 function ActionConditionSection({ option, action, values, maxQuantity, maxDiscountPercent, onChange }) {
   const meta = resolveStrategyActionType(action.actionType);
+  const locationPresentation = resolveStrategyLocationPresentation({
+    ...action,
+    sourceLocation: values.sourceLocation,
+    targetLocation: values.targetLocation,
+  });
   const isLocationAction = action.actionType === 'REALLOCATION' || action.actionType === 'RT_TRANSFER';
   const isChannelAction = action.actionType === 'CHANNEL_EXPANSION' || action.actionType === 'CHANNEL_CONCENTRATION';
   const isDiscountAction = action.actionType === 'PRICE_DISCOUNT';
-  const quantityLabel =
-    action.actionType === 'RT_TRANSFER'
-      ? '이동 수량'
-      : action.actionType === 'REALLOCATION'
-        ? '재할당 수량'
-        : isDiscountAction
-          ? '할인 적용 수량'
-          : '채널 적용 수량';
+  const quantityLabel = locationPresentation?.quantityLabel ?? (isDiscountAction ? '할인 적용 수량' : '채널 적용 수량');
   const targetLabel = isChannelAction
     ? action.actionType === 'CHANNEL_EXPANSION'
       ? '추가 판매 채널'
@@ -251,6 +247,9 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
           {action.actionOrder}
         </span>
         <Badge variant={meta.variant}>{meta.label}</Badge>
+        {locationPresentation ? (
+          <Badge variant={locationPresentation.badgeVariant}>{locationPresentation.badge}</Badge>
+        ) : null}
         <strong className="min-w-0 text-sm text-[color:var(--text-heading)]">액션 조건</strong>
       </div>
 
@@ -262,18 +261,30 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
         onChange={(value) => onChange(action.actionOrder, 'quantity', value)}
       />
 
-      {(isLocationAction || isChannelAction) && (
+      {isLocationAction && locationPresentation ? (
+        <div className="grid min-w-0 gap-2">
+          <ReadOnlyCondition label={locationPresentation.sourceLabel}>
+            {locationPresentation.sourceValue}
+          </ReadOnlyCondition>
+          <span aria-hidden="true" className="text-center text-lg leading-none text-[color:var(--text-muted)]">
+            ↓
+          </span>
+          <ReadOnlyCondition label={locationPresentation.targetLabel}>
+            {locationPresentation.targetValue}
+          </ReadOnlyCondition>
+          <p className="rounded-lg bg-[var(--surface-subtle)] px-3 py-2 text-xs leading-5 text-[color:var(--text-muted)]">
+            {locationPresentation.description}
+          </p>
+        </div>
+      ) : null}
+
+      {isChannelAction ? (
         <div className="grid min-w-0 gap-3">
-          {isLocationAction && (
-            <ReadOnlyCondition label="출발 위치">
-              {values.sourceLocation?.locationName ?? '서버 자동 선택'}
-            </ReadOnlyCondition>
-          )}
           <ReadOnlyCondition label={targetLabel}>
             {values.targetLocation?.locationName ?? '서버 자동 선택'}
           </ReadOnlyCondition>
         </div>
-      )}
+      ) : null}
 
       {isDiscountAction && (
         <>
@@ -299,7 +310,15 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
       />
 
       {!isDiscountAction && (
-        <ReadOnlyCondition label={isChannelAction ? '채널 운영 비용' : '이동·실행 비용'}>
+        <ReadOnlyCondition
+          label={
+            isChannelAction
+              ? '채널 운영 비용'
+              : action.actionType === 'REALLOCATION'
+                ? '재할당 실행 비용'
+                : '이동·실행 비용'
+          }
+        >
           {formatCurrency(values.actionCost)}
         </ReadOnlyCondition>
       )}
@@ -328,7 +347,6 @@ function ConditionPanel({
   error,
   onChange,
   onReset,
-  onApply,
 }) {
   const recommendationUnchanged = areAdjustmentValuesEqual(values, defaults);
   const unappliedChanges = !areAdjustmentValuesEqual(values, appliedValues ?? defaults);
@@ -348,11 +366,6 @@ function ConditionPanel({
       </div>
 
       <div className="grid min-w-0 gap-5 p-5">
-        <Alert variant="info" title="조건 조정">
-          변경한 조건은 적용 전까지 차트와 예상 결과에 반영되지 않습니다. 조건 적용을 누르면 서버가 SKU 전체 재고를
-          기준으로 다시 계산합니다.
-        </Alert>
-
         {option.adjustmentConstraints?.requiresPeriodAdjustment ? (
           <Alert variant="warning" title="전략 기간을 조정해 주세요.">
             선택한 LOT의 소비기한을 기준으로 종료일은 {formatDate(option.adjustmentConstraints.latestSelectableEndDate)}
@@ -380,48 +393,37 @@ function ConditionPanel({
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button type="button" variant="secondary" onClick={onReset} disabled={recommendationUnchanged}>
-            <Icon icon={Refresh} size={15} /> 추천값 복원
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onApply}
-            disabled={!unappliedChanges || Boolean(validationError) || applying}
-          >
-            <Icon icon={DocumentText} size={15} /> {applying ? '계산 중...' : '조건 적용'}
-          </Button>
-        </div>
+        <Button type="button" variant="secondary" onClick={onReset} disabled={recommendationUnchanged}>
+          <Icon icon={Refresh} size={15} /> 추천값 복원
+        </Button>
         {unappliedChanges && validationError ? (
           <p role="alert" className="-mt-3 text-center text-xs font-medium text-[color:var(--danger)]">
             {validationError}
           </p>
         ) : null}
-        <p className="-mt-3 text-center text-xs text-[color:var(--text-muted)]">
-          원본 AI 추천 결과는 변경되지 않습니다.
+        <p aria-live="polite" className="-mt-3 text-center text-xs leading-5 text-[color:var(--text-muted)]">
+          {applying
+            ? '변경한 조건으로 차트와 예상 결과를 계산하고 있습니다.'
+            : '조건 적용 시 서버가 SKU 전체 재고를 기준으로'}
+          {!applying ? (
+            <>
+              <br />
+              차트와 예상 결과를 다시 계산합니다.
+            </>
+          ) : null}
         </p>
       </div>
     </Card>
   );
 }
 
-function StrategyChart({ strategyCase, options, activeOption }) {
-  const [chartTab, setChartTab] = useState('finance');
-  const [financeMetric, setFinanceMetric] = useState('revenue');
+function StrategyChart({ strategyCase, options, activeOption, chartRange }) {
+  const [chartTab, setChartTab] = useState('contributionMargin');
   const chartData = useMemo(
-    () => buildStrategyChartData({ ...strategyCase, options }, activeOption.chartRange),
-    [activeOption.chartRange, options, strategyCase],
+    () => buildStrategyChartData({ ...strategyCase, options }, chartRange),
+    [chartRange, options, strategyCase],
   );
   const periodDays = chartData.length;
-  const financeMeta =
-    financeMetric === 'revenue'
-      ? { baselineKey: 'baselineRevenue', suffix: 'Revenue', label: '누적 매출' }
-      : {
-          baselineKey: 'baselineContributionMargin',
-          suffix: 'ContributionMargin',
-          label: '누적 공헌이익',
-        };
 
   return (
     <Card padding="lg" className="min-w-0">
@@ -435,33 +437,16 @@ function StrategyChart({ strategyCase, options, activeOption }) {
         <Tabs value={chartTab} onValueChange={setChartTab}>
           {({ value, setValue }) => (
             <TabsList aria-label="시뮬레이션 차트 종류" className="rounded-lg border border-[var(--border)] p-1">
+              <TabsTrigger value="contributionMargin" activeValue={value} onSelect={setValue}>
+                공헌이익
+              </TabsTrigger>
               <TabsTrigger value="inventory" activeValue={value} onSelect={setValue}>
                 재고 추이
-              </TabsTrigger>
-              <TabsTrigger value="finance" activeValue={value} onSelect={setValue}>
-                매출·이익
               </TabsTrigger>
             </TabsList>
           )}
         </Tabs>
       </div>
-
-      {chartTab === 'finance' ? (
-        <div className="mb-3 flex justify-end">
-          <Tabs value={financeMetric} onValueChange={setFinanceMetric}>
-            {({ value, setValue }) => (
-              <TabsList aria-label="매출 이익 지표" className="rounded-lg bg-[var(--surface-subtle)] p-1">
-                <TabsTrigger value="revenue" activeValue={value} onSelect={setValue}>
-                  누적 매출
-                </TabsTrigger>
-                <TabsTrigger value="contributionMargin" activeValue={value} onSelect={setValue}>
-                  누적 공헌이익
-                </TabsTrigger>
-              </TabsList>
-            )}
-          </Tabs>
-        </div>
-      ) : null}
 
       <div className="h-[280px] min-w-0 sm:h-[340px]" data-testid="strategy-simulation-chart">
         <ResponsiveContainer width="100%" height="100%">
@@ -514,8 +499,8 @@ function StrategyChart({ strategyCase, options, activeOption }) {
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line
                 type="monotone"
-                dataKey={financeMeta.baselineKey}
-                name={`무전략 기준 ${financeMeta.label}`}
+                dataKey="baselineContributionMargin"
+                name="무전략 기준 누적 공헌이익"
                 stroke="var(--chart-baseline)"
                 strokeDasharray="5 5"
                 strokeWidth={2}
@@ -528,7 +513,7 @@ function StrategyChart({ strategyCase, options, activeOption }) {
                   <Line
                     key={option.optionKey}
                     type="monotone"
-                    dataKey={`${option.optionKey}${financeMeta.suffix}`}
+                    dataKey={`${option.optionKey}ContributionMargin`}
                     name={`${option.rank}안 ${option.optionName}`}
                     stroke={chartColors[index % chartColors.length]}
                     strokeWidth={active ? 4 : 1.5}
@@ -646,9 +631,11 @@ function ActionTimeline({ option }) {
           );
         })}
       </ol>
-      <div className="mt-4 rounded-xl bg-[var(--surface-subtle)] p-4 text-xs leading-5 text-[color:var(--text-body)]">
-        <strong className="text-[color:var(--primary)]">실행 제약</strong> · {option.constraints}
-      </div>
+      {option.constraints ? (
+        <div className="mt-4 rounded-xl bg-[var(--surface-subtle)] p-4 text-xs leading-5 text-[color:var(--text-body)]">
+          <strong className="text-[color:var(--primary)]">계산 가정 및 유의사항</strong> · {option.constraints}
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -683,6 +670,8 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   const [adjustmentStateByOption, setAdjustmentStateByOption] = useState(() => adjustmentDefaultsByOption);
   const [simulatedOptionsByKey, setSimulatedOptionsByKey] = useState({});
   const [adjustmentErrorsByOption, setAdjustmentErrorsByOption] = useState({});
+  const adjustmentRevisionByOptionRef = useRef({});
+  const applyAdjustmentRef = useRef(null);
   const simulationMutation = useMutation({
     mutationFn: ({ optionKey, payload }) => adjustAiStrategySimulation(strategyCase.strategyCaseId, optionKey, payload),
   });
@@ -705,6 +694,13 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
       ),
     [activeOption.optionKey, authoritativeOption, options, simulatedOptionsByKey],
   );
+  const displayedChartRange = useMemo(() => {
+    const periodValues = Object.values(adjustment.actions).find((values) => values.startDate || values.endDate);
+    return {
+      startDate: periodValues?.startDate || displayedActiveOption.chartRange?.startDate,
+      endDate: periodValues?.endDate || displayedActiveOption.chartRange?.endDate,
+    };
+  }, [adjustment.actions, displayedActiveOption.chartRange]);
   const closeReviewerModal = useCallback(() => setReviewerModalOpen(false), []);
   const handleSelectionConflict = useCallback((error) => {
     setReviewerModalOpen(false);
@@ -736,6 +732,8 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   const activeMutation = simulationMutation.variables?.optionKey === activeOption.optionKey;
 
   function handleConditionChange(actionOrder, field, value) {
+    adjustmentRevisionByOptionRef.current[activeOption.optionKey] =
+      (adjustmentRevisionByOptionRef.current[activeOption.optionKey] ?? 0) + 1;
     setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: null }));
     setAdjustmentStateByOption((current) => {
       const optionState = current[activeOption.optionKey] ?? adjustmentDefaults;
@@ -779,24 +777,45 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   }
 
   async function handleApplyAdjustment() {
+    const optionKey = activeOption.optionKey;
+    const requestRevision = adjustmentRevisionByOptionRef.current[optionKey] ?? 0;
     try {
       const payload = buildStrategyAdjustmentPayload(displayedActiveOption, adjustment);
-      const result = await simulationMutation.mutateAsync({ optionKey: activeOption.optionKey, payload });
+      const result = await simulationMutation.mutateAsync({ optionKey, payload });
+      if ((adjustmentRevisionByOptionRef.current[optionKey] ?? 0) !== requestRevision) return;
       const adjustedOption = applyAdjustedSimulationResult(displayedActiveOption, result);
       const adjustedValues = getStrategyAdjustmentDefaults(adjustedOption);
 
-      setSimulatedOptionsByKey((current) => ({ ...current, [activeOption.optionKey]: adjustedOption }));
+      setSimulatedOptionsByKey((current) => ({ ...current, [optionKey]: adjustedOption }));
       setAdjustmentStateByOption((current) => ({
         ...current,
-        [activeOption.optionKey]: { values: adjustedValues, applied: true, appliedValues: adjustedValues },
+        [optionKey]: { values: adjustedValues, applied: true, appliedValues: adjustedValues },
       }));
-      setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: null }));
+      setAdjustmentErrorsByOption((current) => ({ ...current, [optionKey]: null }));
     } catch (error) {
-      setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: error }));
+      if ((adjustmentRevisionByOptionRef.current[optionKey] ?? 0) === requestRevision) {
+        setAdjustmentErrorsByOption((current) => ({ ...current, [optionKey]: error }));
+      }
     }
   }
 
+  applyAdjustmentRef.current = handleApplyAdjustment;
+
+  useEffect(() => {
+    const appliedValues = adjustmentState.appliedValues ?? adjustmentDefaults.values;
+    const hasUnappliedChanges = !areAdjustmentValuesEqual(adjustment, appliedValues);
+    const validationError = getStrategyAdjustmentValidationError(displayedActiveOption, adjustment);
+    if (!hasUnappliedChanges || validationError) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      void applyAdjustmentRef.current?.();
+    }, 500);
+    return () => window.clearTimeout(timeoutId);
+  }, [adjustment, adjustmentDefaults.values, adjustmentState.appliedValues, displayedActiveOption]);
+
   function handleResetAdjustment() {
+    adjustmentRevisionByOptionRef.current[activeOption.optionKey] =
+      (adjustmentRevisionByOptionRef.current[activeOption.optionKey] ?? 0) + 1;
     setAdjustmentStateByOption((current) => ({
       ...current,
       [activeOption.optionKey]: adjustmentDefaults,
@@ -853,24 +872,25 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
             error={adjustmentErrorsByOption[activeOption.optionKey]}
             onChange={handleConditionChange}
             onReset={handleResetAdjustment}
-            onApply={handleApplyAdjustment}
           />
         }
       >
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 overflow-hidden">
-          <Card padding="md" className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-            <div>
+          <Card padding="md" className="grid gap-4">
+            <div className="min-w-0">
               <span className="text-xs font-bold text-[color:var(--primary)]">AI 추천 이유</span>
-              <p className="mt-1 text-sm leading-6 text-[color:var(--text-body)]">
+              <p className="mt-1 break-words text-sm leading-6 text-[color:var(--text-body)]">
                 {activeOption.recommendationReason}
               </p>
             </div>
-            <div className="grid gap-2 text-xs leading-5">
-              <p>
-                <strong className="text-[color:var(--good)]">장점</strong> · {activeOption.advantage}
+            <div className="grid gap-3 border-t border-[var(--border)] pt-3 text-xs leading-5 md:grid-cols-2">
+              <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
+                <strong className="mr-1 text-[color:var(--good)]">장점</strong>
+                <span className="text-[color:var(--text-body)]">{activeOption.advantage}</span>
               </p>
-              <p className="text-[color:var(--text-muted)]">
-                <strong className="text-[color:var(--warning)]">주의</strong> · {activeOption.caution}
+              <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
+                <strong className="mr-1 text-[color:var(--warning)]">주의</strong>
+                <span className="text-[color:var(--text-muted)]">{activeOption.caution}</span>
               </p>
             </div>
           </Card>
@@ -879,6 +899,7 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
               strategyCase={strategyCase}
               options={displayedOptions}
               activeOption={displayedActiveOption}
+              chartRange={displayedChartRange}
             />
           </div>
           <SimulationResultTable strategyCase={strategyCase} option={displayedActiveOption} />

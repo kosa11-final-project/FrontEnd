@@ -6,6 +6,7 @@ import {
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
   resolveStrategyActionType,
+  resolveStrategyLocationPresentation,
   resolveStrategyOption,
   sortStrategyOptions,
 } from './strategyDetail.js';
@@ -31,6 +32,51 @@ describe('strategy detail model', () => {
   it('지원하지 않는 액션 타입도 안전한 표시 메타데이터를 반환한다', () => {
     expect(resolveStrategyActionType('RT_TRANSFER').label).toBe('재고 이동');
     expect(resolveStrategyActionType('UNKNOWN')).toEqual({ label: 'UNKNOWN', variant: 'neutral' });
+  });
+
+  it('재할당과 실물 이동의 위치 표현을 구분한다', () => {
+    expect(
+      resolveStrategyLocationPresentation({
+        actionType: 'REALLOCATION',
+        sourceLocation: { locationName: '압구정본점', locationType: 'SALES_POINT' },
+        targetLocation: { locationName: '무역센터점', locationType: 'SALES_POINT' },
+      }),
+    ).toMatchObject({
+      sourceLabel: '기존 할당 판매처',
+      targetLabel: '변경 할당 판매처',
+      badge: '물리적 이동 없음',
+      sourceValue: '압구정본점',
+      targetValue: '무역센터점',
+    });
+    expect(
+      resolveStrategyLocationPresentation({
+        actionType: 'RT_TRANSFER',
+        sourceLocation: { locationName: '경인센터', locationType: 'WAREHOUSE' },
+        targetLocation: { locationName: '무역센터점', locationType: 'SALES_POINT' },
+      }),
+    ).toMatchObject({
+      sourceLabel: '출발 물류센터',
+      targetLabel: '도착 판매처',
+      badge: '실물 재고 이동',
+      sourceValue: '경인센터 (물류센터)',
+      targetValue: '무역센터점 (판매처)',
+    });
+  });
+
+  it('위치가 같거나 누락되어도 표시값을 안전하게 만든다', () => {
+    expect(
+      resolveStrategyLocationPresentation({
+        actionType: 'REALLOCATION',
+        sourceLocation: { locationName: '압구정본점' },
+        targetLocation: { locationName: '압구정본점' },
+      }),
+    ).toMatchObject({ sourceValue: '압구정본점', targetValue: '압구정본점' });
+    expect(resolveStrategyLocationPresentation({ actionType: 'RT_TRANSFER' })).toMatchObject({
+      sourceLabel: '출발 위치',
+      targetLabel: '도착 위치',
+      sourceValue: '서버 자동 선택',
+      targetValue: '서버 자동 선택',
+    });
   });
 
   it('기준 시계열과 옵션 시계열을 같은 날짜 행으로 합친다', () => {

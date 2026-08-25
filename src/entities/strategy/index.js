@@ -24,6 +24,7 @@ export {
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
   resolveStrategyActionType,
+  resolveStrategyLocationPresentation,
   resolveStrategyOption,
   sortStrategyOptions,
   strategyActionTypeMeta,

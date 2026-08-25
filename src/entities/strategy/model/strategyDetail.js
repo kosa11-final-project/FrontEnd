@@ -10,6 +10,49 @@ export function resolveStrategyActionType(type) {
   return strategyActionTypeMeta[type] ?? { label: type || '전략 액션', variant: 'neutral' };
 }
 
+const locationTypeLabels = Object.freeze({
+  WAREHOUSE: '물류센터',
+  SALES_POINT: '판매처',
+});
+
+function resolveLocationValue(location, includeType) {
+  if (!location?.locationName) return '서버 자동 선택';
+  const typeLabel = locationTypeLabels[location.locationType];
+  return includeType && typeLabel ? `${location.locationName} (${typeLabel})` : location.locationName;
+}
+
+export function resolveStrategyLocationPresentation(action = {}) {
+  if (action.actionType === 'REALLOCATION') {
+    return {
+      quantityLabel: '재할당 수량',
+      sourceLabel: '기존 할당 판매처',
+      targetLabel: '변경 할당 판매처',
+      sourceValue: resolveLocationValue(action.sourceLocation, false),
+      targetValue: resolveLocationValue(action.targetLocation, false),
+      badge: '물리적 이동 없음',
+      badgeVariant: 'neutral',
+      description: '같은 물류센터에서 재고 보관 위치는 유지하고 판매처 할당량만 변경합니다.',
+    };
+  }
+
+  if (action.actionType === 'RT_TRANSFER') {
+    const sourceType = locationTypeLabels[action.sourceLocation?.locationType];
+    const targetType = locationTypeLabels[action.targetLocation?.locationType];
+    return {
+      quantityLabel: '이동 수량',
+      sourceLabel: sourceType ? `출발 ${sourceType}` : '출발 위치',
+      targetLabel: targetType ? `도착 ${targetType}` : '도착 위치',
+      sourceValue: resolveLocationValue(action.sourceLocation, true),
+      targetValue: resolveLocationValue(action.targetLocation, true),
+      badge: '실물 재고 이동',
+      badgeVariant: 'warning',
+      description: '출발 위치에서 도착 위치로 재고를 실제 운송합니다.',
+    };
+  }
+
+  return null;
+}
+
 export function sortStrategyOptions(options = []) {
   return [...options].sort((a, b) => a.rank - b.rank);
 }
