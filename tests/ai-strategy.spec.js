@@ -692,6 +692,68 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByRole('button', { name: 'Teams 검토 요청' })).toBeEnabled();
   });
 
+  test('기존 최종안이 있어도 다른 전략 검증 중에는 Teams 요청을 차단한다', async ({ page }) => {
+    let pendingValidationRoute;
+    let reviewerRequested = false;
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/v1/ai-strategies/reviewers') reviewerRequested = true;
+    });
+    await page.route('**/api/v1/ai-strategies/32/selection-validations', async (route) => {
+      const payload = route.request().postDataJSON();
+      if (payload.optionId === 'opt-reallocation') {
+        pendingValidationRoute = route;
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            strategyCaseId: 32,
+            optionId: payload.optionId,
+            valid: true,
+            selectionSource: 'AI_RECOMMENDED',
+            actionQuantity: 40,
+            startDate: '2026-08-20',
+            endDate: '2026-08-27',
+            validatedAt: '2026-08-25T18:30:00',
+          },
+        }),
+      });
+    });
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+
+    const teamsButton = page.getByRole('button', { name: 'Teams 검토 요청' });
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+    await expect(teamsButton).toBeEnabled();
+    await page.getByRole('button', { name: /고수요 판매처 중심 재고 재할당/ }).click();
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+
+    await expect(page.getByRole('button', { name: '최종안 검증 중...' })).toBeDisabled();
+    await expect(teamsButton).toBeDisabled();
+    expect(reviewerRequested).toBe(false);
+
+    await pendingValidationRoute.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          strategyCaseId: 32,
+          optionId: 'opt-reallocation',
+          valid: true,
+          selectionSource: 'AI_RECOMMENDED',
+          actionQuantity: 32,
+          startDate: '2026-08-20',
+          endDate: '2026-08-27',
+          validatedAt: '2026-08-25T18:31:00',
+        },
+      }),
+    });
+
+    await expect(page.getByText('2안을 최종안으로 표시 중입니다.')).toBeVisible();
+    await expect(teamsButton).toBeEnabled();
+  });
+
   test('사전 검증 실패 시 최종안과 Reviewer 흐름을 열지 않는다', async ({ page }) => {
     let reviewerRequested = false;
     page.on('request', (request) => {

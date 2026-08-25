@@ -994,7 +994,9 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
             <Button
               type="button"
               className="w-full"
-              disabled={!finalOption || !finalSelectionPayload || readyToExecute}
+              disabled={
+                !finalOption || !finalSelectionPayload || readyToExecute || selectionValidationMutation.isPending
+              }
               onClick={() => setReviewerModalOpen(true)}
             >
               <Icon icon={Send} size={16} />
