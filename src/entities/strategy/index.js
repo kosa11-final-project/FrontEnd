@@ -18,7 +18,6 @@ export {
 export { StrategyGenerationProgress } from './ui/StrategyGenerationProgress.jsx';
 export { StrategyGenerationStatus } from './ui/StrategyGenerationStatus.jsx';
 export {
-  buildAdjustedStrategyOption,
   buildStrategyAdjustmentPayload,
   buildStrategyChartData,
   getStrategyAdjustmentDefaults,

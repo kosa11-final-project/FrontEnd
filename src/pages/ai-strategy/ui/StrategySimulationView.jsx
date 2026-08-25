@@ -18,7 +18,6 @@ import {
   adjustAiStrategySimulation,
   aiStrategyKeys,
   applyAdjustedSimulationResult,
-  buildAdjustedStrategyOption,
   buildStrategyAdjustmentPayload,
   buildStrategyChartData,
   getStrategyAdjustmentDefaults,
@@ -328,16 +327,16 @@ function ConditionPanel({
             <h2 className="text-lg font-bold text-[color:var(--text-heading)]">조건 조정</h2>
             <p className="mt-1 break-words text-xs leading-5 text-[color:var(--text-muted)]">{option.optionName}</p>
           </div>
-          <Badge variant={applied ? 'good' : recommendationUnchanged ? 'neutral' : 'info'}>
-            {applied ? '서버 계산 완료' : recommendationUnchanged ? 'AI 추천 조건' : '예상 미리보기'}
+          <Badge variant={applied ? 'good' : unappliedChanges ? 'info' : 'neutral'}>
+            {applied ? '서버 계산 완료' : unappliedChanges ? '변경 미적용' : 'AI 추천 조건'}
           </Badge>
         </div>
       </div>
 
       <div className="grid min-w-0 gap-5 p-5">
         <Alert variant="info" title="조건 조정">
-          입력값은 차트와 예상 결과에 즉시 반영됩니다. 조건 적용을 누르면 서버가 생성 당시 계산 기준으로 정확한 결과를
-          다시 계산합니다.
+          변경한 조건은 적용 전까지 차트와 예상 결과에 반영되지 않습니다. 조건 적용을 누르면 서버가 SKU 전체 재고를
+          기준으로 다시 계산합니다.
         </Alert>
 
         {error ? (
@@ -379,7 +378,7 @@ function ConditionPanel({
 function StrategyChart({ strategyCase, options, activeOption }) {
   const [chartTab, setChartTab] = useState('inventory');
   const chartData = useMemo(() => buildStrategyChartData({ ...strategyCase, options }), [options, strategyCase]);
-  const periodDays = activeOption.simulationDailySeries?.length ?? 0;
+  const periodDays = strategyCase.baselineSimulation?.dailySeries?.length ?? 0;
   const financialData = useMemo(
     () => [
       {
@@ -402,7 +401,7 @@ function StrategyChart({ strategyCase, options, activeOption }) {
         <div>
           <h2 className="text-lg font-bold text-[color:var(--text-heading)]">시뮬레이션 차트</h2>
           <p className="mt-1 text-xs text-[color:var(--text-muted)]">
-            {activeOption.optionName} · {formatNumber(periodDays)}일 예상 변화
+            {activeOption.optionName} · {formatNumber(periodDays)}일 예측 평가 결과
           </p>
         </div>
         <Tabs value={chartTab} onValueChange={setChartTab}>
@@ -614,25 +613,15 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   const adjustmentState = adjustmentStateByOption[activeOption.optionKey] ?? adjustmentDefaults;
   const adjustment = adjustmentState.values;
   const authoritativeOption = simulatedOptionsByKey[activeOption.optionKey] ?? activeOption;
-  const hasUnappliedChanges = !areAdjustmentValuesEqual(
-    adjustment,
-    adjustmentState.appliedValues ?? adjustmentDefaults.values,
-  );
-  const displayedActiveOption = useMemo(
-    () =>
-      hasUnappliedChanges
-        ? buildAdjustedStrategyOption(strategyCase, authoritativeOption, adjustment)
-        : authoritativeOption,
-    [adjustment, authoritativeOption, hasUnappliedChanges, strategyCase],
-  );
+  const displayedActiveOption = authoritativeOption;
   const displayedOptions = useMemo(
     () =>
       options.map((option) =>
         option.optionKey === activeOption.optionKey
-          ? displayedActiveOption
+          ? authoritativeOption
           : (simulatedOptionsByKey[option.optionKey] ?? option),
       ),
-    [activeOption.optionKey, displayedActiveOption, options, simulatedOptionsByKey],
+    [activeOption.optionKey, authoritativeOption, options, simulatedOptionsByKey],
   );
   const closeReviewerModal = useCallback(() => setReviewerModalOpen(false), []);
   const handleTeamsCompleted = useCallback(
