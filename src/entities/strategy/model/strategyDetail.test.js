@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildStrategyAdjustmentPayload,
   buildStrategyChartData,
+  buildStrategySelectionPayload,
   getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
@@ -256,5 +257,49 @@ describe('strategy detail model', () => {
         actions: { 1: { quantity: 8, startDate: '2026-08-20', endDate: '2026-08-26' } },
       }),
     ).toBe('전략 종료일은 2026-08-25 이전이어야 합니다.');
+  });
+
+  it('AI 추천값은 optionId만, 조정값은 네 가지 적용 조건을 모두 선택 payload에 포함한다', () => {
+    const option = {
+      optionId: 'CAND-1',
+      actions: [
+        {
+          actionOrder: 1,
+          actionType: 'RT_TRANSFER',
+          actionQuantity: 29,
+          startDate: '2026-08-25',
+          endDate: '2026-08-31',
+        },
+        {
+          actionOrder: 2,
+          actionType: 'PRICE_DISCOUNT',
+          actionQuantity: 29,
+          discountRate: 0.1,
+          strategyPrice: 9000,
+          startDate: '2026-08-25',
+          endDate: '2026-08-31',
+        },
+      ],
+    };
+    const defaults = getStrategyAdjustmentDefaults(option);
+
+    expect(buildStrategySelectionPayload(option, defaults)).toEqual({ optionId: 'CAND-1' });
+    expect(
+      buildStrategySelectionPayload(option, {
+        actions: {
+          ...defaults.actions,
+          1: { ...defaults.actions[1], quantity: 20 },
+          2: { ...defaults.actions[2], quantity: 20 },
+        },
+      }),
+    ).toEqual({
+      optionId: 'CAND-1',
+      adjustedConditions: {
+        actionQuantity: 20,
+        discountRate: 0.1,
+        startDate: '2026-08-25',
+        endDate: '2026-08-31',
+      },
+    });
   });
 });

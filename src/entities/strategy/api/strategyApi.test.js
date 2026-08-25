@@ -8,6 +8,7 @@ import {
   getAiStrategyReviewers,
   sendAiStrategyTeamsRequest,
   serializeAiStrategyListParams,
+  validateAiStrategySelection,
 } from './strategyApi.js';
 
 vi.mock('@/shared/api', () => ({
@@ -223,6 +224,49 @@ describe('AI strategy API', () => {
       '최종 전략과 Reviewer를 한 명 이상 선택해 주세요.',
     );
     expect(postJson).not.toHaveBeenCalled();
+  });
+
+  it('validates an adjusted final option before opening the Reviewer flow', async () => {
+    const payload = {
+      optionId: 'CAND-1',
+      adjustedConditions: {
+        actionQuantity: 29,
+        discountRate: 0.15,
+        startDate: '2026-08-25',
+        endDate: '2026-08-31',
+      },
+    };
+    postJson.mockResolvedValue({
+      data: {
+        strategyCaseId: 123,
+        optionId: 'CAND-1',
+        valid: true,
+        selectionSource: 'USER_SELECT',
+        actionQuantity: 29,
+        startDate: '2026-08-25',
+        endDate: '2026-08-31',
+        validatedAt: '2026-08-25T18:30:00',
+      },
+    });
+
+    await expect(validateAiStrategySelection(123, payload)).resolves.toMatchObject({
+      optionId: 'CAND-1',
+      valid: true,
+      selectionSource: 'USER_SELECT',
+    });
+    expect(postJson).toHaveBeenCalledWith({
+      path: 'v1/ai-strategies/123/selection-validations',
+      body: payload,
+      signal: undefined,
+    });
+  });
+
+  it('rejects an invalid final option validation response', async () => {
+    postJson.mockResolvedValue({ data: { strategyCaseId: 123, optionId: 'CAND-1', valid: false } });
+
+    await expect(validateAiStrategySelection(123, { optionId: 'CAND-1' })).rejects.toThrow(
+      'AI 전략 최종안 검증 결과를 확인할 수 없습니다.',
+    );
   });
 
   it('posts adjusted simulation conditions and unwraps the response', async () => {

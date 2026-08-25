@@ -117,6 +117,34 @@ export async function sendAiStrategyTeamsRequest(strategyCaseId, payload, signal
   return { ...data, reviewers };
 }
 
+export async function validateAiStrategySelection(strategyCaseId, payload, signal) {
+  if (!payload?.optionId) {
+    throw new Error('검증할 최종 전략을 선택해 주세요.');
+  }
+
+  const response = await postJson({
+    path: `${aiStrategyPath}/${strategyCaseId}/selection-validations`,
+    body: payload,
+    signal,
+  });
+  const data = unwrapApiData(response);
+
+  if (
+    !Number.isInteger(data?.strategyCaseId) ||
+    !data?.optionId ||
+    data?.valid !== true ||
+    !['AI_RECOMMENDED', 'USER_SELECT'].includes(data?.selectionSource) ||
+    !Number.isFinite(data?.actionQuantity) ||
+    !data?.startDate ||
+    !data?.endDate ||
+    !data?.validatedAt
+  ) {
+    throw new Error('AI 전략 최종안 검증 결과를 확인할 수 없습니다.');
+  }
+
+  return data;
+}
+
 export async function adjustAiStrategySimulation(strategyCaseId, candidateId, payload, signal) {
   const response = await postJson({
     path: `${aiStrategyPath}/${strategyCaseId}/candidates/${encodeURIComponent(candidateId)}/simulations`,

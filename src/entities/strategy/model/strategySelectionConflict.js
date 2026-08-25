@@ -6,7 +6,7 @@ const selectionConflictReasonMessages = Object.freeze({
   COST_CHANGED: '상품 원가 또는 관련 비용이 변경되었습니다.',
 });
 
-export const AI_STRATEGY_SELECTION_CONFLICT_CODE = 'AI_STRATEGY_SELECTION_CONFLICT';
+export const AI_STRATEGY_SELECTION_CONFLICT_CODE = 'AI_STRATEGY-017';
 export const DEFAULT_SELECTION_CONFLICT_MESSAGE = '재고 또는 판매 조건이 변경되었습니다.';
 
 export function isAiStrategySelectionConflict(error) {

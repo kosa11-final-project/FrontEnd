@@ -236,6 +236,41 @@ async function mockAiStrategyDetail(page) {
     }),
   );
 
+  await page.route(/\/api\/v1\/ai-strategies\/\d+\/selection-validations$/, async (route) => {
+    const strategyCaseId = Number(
+      route
+        .request()
+        .url()
+        .match(/ai-strategies\/(\d+)\/selection-validations$/)?.[1],
+    );
+    const payload = route.request().postDataJSON();
+    const strategyCase = strategyDetailFixtures.find((item) => item.strategyCaseId === strategyCaseId);
+    const option = strategyCase?.options.find((item) => item.optionKey === payload.optionId);
+    const quantityAction = option?.actions.find(({ actionQuantity }) => actionQuantity !== null);
+    const conditions = payload.adjustedConditions ?? {
+      actionQuantity: quantityAction?.actionQuantity,
+      startDate: quantityAction?.startDate,
+      endDate: quantityAction?.endDate,
+    };
+
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          strategyCaseId,
+          optionId: payload.optionId,
+          valid: true,
+          selectionSource: payload.adjustedConditions ? 'USER_SELECT' : 'AI_RECOMMENDED',
+          actionQuantity: conditions.actionQuantity,
+          startDate: conditions.startDate,
+          endDate: conditions.endDate,
+          validatedAt: '2026-08-25T18:30:00',
+        },
+      }),
+    });
+  });
+
   await page.route(/\/api\/v1\/ai-strategies\/\d+\/teams-requests$/, async (route) => {
     const strategyCaseId = Number(
       route
@@ -562,10 +597,12 @@ test.describe('AI 전략 생성 목록', () => {
 
   test('최종안을 선택한 뒤 Reviewer를 다중 선택해 ID로 Teams 검토를 요청한다', async ({ page }) => {
     let reviewerRequested = false;
+    const validationPayloads = [];
     const teamsPayloads = [];
     page.on('request', (request) => {
       const url = new URL(request.url());
       if (url.pathname === '/api/v1/ai-strategies/reviewers') reviewerRequested = true;
+      if (url.pathname.endsWith('/selection-validations')) validationPayloads.push(request.postDataJSON());
       if (url.pathname.endsWith('/teams-requests')) teamsPayloads.push(request.postDataJSON());
     });
 
@@ -582,6 +619,7 @@ test.describe('AI 전략 생성 목록', () => {
 
     await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
     await expect(teamsButton).toBeEnabled();
+    expect(validationPayloads).toEqual([{ optionId: 'opt-transfer-discount' }]);
     await teamsButton.click();
     await expect(page.getByRole('dialog', { name: 'Reviewer 선택' })).toBeVisible();
     await expect.poll(() => reviewerRequested).toBe(true);
@@ -619,13 +657,138 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByText('Teams 검토 요청 완료')).toBeVisible();
   });
 
+  test('사전 검증 성공 전에는 최종안을 표시하지 않고 검증 중 중복 클릭을 막는다', async ({ page }) => {
+    let pendingRoute;
+    let validationCalls = 0;
+    await page.route('**/api/v1/ai-strategies/32/selection-validations', (route) => {
+      validationCalls += 1;
+      pendingRoute = route;
+    });
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+    await expect(page.getByRole('button', { name: '최종안 검증 중...' })).toBeDisabled();
+    await expect(page.getByText('최종안이 선택되었습니다.')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Teams 검토 요청' })).toBeDisabled();
+    expect(validationCalls).toBe(1);
+
+    await pendingRoute.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        data: {
+          strategyCaseId: 32,
+          optionId: 'opt-transfer-discount',
+          valid: true,
+          selectionSource: 'AI_RECOMMENDED',
+          actionQuantity: 40,
+          startDate: '2026-08-20',
+          endDate: '2026-08-27',
+          validatedAt: '2026-08-25T18:30:00',
+        },
+      }),
+    });
+    await expect(page.getByRole('button', { name: '최종안 선택됨' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Teams 검토 요청' })).toBeEnabled();
+  });
+
+  test('사전 검증 실패 시 최종안과 Reviewer 흐름을 열지 않는다', async ({ page }) => {
+    let reviewerRequested = false;
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/v1/ai-strategies/reviewers') reviewerRequested = true;
+    });
+    await page.route('**/api/v1/ai-strategies/32/selection-validations', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'INTERNAL_SERVER_ERROR', message: '검증 서버 오류' }),
+      }),
+    );
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+
+    await expect(page.getByRole('alert')).toContainText('검증 서버 오류');
+    await expect(page.getByRole('button', { name: 'Teams 검토 요청' })).toBeDisabled();
+    await expect(page.getByRole('dialog', { name: 'Reviewer 선택' })).toHaveCount(0);
+    expect(reviewerRequested).toBe(false);
+  });
+
+  test('조정 최종안은 사전 검증과 Teams 요청에 동일한 네 가지 조건을 보낸다', async ({ page }) => {
+    const validationPayloads = [];
+    const teamsPayloads = [];
+    page.on('request', (request) => {
+      const pathname = new URL(request.url()).pathname;
+      if (pathname.endsWith('/selection-validations')) validationPayloads.push(request.postDataJSON());
+      if (pathname.endsWith('/teams-requests')) teamsPayloads.push(request.postDataJSON());
+    });
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+
+    await page.getByLabel('이동 수량').fill('10');
+    await expect(page.getByText('서버 계산 완료')).toBeVisible();
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+    await page.getByRole('button', { name: 'Teams 검토 요청' }).click();
+    await page.getByLabel('이주영 first@example.com 선택').check();
+    await page.getByRole('button', { name: 'Teams로 전송 (1명)' }).click();
+
+    const expectedSelection = {
+      optionId: 'opt-transfer-discount',
+      adjustedConditions: {
+        actionQuantity: 10,
+        discountRate: 0.15,
+        startDate: '2026-08-20',
+        endDate: '2026-08-27',
+      },
+    };
+    expect(validationPayloads).toEqual([expectedSelection]);
+    await expect.poll(() => teamsPayloads[0]).toEqual({ ...expectedSelection, reviewerIds: [101] });
+  });
+
+  test('최종안 선택 후 해당 옵션의 조건을 바꾸면 선택을 즉시 무효화한다', async ({ page }) => {
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+    await expect(page.getByRole('button', { name: 'Teams 검토 요청' })).toBeEnabled();
+
+    await page.getByLabel('이동 수량').fill('10');
+
+    await expect(page.getByText('최종안이 선택되었습니다.')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Teams 검토 요청' })).toBeDisabled();
+    await expect(page.getByText('최종', { exact: true })).toHaveCount(0);
+  });
+
+  test('사전 검증의 선택 충돌은 일반 오류 대신 전용 모달로 안내한다', async ({ page }) => {
+    await page.route('**/api/v1/ai-strategies/32/selection-validations', (route) =>
+      route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'AI_STRATEGY-017',
+          message: '전략 생성 이후 실행 조건이 변경되었습니다.',
+          details: {
+            reason: 'INSUFFICIENT_INVENTORY',
+            requestedQuantity: 40,
+            currentAvailableQuantity: 18,
+            retryableWithAdjustment: true,
+          },
+        }),
+      }),
+    );
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+
+    await expect(page.getByRole('dialog', { name: '전략을 실행할 수 없습니다' })).toBeVisible();
+    await expect(page.getByText('Teams 검토 요청을 전송하지 못했습니다.')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Teams 검토 요청' })).toBeDisabled();
+  });
+
   test('최종안 전송 조건이 변경되면 전용 안내 후 입력값을 유지한 채 다시 조정한다', async ({ page }) => {
     await page.route('**/api/v1/ai-strategies/32/teams-requests', (route) =>
       route.fulfill({
         status: 409,
         contentType: 'application/json',
         body: JSON.stringify({
-          code: 'AI_STRATEGY_SELECTION_CONFLICT',
+          code: 'AI_STRATEGY-017',
           message: '전략 생성 이후 실행 조건이 변경되었습니다.',
           details: {
             reason: 'INSUFFICIENT_INVENTORY',
@@ -662,7 +825,7 @@ test.describe('AI 전략 생성 목록', () => {
         status: 409,
         contentType: 'application/json',
         body: JSON.stringify({
-          code: 'AI_STRATEGY_SELECTION_CONFLICT',
+          code: 'AI_STRATEGY-017',
           message: '전략 생성 이후 실행 조건이 변경되었습니다.',
         }),
       }),

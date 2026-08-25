@@ -17,13 +17,16 @@ import {
   aiStrategyKeys,
   applyAdjustedSimulationResult,
   buildStrategyAdjustmentPayload,
+  buildStrategySelectionPayload,
   buildStrategyChartData,
   getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
+  isAiStrategySelectionConflict,
   resolveStrategyActionType,
   resolveStrategyLocationPresentation,
   sortStrategyOptions,
+  validateAiStrategySelection,
 } from '@/entities/strategy';
 import { formatCurrency, formatDate, formatNumber, formatQuantity } from '@/shared/lib/format';
 import {
@@ -654,6 +657,7 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [finalOptionKey, setFinalOptionKey] = useState(null);
+  const [finalSelectionPayload, setFinalSelectionPayload] = useState(null);
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
   const [selectionConflict, setSelectionConflict] = useState(null);
   const [deliveryResult, setDeliveryResult] = useState(null);
@@ -673,6 +677,9 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   const adjustmentRevisionByOptionRef = useRef({});
   const simulationMutation = useMutation({
     mutationFn: ({ optionKey, payload }) => adjustAiStrategySimulation(strategyCase.strategyCaseId, optionKey, payload),
+  });
+  const selectionValidationMutation = useMutation({
+    mutationFn: (payload) => validateAiStrategySelection(strategyCase.strategyCaseId, payload),
   });
   const applySimulation = simulationMutation.mutateAsync;
   const comparePath = `/ai-strategy/${strategyCase.strategyCaseId}`;
@@ -704,6 +711,8 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   const closeReviewerModal = useCallback(() => setReviewerModalOpen(false), []);
   const handleSelectionConflict = useCallback((error) => {
     setReviewerModalOpen(false);
+    setFinalOptionKey(null);
+    setFinalSelectionPayload(null);
     setSelectionConflict(error);
   }, []);
   const handleTeamsCompleted = useCallback(
@@ -730,8 +739,24 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     100;
   const maxDiscountPercent = resolveMaximumDiscountPercent(displayedActiveOption);
   const activeMutation = simulationMutation.variables?.optionKey === activeOption.optionKey;
+  const appliedAdjustment = adjustmentState.appliedValues ?? adjustmentDefaults.values;
+  const hasUnappliedChanges = !areAdjustmentValuesEqual(adjustment, appliedAdjustment);
+  const selectionBlocked =
+    selectionLocked ||
+    (activeMutation && simulationMutation.isPending) ||
+    hasUnappliedChanges ||
+    Boolean(getStrategyAdjustmentValidationError(displayedActiveOption, adjustment));
+
+  function invalidateFinalSelection(optionKey) {
+    if (finalOptionKey !== optionKey) return;
+    setFinalOptionKey(null);
+    setFinalSelectionPayload(null);
+    setReviewerModalOpen(false);
+  }
 
   function handleConditionChange(actionOrder, field, value) {
+    invalidateFinalSelection(activeOption.optionKey);
+    selectionValidationMutation.reset();
     adjustmentRevisionByOptionRef.current[activeOption.optionKey] =
       (adjustmentRevisionByOptionRef.current[activeOption.optionKey] ?? 0) + 1;
     setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: null }));
@@ -818,6 +843,8 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
   ]);
 
   function handleResetAdjustment() {
+    invalidateFinalSelection(activeOption.optionKey);
+    selectionValidationMutation.reset();
     adjustmentRevisionByOptionRef.current[activeOption.optionKey] =
       (adjustmentRevisionByOptionRef.current[activeOption.optionKey] ?? 0) + 1;
     setAdjustmentStateByOption((current) => ({
@@ -833,8 +860,29 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: null }));
   }
 
+  async function handleSelectFinalOption() {
+    if (selectionBlocked || selectionValidationMutation.isPending) return;
+
+    const optionKey = activeOption.optionKey;
+    const originalOption = options.find((option) => option.optionKey === optionKey);
+    const requestRevision = adjustmentRevisionByOptionRef.current[optionKey] ?? 0;
+    const payload = buildStrategySelectionPayload(originalOption, appliedAdjustment);
+    setSelectionConflict(null);
+
+    try {
+      await selectionValidationMutation.mutateAsync(payload);
+      if ((adjustmentRevisionByOptionRef.current[optionKey] ?? 0) !== requestRevision) return;
+      setFinalOptionKey(optionKey);
+      setFinalSelectionPayload(payload);
+    } catch (error) {
+      setReviewerModalOpen(false);
+      if (isAiStrategySelectionConflict(error)) setSelectionConflict(error);
+    }
+  }
+
   function handleReadjustAfterConflict() {
     setSelectionConflict(null);
+    selectionValidationMutation.reset();
     requestAnimationFrame(() => {
       document.querySelector('[data-testid="strategy-condition-panel"]')?.scrollIntoView({
         behavior: 'smooth',
@@ -931,29 +979,41 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
               type="button"
               variant="secondary"
               className="w-full"
-              onClick={() => setFinalOptionKey(activeOption.optionKey)}
-              disabled={finalOptionKey === activeOption.optionKey || selectionLocked}
+              onClick={handleSelectFinalOption}
+              disabled={
+                finalOptionKey === activeOption.optionKey || selectionBlocked || selectionValidationMutation.isPending
+              }
             >
               <Icon icon={Check} size={16} />
-              {finalOptionKey === activeOption.optionKey ? '최종안 선택됨' : '이 전략을 최종안으로 선택'}
+              {selectionValidationMutation.isPending
+                ? '최종안 검증 중...'
+                : finalOptionKey === activeOption.optionKey
+                  ? '최종안 선택됨'
+                  : '이 전략을 최종안으로 선택'}
             </Button>
             <Button
               type="button"
               className="w-full"
-              disabled={!finalOption || readyToExecute}
+              disabled={!finalOption || !finalSelectionPayload || readyToExecute}
               onClick={() => setReviewerModalOpen(true)}
             >
               <Icon icon={Send} size={16} />
               {readyToExecute ? 'Teams 검토 요청 완료' : deliveryResult ? 'Teams 전송 결과' : 'Teams 검토 요청'}
             </Button>
           </div>
+          {selectionValidationMutation.isError && !isAiStrategySelectionConflict(selectionValidationMutation.error) ? (
+            <p role="alert" className="text-xs font-medium text-[color:var(--danger)] lg:col-span-2">
+              {selectionValidationMutation.error?.message ?? '최종안을 검증하지 못했습니다. 다시 시도해 주세요.'}
+            </p>
+          ) : null}
         </div>
       </section>
 
-      {reviewerModalOpen && finalOption ? (
+      {reviewerModalOpen && finalOption && finalSelectionPayload ? (
         <ReviewerSelectionModal
           strategyCaseId={strategyCase.strategyCaseId}
           option={finalOption}
+          selectionPayload={finalSelectionPayload}
           initialDeliveryResult={deliveryResult}
           onClose={closeReviewerModal}
           onCompleted={handleTeamsCompleted}

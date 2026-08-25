@@ -8,6 +8,7 @@ export {
   getAiStrategyReviewers,
   sendAiStrategyTeamsRequest,
   serializeAiStrategyListParams,
+  validateAiStrategySelection,
 } from './api/strategyApi.js';
 export {
   aiStrategyDetailQueryOptions,
@@ -19,6 +20,7 @@ export { StrategyGenerationProgress } from './ui/StrategyGenerationProgress.jsx'
 export { StrategyGenerationStatus } from './ui/StrategyGenerationStatus.jsx';
 export {
   buildStrategyAdjustmentPayload,
+  buildStrategySelectionPayload,
   buildStrategyChartData,
   getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
