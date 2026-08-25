@@ -19,38 +19,12 @@ export function resolveStrategyOption(options = [], optionKey) {
   return sorted.find((option) => option.optionKey === optionKey) ?? sorted[0] ?? null;
 }
 
-function getInclusiveDays(startDate, endDate) {
-  if (!startDate || !endDate) return 1;
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T00:00:00`);
-  const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
-  return Number.isFinite(days) && days > 0 ? days : 1;
-}
-
-function getStrategyDuration(actionItems, valueKey) {
-  const ranges = actionItems
-    .map((item) => item[valueKey])
-    .filter(({ startDate, endDate } = {}) => startDate && endDate);
-  if (ranges.length === 0) return 1;
-
-  const startDate = ranges.map((range) => range.startDate).sort()[0];
-  const endDate = ranges
-    .map((range) => range.endDate)
-    .sort()
-    .at(-1);
-  return getInclusiveDays(startDate, endDate);
-}
-
 function subtractOrNull(left, right) {
   return Number.isFinite(left) && Number.isFinite(right) ? left - right : null;
 }
 
 function negateOrNull(value) {
   return Number.isFinite(value) ? -value : null;
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(Number(value) || 0, min), max);
 }
 
 export function getStrategyAdjustmentDefaults(option) {
@@ -108,147 +82,17 @@ export function buildStrategyAdjustmentPayload(option, adjustment) {
   };
 }
 
-export function buildAdjustedStrategyOption(strategyCase, option, adjustment) {
-  if (!strategyCase || !option) return option;
-
-  const defaults = getStrategyAdjustmentDefaults(option);
-  const adjustedActions = option.actions.map((action, index) => {
-    const actionOrder = action.actionOrder ?? index + 1;
-    return {
-      action: { ...action, actionOrder },
-      defaults: defaults.actions[actionOrder],
-      values: adjustment?.actions?.[actionOrder] ?? defaults.actions[actionOrder],
-    };
-  });
-  const quantityActions = adjustedActions.filter(({ action }) => action.actionQuantity !== null);
-  const quantityAction = quantityActions[0] ?? adjustedActions[0];
-  const discountAction = adjustedActions.find(({ action }) => action.actionType === 'PRICE_DISCOUNT');
-  const initialStock =
-    strategyCase.baselineSimulation?.dailySeries?.[0]?.expectedRemainingQty ?? quantityAction?.defaults.quantity ?? 0;
-  const quantity = Math.min(
-    ...quantityActions.map(({ values }) => clamp(values.quantity, 0, initialStock)),
-    initialStock,
-  );
-  const defaultDiscountPercent = discountAction?.defaults.discountPercent ?? 0;
-  const discountPercent = clamp(discountAction?.values.discountPercent ?? 0, 0, 50);
-  const baseSales = option.simulationSummary.expectedSalesQty || 1;
-  const inferredUnitRevenue = (option.simulationSummary.expectedRevenue || 0) / baseSales;
-  const defaultStrategyPrice =
-    discountAction?.defaults.strategyPrice ??
-    quantityAction?.action.strategyPrice ??
-    option.actions[0]?.strategyPrice ??
-    inferredUnitRevenue;
-  const strategyPrice = Math.max(
-    Number(discountAction?.values.strategyPrice ?? quantityAction?.action.strategyPrice ?? defaultStrategyPrice) || 0,
-    0,
-  );
-  const actionCost = adjustedActions.reduce(
-    (sum, item) => sum + Math.max(Number(item.values.actionCost ?? item.action.estimatedActionCost) || 0, 0),
-    0,
-  );
-  const baseQuantity = quantityAction?.defaults.quantity || 1;
-  const baseDuration = getStrategyDuration(quantityActions, 'defaults');
-  const adjustedDuration = getStrategyDuration(quantityActions, 'values');
-  const discountLift = Math.max(0.5, 1 + ((discountPercent - defaultDiscountPercent) / 100) * 1.5);
-  const durationLift = Math.sqrt(adjustedDuration / baseDuration);
-  const quantityLift = Math.sqrt(quantity / baseQuantity);
-  const targetChanged = adjustedActions.some(
-    ({ defaults: actionDefaults, values }) =>
-      values.targetLocation?.locationId !== actionDefaults.targetLocation?.locationId,
-  );
-  const targetLift = targetChanged ? 1.06 : 1;
-  const expectedSalesQty = Math.min(
-    initialStock,
-    quantity,
-    Math.max(0, Math.round(baseSales * discountLift * durationLift * quantityLift * targetLift)),
-  );
-  const expectedRemainingQty = Math.max(0, initialStock - expectedSalesQty);
-  const expectedRevenue = Math.round(expectedSalesQty * strategyPrice);
-  const baseUnitMargin = option.simulationSummary.totalContributionMargin / baseSales;
-  const adjustedUnitMargin = baseUnitMargin + (strategyPrice - defaultStrategyPrice);
-  const totalContributionMargin = Math.round(expectedSalesQty * adjustedUnitMargin);
-  const contributionMarginRate = expectedRevenue === 0 ? 0 : totalContributionMargin / expectedRevenue;
-  const expectedSellThroughDays = expectedSalesQty >= quantity && quantity > 0 ? adjustedDuration : null;
-  const salesRatio = expectedSalesQty / baseSales;
-  const baseline = strategyCase.baselineSimulation?.summary ?? {};
-  const avoidedHoldingCost = Math.max(
-    0,
-    Math.round((Number(option.simulationSummary.avoidedHoldingCost) || 0) * salesRatio),
-  );
-  const avoidedDisposalCost = Math.max(
-    0,
-    Math.round((Number(option.simulationSummary.avoidedDisposalCost) || 0) * salesRatio),
-  );
-
-  const simulationSummary = {
-    ...option.simulationSummary,
-    expectedSalesQty,
-    expectedRevenue,
-    totalContributionMargin,
-    contributionMarginRate,
-    expectedSellThroughDays,
-    expectedRemainingQty,
-    movementCost: actionCost,
-    avoidedHoldingCost,
-    avoidedDisposalCost,
-    comparisonToBaseline: {
-      ...option.simulationSummary.comparisonToBaseline,
-      incrementalSalesQty: subtractOrNull(expectedSalesQty, baseline.expectedSalesQty),
-      incrementalRevenue: subtractOrNull(expectedRevenue, baseline.expectedRevenue),
-      incrementalContributionMargin: subtractOrNull(totalContributionMargin, baseline.totalContributionMargin),
-      reducedRemainingQty: subtractOrNull(baseline.expectedRemainingQty, expectedRemainingQty),
-      sellThroughDaysChange:
-        expectedSellThroughDays == null || baseline.expectedSellThroughDays == null
-          ? null
-          : expectedSellThroughDays - baseline.expectedSellThroughDays,
-      incrementalEconomicBenefit: Number.isFinite(baseline.totalContributionMargin)
-        ? totalContributionMargin -
-          baseline.totalContributionMargin +
-          avoidedHoldingCost +
-          avoidedDisposalCost -
-          actionCost
-        : null,
-    },
-  };
-
-  const seriesLength = option.simulationDailySeries?.length ?? 0;
-  const simulationDailySeries = (option.simulationDailySeries ?? []).map((point, index) => {
-    const progress = seriesLength <= 1 ? 1 : index / (seriesLength - 1);
-    return {
-      ...point,
-      expectedRemainingQty: Math.max(0, Math.round(initialStock - expectedSalesQty * progress)),
-      cumulativeRevenue: Math.round(expectedRevenue * progress),
-      cumulativeContributionMargin: Math.round(totalContributionMargin * progress),
-    };
-  });
-
-  const actions = adjustedActions.map(({ action, values }) => {
-    return {
-      ...action,
-      actionQuantity: clamp(values.quantity, 0, initialStock),
-      sourceLocation: values.sourceLocation,
-      targetLocation: values.targetLocation,
-      discountRate:
-        action.actionType === 'PRICE_DISCOUNT' ? clamp(values.discountPercent, 0, 50) / 100 : action.discountRate,
-      strategyPrice:
-        action.actionType === 'PRICE_DISCOUNT' ? Math.max(Number(values.strategyPrice) || 0, 0) : action.strategyPrice,
-      startDate: values.startDate,
-      endDate: values.endDate,
-      estimatedActionCost:
-        action.actionType === 'PRICE_DISCOUNT'
-          ? action.estimatedActionCost
-          : Math.max(Number(values.actionCost) || 0, 0),
-    };
-  });
-
-  return { ...option, actions, simulationSummary, simulationDailySeries };
-}
-
 export function buildStrategyChartData(strategyCase) {
   const baseline = strategyCase?.baselineSimulation?.dailySeries ?? [];
   const options = sortStrategyOptions(strategyCase?.options);
+  const optionSeriesByDate = Object.fromEntries(
+    options.map((option) => [
+      option.optionKey,
+      new Map((option.simulationDailySeries ?? []).map((point) => [point.date, point])),
+    ]),
+  );
 
-  return baseline.map((point, index) => {
+  return baseline.map((point) => {
     const row = {
       date: point.date,
       baselineRemainingQty: point.expectedRemainingQty,
@@ -257,7 +101,7 @@ export function buildStrategyChartData(strategyCase) {
     };
 
     options.forEach((option) => {
-      const optionPoint = option.simulationDailySeries?.[index];
+      const optionPoint = optionSeriesByDate[option.optionKey].get(point.date);
       row[`${option.optionKey}RemainingQty`] = optionPoint?.expectedRemainingQty ?? null;
       row[`${option.optionKey}Revenue`] = optionPoint?.cumulativeRevenue ?? null;
       row[`${option.optionKey}ContributionMargin`] = optionPoint?.cumulativeContributionMargin ?? null;

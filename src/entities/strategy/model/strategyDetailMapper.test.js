@@ -152,12 +152,13 @@ describe('AI strategy detail mapper', () => {
         salesPointGroup: null,
         maximumDiscountRate: null,
       },
-      simulation: { ...simulation, summary: { ...simulation.summary, expectedSalesQty: 7 } },
+      simulation: { ...simulation, summary: { ...simulation.summary, expectedSalesQty: 8 } },
     });
 
     expect(adjusted.actions[0]).toMatchObject({ actionQuantity: 7, startDate: '2026-08-25', endDate: '2026-08-30' });
     expect(adjusted.maxExecutableQty).toBe(8);
-    expect(adjusted.simulationSummary.expectedSalesQty).toBe(7);
+    expect(adjusted.simulationSummary.expectedSalesQty).toBe(8);
+    expect(adjusted.simulationSummary.expectedSalesQty).toBeGreaterThan(adjusted.actions[0].actionQuantity);
     expect(option.actions[0].actionQuantity).toBe(10);
   });
 });

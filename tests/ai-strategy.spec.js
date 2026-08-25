@@ -296,14 +296,25 @@ async function mockAiStrategyDetail(page) {
     const option = strategyCase?.options.find((item) => item.optionKey === candidateId);
     const conditions = request.postDataJSON();
     const original = toBackendSimulation(option, strategyCase.baselineSimulation.summary);
-    const expectedSalesQty = Math.min(Number(conditions.actionQuantity), original.summary.expectedSalesQty);
-    const expectedRemainingQty = Math.max(0, 40 - expectedSalesQty);
-    const salesQtyDelta = expectedSalesQty - strategyCase.baselineSimulation.summary.expectedSalesQty;
+    const initialStock = strategyCase.baselineSimulation.dailySeries[0].expectedRemainingQty;
+    const originalActionQuantity = Math.max(...option.actions.map(({ actionQuantity }) => actionQuantity ?? 0));
+    const reducedActionQuantity = Math.max(0, originalActionQuantity - Number(conditions.actionQuantity));
+    const expectedSalesQty = Math.max(0, original.summary.expectedSalesQty - Math.ceil(reducedActionQuantity / 10));
+    const expectedRemainingQty = Math.max(0, initialStock - expectedSalesQty);
+    const resultRatio = expectedSalesQty / original.summary.expectedSalesQty;
+    const expectedRevenue = Math.round(original.summary.expectedRevenue * resultRatio);
+    const totalContributionMargin = Math.round(original.summary.totalContributionMargin * resultRatio);
+    const baselineSummary = strategyCase.baselineSimulation.summary;
     const dailyCount = original.dailySeries.length;
-    const dailySeries = original.dailySeries.map((point, index) => ({
-      ...point,
-      expectedRemainingQty: Math.round(40 - expectedSalesQty * (index / Math.max(1, dailyCount - 1))),
-    }));
+    const dailySeries = original.dailySeries.map((point, index) => {
+      const progress = index / Math.max(1, dailyCount - 1);
+      return {
+        ...point,
+        expectedRemainingQty: Math.round(initialStock - expectedSalesQty * progress),
+        cumulativeRevenue: Math.round(expectedRevenue * progress),
+        cumulativeContributionMargin: Math.round(totalContributionMargin * progress),
+      };
+    });
 
     return route.fulfill({
       status: 200,
@@ -321,8 +332,21 @@ async function mockAiStrategyDetail(page) {
           },
           simulation: {
             ...original,
-            summary: { ...original.summary, expectedSalesQty, expectedRemainingQty },
-            comparisonToBaseline: { ...original.comparisonToBaseline, salesQtyDelta },
+            summary: {
+              ...original.summary,
+              expectedSalesQty,
+              expectedRemainingQty,
+              expectedRevenue,
+              totalContributionMargin,
+              contributionMarginRate: expectedRevenue === 0 ? 0 : totalContributionMargin / expectedRevenue,
+            },
+            comparisonToBaseline: {
+              ...original.comparisonToBaseline,
+              salesQtyDelta: expectedSalesQty - baselineSummary.expectedSalesQty,
+              revenueDelta: expectedRevenue - baselineSummary.expectedRevenue,
+              contributionMarginDelta: totalContributionMargin - baselineSummary.totalContributionMargin,
+              remainingQtyReduction: baselineSummary.expectedRemainingQty - expectedRemainingQty,
+            },
             dailySeries,
           },
         },
@@ -565,15 +589,29 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByLabel('할인율')).toBeEnabled();
     await expect(page.getByRole('button', { name: /조건 적용/ })).toBeDisabled();
     await expect(page.getByRole('button', { name: /Teams 검토 요청/ })).toBeDisabled();
+    await expect(page.getByText('8일 예측 평가 결과')).toBeVisible();
 
     const expectedSalesRow = page.getByRole('row').filter({ hasText: '예상 판매량' });
     const recommendedResult = await expectedSalesRow.textContent();
+    const inventorySeries = page.getByTestId('strategy-simulation-chart').locator('.recharts-line-curve');
+    const recommendedChartPaths = await inventorySeries.evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute('d')),
+    );
     await page.getByLabel('이동 수량').fill('10');
-    await expect(expectedSalesRow).not.toHaveText(recommendedResult);
-    await expect(page.getByText('예상 미리보기')).toBeVisible();
+    await expect(expectedSalesRow).toHaveText(recommendedResult);
+    await expect(page.getByText('변경 미적용')).toBeVisible();
+    await expect
+      .poll(() => inventorySeries.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('d'))))
+      .toEqual(recommendedChartPaths);
 
     await page.getByRole('button', { name: /조건 적용/ }).click();
     await expect(page.getByText('서버 계산 완료')).toBeVisible();
+    await expect(expectedSalesRow).toContainText('33개');
+    await expect(expectedSalesRow).not.toHaveText(recommendedResult);
+    await expect
+      .poll(() => inventorySeries.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('d'))))
+      .not.toEqual(recommendedChartPaths);
+    await expect(page.getByText('8일 예측 평가 결과')).toBeVisible();
 
     await page.getByRole('button', { name: /고수요 판매처 중심 재고 재할당/ }).click();
     await expect(page).toHaveURL(/option=opt-reallocation/);

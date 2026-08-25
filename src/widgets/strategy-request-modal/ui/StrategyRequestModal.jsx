@@ -11,6 +11,7 @@ import {
   createStrategyRequestDraft,
   getStrategyRequestMaximumDate,
   hasStrategyRequestPreference,
+  hasStrategyRequestSource,
   validateStrategyRequestDraft,
 } from '@/entities/strategy';
 import { formatNumber } from '@/shared/lib/format';
@@ -41,14 +42,18 @@ async function createStrategyCases(requests, createCase) {
   );
 }
 
-function FieldLabel({ htmlFor, children, optional = false }) {
+function FieldLabel({ htmlFor, children, optional = false, required = false }) {
   return (
     <label
       htmlFor={htmlFor}
       className="mb-2 flex items-center gap-2 text-sm font-bold text-[color:var(--text-heading)]"
     >
       {children}
-      {optional ? <span className="text-xs font-medium text-[color:var(--text-muted)]">선택</span> : null}
+      {required ? (
+        <span className="text-xs font-medium text-[color:var(--danger)]">필수</span>
+      ) : optional ? (
+        <span className="text-xs font-medium text-[color:var(--text-muted)]">선택</span>
+      ) : null}
     </label>
   );
 }
@@ -311,14 +316,14 @@ function RequestSummary({ item, draft, productCount, completedCount, isSubmittin
             <dt className="text-xs text-[color:var(--text-muted)]">출발 판매처</dt>
             <dd className="mt-1 text-[color:var(--text-body)]">
               {item.salesPoints.find((point) => point.salesPointCode === draft.sourceSalesPointCode)?.salesPointName ??
-                'AI 자동 선택'}
+                (draft.sourceSalesPointCode === 'UNASSIGNED' ? '공용 미할당 재고' : '선택 필요')}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-[color:var(--text-muted)]">고정 조건</dt>
             <dd className="mt-1 flex flex-wrap gap-1.5">
               {draft.recommendAllConditions ? (
-                <Badge variant="good">조건 전체 AI 추천</Badge>
+                <Badge variant="good">출발 판매처 외 조건 AI 추천</Badge>
               ) : (
                 <>
                   <Badge variant="neutral">LOT {draft.lotIds.length || '자동'}</Badge>
@@ -396,8 +401,10 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
   const activeItem = selectedItems.find((item) => item.skuCode === activeSkuCode) ?? selectedItems[0];
   const draft = drafts[activeItem.skuCode] ?? createStrategyRequestDraft(activeItem);
   const errors = errorsBySku[activeItem.skuCode] ?? {};
-  const completedCount = selectedItems.filter((item) => hasStrategyRequestPreference(drafts[item.skuCode])).length;
-  const selectedSourceCode = draft.recommendAllConditions ? '' : draft.sourceSalesPointCode;
+  const isRequestReady = (requestDraft) =>
+    hasStrategyRequestSource(requestDraft) && hasStrategyRequestPreference(requestDraft);
+  const completedCount = selectedItems.filter((item) => isRequestReady(drafts[item.skuCode])).length;
+  const selectedSourceCode = draft.sourceSalesPointCode;
   const lotsQuery = useQuery({
     ...inventoryLotsQueryOptions(activeItem.skuCode, selectedSourceCode),
     enabled: Boolean(selectedSourceCode),
@@ -437,8 +444,6 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
       recommendAllConditions: checked,
       ...(checked
         ? {
-            sourceSalesPointCode: '',
-            sourceSalesPointId: null,
             lotIds: [],
             candidateSalesPointCodes: [],
             candidateSalesPointIds: [],
@@ -500,7 +505,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
               AI 전략 생성
             </h2>
             <p className="mt-2 text-sm text-[color:var(--text-muted)]">
-              상품마다 조건을 하나 이상 설정하거나 전체 조건 AI 추천을 선택해야 합니다.
+              상품마다 출발 판매처를 선택하고, 나머지 조건을 설정하거나 AI 추천을 선택해야 합니다.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
@@ -517,8 +522,8 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
           <Alert variant="info" title={`선택한 ${selectedItems.length}개 SKU는 각각 별도의 전략 Case로 생성됩니다.`}>
-            상품 탭마다 조건을 하나 이상 입력해 주세요. 직접 정하지 않으려면 각 상품에서 전체 조건 AI 추천을 선택할 수
-            있습니다.
+            상품 탭마다 출발 판매처를 선택해 주세요. 나머지 조건을 직접 정하지 않으려면 출발 판매처 외 조건 전체를
+            AI에게 추천받을 수 있습니다.
           </Alert>
 
           {creationMutation.isError ? (
@@ -559,7 +564,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                   item={item}
                   index={index}
                   active={item.skuCode === activeItem.skuCode}
-                  ready={hasStrategyRequestPreference(drafts[item.skuCode])}
+                  ready={isRequestReady(drafts[item.skuCode])}
                   generated={Boolean(createdCasesBySku[item.skuCode])}
                   needsAttention={Boolean(Object.keys(errorsBySku[item.skuCode] ?? {}).length)}
                   onClick={() => setActiveSkuCode(item.skuCode)}
@@ -572,10 +577,18 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
             <div className="min-w-0 space-y-5">
               <TargetProductSummary item={activeItem} />
 
-              {errors.skuId || errors.sourceSalesPointId || errors.candidateSalesPointIds ? (
+              {errors.skuId ||
+              errors.sourceSalesPointCode ||
+              errors.sourceSalesPointId ||
+              errors.candidateSalesPointIds ? (
                 <Alert variant="danger" title="요청에 필요한 식별자를 확인해 주세요." role="alert">
                   <ul className="list-disc space-y-1 pl-4">
-                    {[errors.skuId, errors.sourceSalesPointId, errors.candidateSalesPointIds]
+                    {[
+                      errors.skuId,
+                      errors.sourceSalesPointCode,
+                      errors.sourceSalesPointId,
+                      errors.candidateSalesPointIds,
+                    ]
                       .filter(Boolean)
                       .map((message) => (
                         <li key={message}>{message}</li>
@@ -632,23 +645,23 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                   <div>
                     <h2 className="text-lg font-bold text-[color:var(--text-heading)]">재고 위치와 판매처</h2>
                     <p className="mt-1 text-xs text-[color:var(--text-muted)]">
-                      미선택 시 전체 판매처가 대상 후보로 선정됩니다.
+                      출발 판매처는 필수이며, 희망 후보 판매처 미선택 시 전체 판매처가 대상 후보로 선정됩니다.
                     </p>
                   </div>
                 </div>
 
                 <div className="grid gap-5 lg:grid-cols-2">
                   <div>
-                    <FieldLabel htmlFor="source-sales-point" optional>
+                    <FieldLabel htmlFor="source-sales-point" required>
                       현재·출발 판매처
                     </FieldLabel>
                     <Select
                       id="source-sales-point"
                       value={draft.sourceSalesPointCode}
-                      disabled={draft.recommendAllConditions}
                       onChange={handleSourceChange}
+                      aria-invalid={Boolean(errors.sourceSalesPointCode || errors.sourceSalesPointId)}
                     >
-                      <option value="">AI 자동 선택</option>
+                      <option value="">출발 판매처 선택</option>
                       {activeItem.unassignedInventory?.hasStock ? (
                         <option value="UNASSIGNED">공용 미할당 재고</option>
                       ) : null}
@@ -789,19 +802,20 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                   />
                   <span>
                     <strong className="block text-sm text-[color:var(--text-heading)]">
-                      조건 전체를 AI에게 추천받기
+                      출발 판매처 외 조건 전체를 AI에게 추천받기
                     </strong>
                     <span
                       id="recommend-all-help"
                       className="mt-1 block text-xs leading-5 text-[color:var(--text-muted)]"
                     >
-                      출발 판매처, LOT, 후보 판매처, 전략 타입과 기간을 직접 지정하지 않고 AI가 모두 판단합니다.
+                      출발 판매처는 직접 선택하고, LOT·후보 판매처·전략 타입·기간은 AI가 판단합니다.
                     </span>
                   </span>
                 </label>
                 {draft.recommendAllConditions ? (
                   <p className="mt-3 rounded-[var(--radius-card)] bg-[var(--primary-soft)] p-3 text-xs leading-5 text-[color:var(--primary)]">
-                    전체 추천을 선택해 직접 입력한 조건을 초기화했습니다. 개별 조건을 지정하려면 체크를 해제해 주세요.
+                    출발 판매처는 유지하고 나머지 입력 조건을 초기화했습니다. 개별 조건을 지정하려면 체크를 해제해
+                    주세요.
                   </p>
                 ) : null}
                 {errors.requestPreference ? (
