@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Calendar, CloseCircle, DocumentText, InfoCircle, Layers, Store } from 'reicon-react';
 import { inventoryLotsQueryOptions } from '@/entities/inventory';
@@ -7,7 +7,9 @@ import {
   STRATEGY_REQUEST_TYPES,
   StrategyProductImage,
   buildStrategyRequestPayload,
+  createAiStrategyCase,
   createStrategyRequestDraft,
+  getStrategyRequestMaximumDate,
   hasStrategyRequestPreference,
   validateStrategyRequestDraft,
 } from '@/entities/strategy';
@@ -23,6 +25,22 @@ function getSeoulToday() {
   }).format(new Date());
 }
 
+async function createStrategyCases(requests, createCase) {
+  const settled = await Promise.allSettled(requests.map(({ payload }) => createCase(payload)));
+  return settled.reduce(
+    (result, outcome, index) => {
+      const request = requests[index];
+      if (outcome.status === 'fulfilled') {
+        result.successful.push({ skuCode: request.skuCode, createdCase: outcome.value });
+      } else {
+        result.failed.push({ skuCode: request.skuCode, error: outcome.reason });
+      }
+      return result;
+    },
+    { successful: [], failed: [] },
+  );
+}
+
 function FieldLabel({ htmlFor, children, optional = false }) {
   return (
     <label
@@ -35,13 +53,13 @@ function FieldLabel({ htmlFor, children, optional = false }) {
   );
 }
 
-function ProductTargetTab({ item, index, active, ready, needsAttention, onClick }) {
+function ProductTargetTab({ item, index, active, ready, generated, needsAttention, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex min-w-[240px] items-center gap-3 rounded-[var(--radius-card)] border p-3 text-left transition-colors ${
+      className={`flex min-w-0 items-center gap-3 rounded-[var(--radius-card)] border p-3 text-left transition-colors ${
         active
           ? 'border-[var(--primary)] bg-[var(--primary-soft)] shadow-[var(--shadow-soft)]'
           : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--border-strong)]'
@@ -58,8 +76,8 @@ function ProductTargetTab({ item, index, active, ready, needsAttention, onClick 
         <strong className="block truncate text-sm text-[color:var(--text-heading)]">{item.productName}</strong>
         <span className="mt-0.5 block truncate text-xs text-[color:var(--text-muted)]">{item.skuCode}</span>
       </span>
-      <Badge variant={needsAttention ? 'danger' : ready ? 'good' : 'neutral'}>
-        {needsAttention ? '확인 필요' : ready ? '입력 완료' : '미입력'}
+      <Badge variant={needsAttention ? 'danger' : generated || ready ? 'good' : 'neutral'}>
+        {needsAttention ? '확인 필요' : generated ? '생성 완료' : ready ? '입력 완료' : '미입력'}
       </Badge>
     </button>
   );
@@ -262,7 +280,7 @@ function CandidateSalesPointSelector({ points, sourceCode, values, disabled, onC
   );
 }
 
-function RequestSummary({ item, draft, productCount, completedCount, onSubmit }) {
+function RequestSummary({ item, draft, productCount, completedCount, isSubmitting, onSubmit }) {
   const selectedTypeLabels = draft.strategyTypes.map(
     (type) => STRATEGY_REQUEST_TYPES.find((option) => option.value === type)?.label ?? type,
   );
@@ -287,7 +305,7 @@ function RequestSummary({ item, draft, productCount, completedCount, onSubmit })
           </div>
           <div>
             <dt className="text-xs text-[color:var(--text-muted)]">전략명</dt>
-            <dd className="mt-1 text-[color:var(--text-body)]">{draft.caseName.trim() || '서버 기본 제목 사용'}</dd>
+            <dd className="mt-1 text-[color:var(--text-body)]">{draft.caseName.trim() || '기본 제목 사용'}</dd>
           </div>
           <div>
             <dt className="text-xs text-[color:var(--text-muted)]">출발 판매처</dt>
@@ -320,27 +338,43 @@ function RequestSummary({ item, draft, productCount, completedCount, onSubmit })
           </div>
         </dl>
         <div className="border-t border-[var(--border)] bg-[var(--surface-subtle)] p-4">
-          <Button type="button" size="lg" className="w-full" onClick={onSubmit}>
-            AI 전략 생성 요청 <Icon icon={ArrowRight} size={17} aria-hidden="true" />
+          <Button type="button" size="lg" className="w-full" disabled={isSubmitting} onClick={onSubmit}>
+            {isSubmitting ? '요청 전송 중...' : 'AI 전략 생성 요청'}
+            {!isSubmitting ? <Icon icon={ArrowRight} size={17} aria-hidden="true" /> : null}
           </Button>
-          <p className="mt-2 text-center text-[11px] leading-4 text-[color:var(--text-muted)]">
-            현재는 화면 검토용이며 서버에 전송하지 않습니다.
-          </p>
         </div>
       </Card>
     </aside>
   );
 }
 
-function StrategyRequestModalContent({ selectedItems, onClose }) {
+function StrategyRequestModalContent({ selectedItems, onClose, onCreated, createCase }) {
   const closeButtonRef = useRef(null);
   const [activeSkuCode, setActiveSkuCode] = useState(() => selectedItems[0]?.skuCode ?? '');
   const [drafts, setDrafts] = useState(() =>
     Object.fromEntries(selectedItems.map((item) => [item.skuCode, createStrategyRequestDraft(item)])),
   );
   const [errorsBySku, setErrorsBySku] = useState({});
-  const [submittedPayloads, setSubmittedPayloads] = useState(null);
+  const [createdCasesBySku, setCreatedCasesBySku] = useState({});
+  const [submissionFailures, setSubmissionFailures] = useState([]);
   const today = getSeoulToday();
+  const maximumDate = getStrategyRequestMaximumDate(today);
+  const creationMutation = useMutation({
+    mutationFn: (requests) => createStrategyCases(requests, createCase),
+    onSuccess: ({ successful, failed }) => {
+      const nextCreatedCasesBySku = { ...createdCasesBySku };
+      successful.forEach(({ skuCode, createdCase }) => {
+        nextCreatedCasesBySku[skuCode] = createdCase;
+      });
+      setCreatedCasesBySku(nextCreatedCasesBySku);
+      setSubmissionFailures(failed);
+      if (failed.length > 0) setActiveSkuCode(failed[0].skuCode);
+
+      if (failed.length === 0 && selectedItems.every((item) => nextCreatedCasesBySku[item.skuCode])) {
+        onCreated?.(selectedItems.map((item) => nextCreatedCasesBySku[item.skuCode]));
+      }
+    },
+  });
 
   useEffect(() => {
     const previouslyFocusedElement = document.activeElement;
@@ -370,7 +404,8 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
   });
 
   const updateDraft = (changes) => {
-    setSubmittedPayloads(null);
+    creationMutation.reset();
+    setSubmissionFailures([]);
     setDrafts((current) => ({
       ...current,
       [activeItem.skuCode]: { ...current[activeItem.skuCode], ...changes },
@@ -418,8 +453,9 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
   const handleSubmit = () => {
     const nextErrors = {};
     let firstInvalidSku = '';
+    const pendingItems = selectedItems.filter((item) => !createdCasesBySku[item.skuCode]);
 
-    selectedItems.forEach((item) => {
+    pendingItems.forEach((item) => {
       const itemDraft = drafts[item.skuCode];
       const itemErrors = validateStrategyRequestDraft(itemDraft, today);
       if (Object.keys(itemErrors).length) {
@@ -434,7 +470,12 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
       return;
     }
 
-    setSubmittedPayloads(selectedItems.map((item) => buildStrategyRequestPayload(drafts[item.skuCode])));
+    creationMutation.mutate(
+      pendingItems.map((item) => ({
+        skuCode: item.skuCode,
+        payload: buildStrategyRequestPayload(drafts[item.skuCode]),
+      })),
+    );
   };
 
   return createPortal(
@@ -480,18 +521,38 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
             있습니다.
           </Alert>
 
-          {submittedPayloads ? (
+          {creationMutation.isError ? (
+            <Alert variant="danger" title="AI 전략 생성 요청을 전송하지 못했습니다." className="mt-4" role="alert">
+              {creationMutation.error?.message || '잠시 후 다시 시도해 주세요.'}
+            </Alert>
+          ) : null}
+
+          {submissionFailures.length ? (
             <Alert
-              variant="good"
-              title={`${submittedPayloads.length}건의 목업 요청 구성이 완료되었습니다.`}
+              variant={Object.keys(createdCasesBySku).length ? 'warning' : 'danger'}
+              title={
+                Object.keys(createdCasesBySku).length
+                  ? '일부 AI 전략 생성 요청을 완료하지 못했습니다.'
+                  : 'AI 전략 생성 요청을 전송하지 못했습니다.'
+              }
               className="mt-4"
+              role="alert"
             >
-              실제 API 연결 시 각 요청에 별도의 <code>Idempotency-Key</code>를 발급하고 생성 상태 목록으로 이동합니다.
+              생성 완료 {Object.keys(createdCasesBySku).length}건 · 재시도 대상 {submissionFailures.length}건
+              <ul className="mt-2 list-disc space-y-1 pl-4">
+                {submissionFailures.map(({ skuCode, error }) => (
+                  <li key={skuCode}>
+                    <strong>{skuCode}</strong>
+                    <span> — </span>
+                    <span>{error?.message || '잠시 후 다시 시도해 주세요.'}</span>
+                  </li>
+                ))}
+              </ul>
             </Alert>
           ) : null}
 
           <section className="mt-5" aria-label="전략 생성 대상 상품 선택">
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {selectedItems.map((item, index) => (
                 <ProductTargetTab
                   key={item.skuCode}
@@ -499,7 +560,8 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                   index={index}
                   active={item.skuCode === activeItem.skuCode}
                   ready={hasStrategyRequestPreference(drafts[item.skuCode])}
-                  needsAttention={Boolean(errorsBySku[item.skuCode]?.requestPreference)}
+                  generated={Boolean(createdCasesBySku[item.skuCode])}
+                  needsAttention={Boolean(Object.keys(errorsBySku[item.skuCode] ?? {}).length)}
                   onClick={() => setActiveSkuCode(item.skuCode)}
                 />
               ))}
@@ -510,6 +572,18 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
             <div className="min-w-0 space-y-5">
               <TargetProductSummary item={activeItem} />
 
+              {errors.skuId || errors.sourceSalesPointId || errors.candidateSalesPointIds ? (
+                <Alert variant="danger" title="요청에 필요한 식별자를 확인해 주세요." role="alert">
+                  <ul className="list-disc space-y-1 pl-4">
+                    {[errors.skuId, errors.sourceSalesPointId, errors.candidateSalesPointIds]
+                      .filter(Boolean)
+                      .map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                  </ul>
+                </Alert>
+              ) : null}
+
               <Card padding="lg">
                 <div className="mb-5 flex items-start justify-between gap-3 border-b border-[var(--border)] pb-4">
                   <div>
@@ -519,9 +593,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                       </span>
                       <h2 className="text-lg font-bold text-[color:var(--text-heading)]">기본 정보</h2>
                     </div>
-                    <p className="mt-2 text-xs text-[color:var(--text-muted)]">
-                      전략명은 비워두면 서버가 상품명과 생성 시각으로 만듭니다.
-                    </p>
+                    <p className="mt-2 text-xs text-[color:var(--text-muted)]">미입력 시 기본 제목을 사용합니다.</p>
                   </div>
                   <Badge variant="outline">{activeItem.skuCode}</Badge>
                 </div>
@@ -537,15 +609,16 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                     tone={errors.caseName ? 'error' : 'default'}
                     placeholder={`${activeItem.productName} AI 전략`}
                     onChange={(event) => updateDraft({ caseName: event.target.value })}
-                    aria-describedby={errors.caseName ? 'case-name-error' : 'case-name-help'}
+                    aria-describedby={errors.caseName ? 'case-name-error' : undefined}
                   />
                   <div className="mt-1 flex justify-between gap-3 text-xs">
-                    <span
-                      id={errors.caseName ? 'case-name-error' : 'case-name-help'}
-                      className={errors.caseName ? 'text-[color:var(--danger)]' : 'text-[color:var(--text-muted)]'}
-                    >
-                      {errors.caseName ?? '미입력 시 서버 기본 제목을 사용합니다.'}
-                    </span>
+                    {errors.caseName ? (
+                      <span id="case-name-error" className="text-[color:var(--danger)]">
+                        {errors.caseName}
+                      </span>
+                    ) : (
+                      <span aria-hidden="true" />
+                    )}
                     <span className="tabular-nums text-[color:var(--text-muted)]">{draft.caseName.length}/200</span>
                   </div>
                 </div>
@@ -559,7 +632,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                   <div>
                     <h2 className="text-lg font-bold text-[color:var(--text-heading)]">재고 위치와 판매처</h2>
                     <p className="mt-1 text-xs text-[color:var(--text-muted)]">
-                      출발 위치와 이동·판매 후보를 고정하지 않으면 AI가 실행 가능성을 평가합니다.
+                      미선택 시 전체 판매처가 대상 후보로 선정됩니다.
                     </p>
                   </div>
                 </div>
@@ -631,7 +704,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                   <div>
                     <h2 className="text-lg font-bold text-[color:var(--text-heading)]">전략 범위</h2>
                     <p className="mt-1 text-xs text-[color:var(--text-muted)]">
-                      초기 지원 5개 타입만 노출하며 쿠폰·포인트·무료배송은 포함하지 않습니다.
+                      미선택 시 전체 전략이 대상 후보로 선정됩니다.
                     </p>
                   </div>
                 </div>
@@ -650,7 +723,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                   <div>
                     <h2 className="text-lg font-bold text-[color:var(--text-heading)]">희망 전략 기간</h2>
                     <p className="mt-1 text-xs text-[color:var(--text-muted)]">
-                      입력한 날짜는 AI가 변경하지 않으며, 모두 비우면 AI가 추천합니다.
+                      미입력 시 오늘로부터 최대 90일 전체 기간이 대상 후보로 선정됩니다.
                     </p>
                   </div>
                 </div>
@@ -663,6 +736,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                       id="preferred-start-date"
                       type="date"
                       min={today}
+                      max={maximumDate}
                       value={draft.preferredStartDate}
                       disabled={draft.recommendAllConditions}
                       tone={errors.preferredStartDate ? 'error' : 'default'}
@@ -680,6 +754,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                       id="preferred-end-date"
                       type="date"
                       min={draft.preferredStartDate || today}
+                      max={maximumDate}
                       value={draft.preferredEndDate}
                       disabled={draft.recommendAllConditions}
                       tone={errors.preferredEndDate ? 'error' : 'default'}
@@ -697,8 +772,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                     className="mt-0.5 shrink-0 text-[color:var(--info)]"
                     aria-hidden="true"
                   />
-                  시작일은 오늘부터 90일 이내, 시작·종료일은 포함 최대 90일입니다. 종료일만 입력하면 오늘과 종료일-89일
-                  중 늦은 날부터 예측합니다.
+                  오늘로부터 최대 90일 뒤까지만 선택 가능합니다.
                 </div>
               </Card>
 
@@ -736,11 +810,6 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
                   </p>
                 ) : null}
               </Card>
-
-              <Alert variant="warning" title="실제 API 연결 전에 응답 식별자 보완이 필요합니다.">
-                통합 재고 응답에 숫자형 <code>skuId</code>와 <code>salesPointId</code>가 추가되어야 문서의 생성
-                Request를 완성할 수 있습니다.
-              </Alert>
             </div>
 
             <RequestSummary
@@ -748,6 +817,7 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
               draft={draft}
               productCount={selectedItems.length}
               completedCount={completedCount}
+              isSubmitting={creationMutation.isPending}
               onSubmit={handleSubmit}
             />
           </div>
@@ -758,7 +828,14 @@ function StrategyRequestModalContent({ selectedItems, onClose }) {
   );
 }
 
-export function StrategyRequestModal({ selectedItems = [], onClose }) {
+export function StrategyRequestModal({ selectedItems = [], onClose, onCreated, createCase = createAiStrategyCase }) {
   if (!selectedItems.length) return null;
-  return <StrategyRequestModalContent selectedItems={selectedItems} onClose={onClose} />;
+  return (
+    <StrategyRequestModalContent
+      selectedItems={selectedItems}
+      onClose={onClose}
+      onCreated={onCreated}
+      createCase={createCase}
+    />
+  );
 }

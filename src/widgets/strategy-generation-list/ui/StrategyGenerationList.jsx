@@ -1,12 +1,16 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
 import { ArrowRight, ChevronLeft, ChevronRight, Package, SearchNormal } from 'reicon-react';
-import { StrategyGenerationProgress, StrategyGenerationStatus, strategyGenerationStageMeta } from '@/entities/strategy';
+import {
+  aiStrategyListQueryOptions,
+  StrategyGenerationProgress,
+  StrategyGenerationStatus,
+  strategyGenerationStageMeta,
+} from '@/entities/strategy';
 import { formatDate, formatDateTime } from '@/shared/lib/format';
-import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input } from '@/shared/ui';
-import { strategyGenerationFixtures } from '../model/strategyFixtures.js';
-import { filterStrategies, getStrategyStatusCounts, paginateStrategies } from '../model/strategyList.js';
+import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, StateView } from '@/shared/ui';
 
 const PAGE_SIZE = 10;
 const statusTabs = Object.freeze([
@@ -58,7 +62,7 @@ function StrategyProductCell({ product }) {
 }
 
 function DrawerDetails({ strategy }) {
-  const isFailed = strategy.generationStatus === 'GENERATION_FAILED';
+  const isFailed = strategy.caseStatus === 'GENERATION_FAILED';
   const stageLabel = strategyGenerationStageMeta[strategy.generationStage]?.label ?? '수요예측';
 
   return (
@@ -73,7 +77,7 @@ function DrawerDetails({ strategy }) {
           생성 진행 상태
         </h3>
         <StrategyGenerationProgress
-          status={strategy.generationStatus}
+          status={strategy.caseStatus}
           currentStage={strategy.generationStage}
           className="max-w-sm"
         />
@@ -115,7 +119,39 @@ function DrawerDetails({ strategy }) {
   );
 }
 
-function StrategyFilterBar({ status, counts, query, from, to, onFilterChange }) {
+function StrategySearchInput({ value: externalValue, onDebouncedChange }) {
+  const [value, setValue] = useState(externalValue);
+  const lastEmittedValueRef = useRef(externalValue);
+
+  useEffect(() => {
+    if (externalValue === lastEmittedValueRef.current) return;
+
+    lastEmittedValueRef.current = externalValue;
+    setValue(externalValue);
+  }, [externalValue]);
+
+  useEffect(() => {
+    if (value === externalValue) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      lastEmittedValueRef.current = value;
+      onDebouncedChange(value);
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [externalValue, onDebouncedChange, value]);
+
+  return (
+    <Input
+      size="sm"
+      className="pl-9"
+      value={value}
+      placeholder="Case ID, 전략명, SKU·상품명 검색"
+      onChange={(event) => setValue(event.target.value)}
+    />
+  );
+}
+
+function StrategyFilterBar({ status, counts, query, from, to, onFilterChange, onQueryChange }) {
   return (
     <section
       className="flex flex-wrap items-end justify-between gap-4 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)] p-4"
@@ -172,13 +208,7 @@ function StrategyFilterBar({ status, counts, query, from, to, onFilterChange }) 
               aria-hidden="true"
               className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2 text-[color:var(--text-muted)]"
             />
-            <Input
-              size="sm"
-              className="pl-9"
-              value={query}
-              placeholder="전략번호, 전략명, 상품명 검색"
-              onChange={(event) => onFilterChange('q', event.target.value)}
-            />
+            <StrategySearchInput value={query} onDebouncedChange={onQueryChange} />
           </span>
         </label>
       </div>
@@ -189,7 +219,6 @@ function StrategyFilterBar({ status, counts, query, from, to, onFilterChange }) 
 export function StrategyGenerationList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const latestSearchParamsRef = useRef(searchParams);
   const [selectedStrategy, setSelectedStrategy] = useState(null);
   const actionButtonRefs = useRef(new Map());
   const drawerTriggerStrategyIdRef = useRef(null);
@@ -199,43 +228,63 @@ export function StrategyGenerationList() {
   const query = searchParams.get('q') ?? '';
   const from = searchParams.get('from') ?? '';
   const to = searchParams.get('to') ?? '';
-  const requestedPage = Number.parseInt(searchParams.get('page') ?? '1', 10) || 1;
-
+  const parsedPage = Number.parseInt(searchParams.get('page') ?? '1', 10);
+  const requestedPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const apiParams = useMemo(
+    () => ({
+      page: requestedPage - 1,
+      size: PAGE_SIZE,
+      status,
+      query,
+      from,
+      to,
+      sort: 'createdAt,desc',
+    }),
+    [from, query, requestedPage, status, to],
+  );
+  const listQuery = useQuery(aiStrategyListQueryOptions(apiParams));
+  const strategies = listQuery.data?.content ?? [];
+  const totalElements = listQuery.data?.totalElements ?? 0;
+  const totalPages = Math.max(listQuery.data?.totalPages ?? 0, 1);
   const counts = useMemo(
-    () => getStrategyStatusCounts(strategyGenerationFixtures, { query, from, to }),
-    [from, query, to],
-  );
-  const filteredStrategies = useMemo(
-    () => filterStrategies(strategyGenerationFixtures, { query, from, to, status }),
-    [from, query, status, to],
-  );
-  const pagination = useMemo(
-    () => paginateStrategies(filteredStrategies, requestedPage, PAGE_SIZE),
-    [filteredStrategies, requestedPage],
+    () => ({
+      ALL: listQuery.data?.statusCounts?.all ?? 0,
+      GENERATED: listQuery.data?.statusCounts?.generated ?? 0,
+      GENERATING: listQuery.data?.statusCounts?.generating ?? 0,
+      GENERATION_FAILED: listQuery.data?.statusCounts?.generationFailed ?? 0,
+    }),
+    [listQuery.data?.statusCounts],
   );
 
-  useLayoutEffect(() => {
-    latestSearchParamsRef.current = searchParams;
-  }, [searchParams]);
+  const updateFilter = useCallback(
+    (key, value, { resetPage = true } = {}) => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          const shouldDelete =
+            value === '' ||
+            value === null ||
+            (key === 'status' && value === 'ALL') ||
+            (key === 'page' && Number(value) <= 1);
+          if (shouldDelete) next.delete(key);
+          else next.set(key, String(value));
+          if (resetPage) next.delete('page');
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
-  function updateFilter(key, value, { resetPage = true } = {}) {
-    const next = new URLSearchParams(latestSearchParamsRef.current);
-    const shouldDelete = value === '' || value === null || (key === 'status' && value === 'ALL');
-    if (shouldDelete) next.delete(key);
-    else next.set(key, String(value));
-    if (resetPage) next.delete('page');
-    latestSearchParamsRef.current = next;
-    setSearchParams(next, { replace: true });
-  }
+  const updateSearch = useCallback((value) => updateFilter('q', value), [updateFilter]);
 
   useEffect(() => {
-    if (pagination.page === requestedPage) return;
-    const next = new URLSearchParams(latestSearchParamsRef.current);
-    if (pagination.page === 1) next.delete('page');
-    else next.set('page', String(pagination.page));
-    latestSearchParamsRef.current = next;
-    setSearchParams(next, { replace: true });
-  }, [pagination.page, requestedPage, setSearchParams]);
+    if (!listQuery.data || listQuery.isPlaceholderData) return;
+    const safePage = Math.min(requestedPage, Math.max(listQuery.data.totalPages, 1));
+    if (safePage === requestedPage) return;
+    updateFilter('page', safePage, { resetPage: false });
+  }, [listQuery.data, listQuery.isPlaceholderData, requestedPage, updateFilter]);
 
   function closeDrawer() {
     const triggerStrategyId = drawerTriggerStrategyIdRef.current;
@@ -244,7 +293,7 @@ export function StrategyGenerationList() {
   }
 
   function handleStrategyAction(strategy) {
-    if (strategy.generationStatus === 'GENERATED') {
+    if (strategy.caseStatus === 'GENERATED') {
       const currentSearch = searchParams.toString();
       navigate(`/ai-strategy/${strategy.id}`, {
         state: { from: `/ai-strategy${currentSearch ? `?${currentSearch}` : ''}` },
@@ -287,7 +336,7 @@ export function StrategyGenerationList() {
       cell: ({ getValue }) => <StrategyProductCell product={getValue()} />,
       meta: { width: '270px' },
     }),
-    columnHelper.accessor('generationStatus', {
+    columnHelper.accessor('caseStatus', {
       header: '상태',
       enableSorting: false,
       cell: ({ row, getValue }) => (
@@ -322,7 +371,7 @@ export function StrategyGenerationList() {
       cell: ({ row }) => {
         const strategy = row.original;
         const actionLabel =
-          strategy.generationStatus === 'GENERATED'
+          strategy.caseStatus === 'GENERATED'
             ? `${strategy.strategyNumber} 비교·시뮬레이션으로 이동`
             : `${strategy.strategyNumber} 생성 상태 상세 보기`;
         return (
@@ -352,52 +401,75 @@ export function StrategyGenerationList() {
         from={from}
         to={to}
         onFilterChange={updateFilter}
+        onQueryChange={updateSearch}
       />
 
-      <section className="min-w-0" aria-label="AI 전략 생성 목록">
-        <DataTable
-          columns={columns}
-          data={pagination.items}
-          getRowId={(row) => String(row.id)}
-          enableSorting={false}
-          layout="fixed"
-          ariaLabel="AI 전략 생성 목록"
-          emptyMessage="검색 조건에 맞는 AI 전략이 없습니다."
-          className="min-w-0 max-w-full rounded-b-none border-b-0 [&_table]:min-w-[1074px] [&_tbody_td]:py-4"
-        />
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 rounded-b-[var(--radius-panel)] border-x border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-          <span>
-            총 <strong className="text-[color:var(--text-heading)]">{pagination.totalItems}</strong>건
-          </span>
-          <div className="flex items-center gap-2" aria-label="페이지 이동">
-            <IconButton
-              label="이전 페이지"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => updateFilter('page', pagination.page - 1, { resetPage: false })}
-            >
-              <Icon icon={ChevronLeft} size={16} />
-            </IconButton>
-            <span className="min-w-14 text-center tabular-nums text-[color:var(--text-body)]">
-              {pagination.page} / {pagination.totalPages}
-            </span>
-            <IconButton
-              label="다음 페이지"
-              size="sm"
-              disabled={pagination.page >= pagination.totalPages}
-              onClick={() => updateFilter('page', pagination.page + 1, { resetPage: false })}
-            >
-              <Icon icon={ChevronRight} size={16} />
-            </IconButton>
+      {listQuery.isPending ? (
+        <StateView state="loading" title="AI 전략 생성 목록을 불러오고 있습니다." />
+      ) : listQuery.isError ? (
+        <Alert variant="danger" title="AI 전략 생성 목록을 불러오지 못했습니다.">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <span>서버 연결 상태를 확인한 뒤 다시 시도해 주세요.</span>
+            <Button type="button" variant="secondary" size="sm" onClick={() => listQuery.refetch()}>
+              다시 시도
+            </Button>
           </div>
-        </footer>
-      </section>
+        </Alert>
+      ) : (
+        <section className="min-w-0" aria-label="AI 전략 생성 목록" aria-busy={listQuery.isFetching}>
+          {listQuery.isFetching ? (
+            <p className="sr-only" aria-live="polite">
+              AI 전략 생성 목록을 업데이트하고 있습니다.
+            </p>
+          ) : null}
+          <DataTable
+            columns={columns}
+            data={strategies}
+            getRowId={(row) => String(row.id)}
+            enableSorting={false}
+            layout="fixed"
+            ariaLabel="AI 전략 생성 목록"
+            emptyMessage={
+              status === 'ALL' && !query && !from && !to
+                ? '아직 생성 요청한 AI 전략이 없습니다.'
+                : '검색 조건에 맞는 AI 전략이 없습니다.'
+            }
+            className="min-w-0 max-w-full rounded-b-none border-b-0 [&_table]:min-w-[1074px] [&_tbody_td]:py-4"
+          />
+
+          <footer className="flex flex-wrap items-center justify-between gap-3 rounded-b-[var(--radius-panel)] border-x border-b border-[var(--border)] bg-[var(--card)] px-4 py-3 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+            <span>
+              총 <strong className="text-[color:var(--text-heading)]">{totalElements}</strong>건
+            </span>
+            <div className="flex items-center gap-2" aria-label="페이지 이동">
+              <IconButton
+                label="이전 페이지"
+                size="sm"
+                disabled={requestedPage <= 1 || listQuery.isPlaceholderData}
+                onClick={() => updateFilter('page', requestedPage - 1, { resetPage: false })}
+              >
+                <Icon icon={ChevronLeft} size={16} />
+              </IconButton>
+              <span className="min-w-14 text-center tabular-nums text-[color:var(--text-body)]">
+                {requestedPage} / {totalPages}
+              </span>
+              <IconButton
+                label="다음 페이지"
+                size="sm"
+                disabled={requestedPage >= totalPages || listQuery.isPlaceholderData}
+                onClick={() => updateFilter('page', requestedPage + 1, { resetPage: false })}
+              >
+                <Icon icon={ChevronRight} size={16} />
+              </IconButton>
+            </div>
+          </footer>
+        </section>
+      )}
 
       <Drawer
         open={Boolean(selectedStrategy)}
         onClose={closeDrawer}
-        title={selectedStrategy?.generationStatus === 'GENERATION_FAILED' ? '생성 실패 상세' : '생성 진행 상세'}
+        title={selectedStrategy?.caseStatus === 'GENERATION_FAILED' ? '생성 실패 상세' : '생성 진행 상세'}
         description={
           selectedStrategy ? `${selectedStrategy.strategyNumber} · ${formatDate(selectedStrategy.createdAt)}` : ''
         }
