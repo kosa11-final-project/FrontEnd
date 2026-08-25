@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Bar,
   BarChart,
@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ArrowLeft, ChartBar, Check, DocumentText, Refresh, Send } from 'reicon-react';
+import { ArrowLeft, Check, DocumentText, Refresh, Send } from 'reicon-react';
 import {
   adjustAiStrategySimulation,
   aiStrategyKeys,
@@ -41,8 +41,17 @@ import {
   TabsTrigger,
 } from '@/shared/ui';
 import { ReviewerSelectionModal } from './ReviewerSelectionModal.jsx';
+import { StrategySelectionConflictModal } from './StrategySelectionConflictModal.jsx';
 
 const chartColors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)'];
+const visibleSimulationResultKeys = new Set([
+  'expectedSalesQty',
+  'expectedRevenue',
+  'totalContributionMargin',
+  'contributionMarginRate',
+  'expectedDisposalQty',
+  'netEffect',
+]);
 
 function formatRate(rate) {
   return `${formatNumber((rate ?? 0) * 100, { maximumFractionDigits: 1 })}%`;
@@ -473,7 +482,9 @@ function StrategyChart({ strategyCase, options, activeOption }) {
 }
 
 function SimulationResultTable({ strategyCase, option }) {
-  const rows = getSimulationComparisonRows(strategyCase, option);
+  const rows = getSimulationComparisonRows(strategyCase, option).filter((row) =>
+    visibleSimulationResultKeys.has(row.key),
+  );
   return (
     <Card padding="lg">
       <div className="mb-4">
@@ -584,9 +595,11 @@ function resolveMaximumDiscountPercent(option) {
 
 export function StrategySimulationView({ strategyCase, activeOption, listPath, onActiveOptionChange }) {
   const options = useMemo(() => sortStrategyOptions(strategyCase.options), [strategyCase.options]);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [finalOptionKey, setFinalOptionKey] = useState(null);
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
+  const [selectionConflict, setSelectionConflict] = useState(null);
   const [deliveryResult, setDeliveryResult] = useState(null);
   const adjustmentDefaultsByOption = useMemo(
     () =>
@@ -624,6 +637,10 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     [activeOption.optionKey, authoritativeOption, options, simulatedOptionsByKey],
   );
   const closeReviewerModal = useCallback(() => setReviewerModalOpen(false), []);
+  const handleSelectionConflict = useCallback((error) => {
+    setReviewerModalOpen(false);
+    setSelectionConflict(error);
+  }, []);
   const handleTeamsCompleted = useCallback(
     (result) => {
       setDeliveryResult(result);
@@ -724,8 +741,19 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: null }));
   }
 
+  function handleReadjustAfterConflict() {
+    setSelectionConflict(null);
+    requestAnimationFrame(() => {
+      document.querySelector('[data-testid="strategy-condition-panel"]')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+    void handleApplyAdjustment();
+  }
+
   return (
-    <main className="page-shell pb-40 sm:pb-28" aria-labelledby="page-title">
+    <main className="page-shell pb-44 sm:pb-32" aria-labelledby="page-title">
       <Button asChild variant="ghost" size="sm" className="mb-3 -ml-3">
         <Link to={comparePath} state={{ from: listPath }}>
           <Icon icon={ArrowLeft} size={16} /> AI 추천 전략 비교로 돌아가기
@@ -790,9 +818,12 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
         </div>
       </DetailLayout>
 
-      <section className="fixed bottom-0 left-0 right-0 z-20 border-t border-[var(--border)] bg-[color:var(--card)]/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:left-[76px] xl:left-[248px]">
-        <div className="mx-auto flex max-w-[1368px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+      <section
+        data-testid="strategy-simulation-action-bar"
+        className="fixed bottom-0 left-[var(--app-sidebar-width)] right-0 z-20 border-t border-[var(--border)] bg-[color:var(--card)]/95 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur"
+      >
+        <div className="mx-auto grid w-full max-w-[1800px] gap-3 px-5 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="min-w-0">
             <strong className="text-sm text-[color:var(--text-heading)]">
               {finalOptionKey ? '최종안이 선택되었습니다.' : 'Teams로 보낼 최종안을 선택해 주세요.'}
             </strong>
@@ -802,20 +833,23 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
                 : '현재 검토 중인 전략을 하단 버튼으로 최종안으로 확정할 수 있습니다.'}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button
               type="button"
               variant="secondary"
+              className="w-full"
               onClick={() => setFinalOptionKey(activeOption.optionKey)}
               disabled={finalOptionKey === activeOption.optionKey || selectionLocked}
             >
               <Icon icon={Check} size={16} />
               {finalOptionKey === activeOption.optionKey ? '최종안 선택됨' : '이 전략을 최종안으로 선택'}
             </Button>
-            <Button type="button" variant="secondary" disabled>
-              <Icon icon={ChartBar} size={16} /> AI 최종 검토
-            </Button>
-            <Button type="button" disabled={!finalOption || readyToExecute} onClick={() => setReviewerModalOpen(true)}>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={!finalOption || readyToExecute}
+              onClick={() => setReviewerModalOpen(true)}
+            >
               <Icon icon={Send} size={16} />
               {readyToExecute ? 'Teams 검토 요청 완료' : deliveryResult ? 'Teams 전송 결과' : 'Teams 검토 요청'}
             </Button>
@@ -830,6 +864,16 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
           initialDeliveryResult={deliveryResult}
           onClose={closeReviewerModal}
           onCompleted={handleTeamsCompleted}
+          onSelectionConflict={handleSelectionConflict}
+        />
+      ) : null}
+
+      {selectionConflict ? (
+        <StrategySelectionConflictModal
+          error={selectionConflict}
+          onClose={() => setSelectionConflict(null)}
+          onReadjust={handleReadjustAfterConflict}
+          onCreateNew={() => navigate('/inventory')}
         />
       ) : null}
     </main>

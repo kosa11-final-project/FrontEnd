@@ -57,20 +57,52 @@ function mapAction(action, candidate, index) {
   };
 }
 
+function replaceLocationCodesWithNames(value, actions) {
+  if (typeof value !== 'string' || !value) return value;
+
+  const replacements = [
+    ...new Map(
+      actions
+        .flatMap((action) => [action.sourceLocation, action.targetLocation])
+        .filter(Boolean)
+        .flatMap((location) => {
+          const idAlias =
+            location.locationId == null
+              ? null
+              : `${location.locationType === 'WAREHOUSE' ? 'W' : 'S'}${location.locationId}`;
+          return [
+            [location.locationCode, location.locationName],
+            [idAlias, location.locationName],
+          ];
+        }),
+    ).entries(),
+  ]
+    .filter(([code, name]) => code && name && code !== name)
+    .sort(([left], [right]) => right.length - left.length);
+
+  return replacements.reduce((text, [code, name]) => {
+    const escapedCode = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const codeToken = new RegExp(`(^|[^A-Za-z0-9_])${escapedCode}(?=$|[^A-Za-z0-9_])`, 'g');
+    return text.replace(codeToken, (_, prefix) => `${prefix}${name}`);
+  }, value);
+}
+
 function mapOption(option) {
   const candidate = option?.candidate;
   const mappedSimulation = mapSimulation(option?.simulation);
   if (!candidate?.candidateId || !Array.isArray(candidate.actions) || !mappedSimulation) return null;
 
   const assumptions = candidate.assumptions ?? [];
+  const actions = candidate.actions.map((action, index) => mapAction(action, candidate, index));
+  const displayText = (value) => replaceLocationCodesWithNames(value, actions);
   return {
     optionId: candidate.candidateId,
     optionKey: candidate.candidateId,
     rank: option.rank,
-    optionName: option.optionName,
-    recommendationReason: option.recommendationReason,
-    advantage: option.advantage,
-    caution: option.caution,
+    optionName: displayText(option.optionName),
+    recommendationReason: displayText(option.recommendationReason),
+    advantage: displayText(option.advantage),
+    caution: displayText(option.caution),
     constraints:
       assumptions.length > 0
         ? assumptions.map((assumption) => assumptionLabels[assumption] ?? assumption).join(' ')
@@ -81,7 +113,7 @@ function mapOption(option) {
     maxExecutableQty: candidate.maxExecutableQty,
     preference: candidate.preference ?? null,
     assumptions,
-    actions: candidate.actions.map((action, index) => mapAction(action, candidate, index)),
+    actions,
     ...mappedSimulation,
   };
 }

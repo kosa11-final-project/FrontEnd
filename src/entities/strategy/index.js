@@ -28,6 +28,12 @@ export {
   strategyActionTypeMeta,
 } from './model/strategyDetail.js';
 export { applyAdjustedSimulationResult, mapAiStrategyDetailResponse } from './model/strategyDetailMapper.js';
+export {
+  AI_STRATEGY_SELECTION_CONFLICT_CODE,
+  DEFAULT_SELECTION_CONFLICT_MESSAGE,
+  isAiStrategySelectionConflict,
+  resolveAiStrategySelectionConflict,
+} from './model/strategySelectionConflict.js';
 export { strategyExecutionFixtures } from './testing/fixtures.js';
 export {
   getStrategyExecution,

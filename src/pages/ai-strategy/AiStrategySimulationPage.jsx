@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { aiStrategyDetailQueryOptions, resolveStrategyOption } from '@/entities/strategy';
 import { Button, StateView } from '@/shared/ui';
+import { StrategyNoRecommendationView } from './ui/StrategyNoRecommendationView.jsx';
 import { StrategySimulationView } from './ui/StrategySimulationView.jsx';
 
 export default function AiStrategySimulationPage() {
@@ -55,7 +56,11 @@ export default function AiStrategySimulationPage() {
     );
   }
 
-  if (strategyCase.caseStatus !== 'GENERATED' || !activeOption) {
+  if (strategyCase.noRecommendation) {
+    return <StrategyNoRecommendationView strategyCase={strategyCase} listPath={listPath} />;
+  }
+
+  if (!['GENERATED', 'READY_TO_EXECUTE'].includes(strategyCase.caseStatus) || !activeOption) {
     return (
       <main className="page-shell grid gap-4">
         <StateView state="empty" title="표시할 전략 대안이 없습니다." description="새 AI 전략을 생성해 주세요." />

@@ -71,10 +71,10 @@ function detailResponse() {
         options: [
           {
             rank: 1,
-            optionName: '판교점 이동 후 할인',
-            recommendationReason: '수요가 높습니다.',
-            advantage: '잔여재고 감소',
-            caution: '이동 가능 여부 확인',
+            optionName: '재배치 전략 (S1 → S11, 수량 10개)',
+            recommendationReason: 'S1보다 S11의 예상 수요가 높습니다.',
+            advantage: 'S11의 판매 기회를 활용합니다.',
+            caution: 'S1 출고 전 재고를 확인해야 합니다.',
             candidate: {
               candidateId: 'CAND-1',
               strategyTypes: ['RT_TRANSFER', 'PRICE_DISCOUNT'],
@@ -85,8 +85,18 @@ function detailResponse() {
               actions: [
                 {
                   actionType: 'RT_TRANSFER',
-                  sourceLocation: { locationType: 'SALES_POINT', locationId: 1, locationName: '목동점' },
-                  targetLocation: { locationType: 'SALES_POINT', locationId: 2, locationName: '판교점' },
+                  sourceLocation: {
+                    locationType: 'SALES_POINT',
+                    locationId: 1,
+                    locationCode: 'DEPT_MOKDONG',
+                    locationName: '목동점',
+                  },
+                  targetLocation: {
+                    locationType: 'SALES_POINT',
+                    locationId: 11,
+                    locationCode: 'DEPT_PANGYO',
+                    locationName: '판교점',
+                  },
                   actionQuantity: 10,
                   estimatedActionCost: 10000,
                   strategyPrice: null,
@@ -134,6 +144,12 @@ describe('AI strategy detail mapper', () => {
     expect(result.options[0].actions[0].lotAllocations[0]).toMatchObject({
       lotCode: 'LOT-11',
       allocatedQuantity: 10,
+    });
+    expect(result.options[0]).toMatchObject({
+      optionName: '재배치 전략 (목동점 → 판교점, 수량 10개)',
+      recommendationReason: '목동점보다 판교점의 예상 수요가 높습니다.',
+      advantage: '판교점의 판매 기회를 활용합니다.',
+      caution: '목동점 출고 전 재고를 확인해야 합니다.',
     });
   });
 

@@ -3,6 +3,9 @@ import { mockAuthenticatedSession } from './auth-mocks.js';
 import { strategyDetailFixtures } from '../src/pages/ai-strategy/model/strategyDetailFixtures.js';
 import { strategyGenerationFixtures } from '../src/widgets/strategy-generation-list/model/strategyFixtures.js';
 
+const LIST_PRODUCT_IMAGE_DATA_URL =
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="56" height="56"%3E%3Crect width="56" height="56" fill="%23d1fae5"/%3E%3C/svg%3E';
+
 const listCases = strategyGenerationFixtures.map((fixture) => ({
   strategyCaseId: fixture.id,
   caseName: fixture.strategyName,
@@ -12,7 +15,7 @@ const listCases = strategyGenerationFixtures.map((fixture) => ({
     skuId: fixture.product.skuId,
     skuCode: fixture.product.skuCode,
     skuName: fixture.product.name,
-    imageUrl: null,
+    imageUrl: fixture.id === 32 ? LIST_PRODUCT_IMAGE_DATA_URL : null,
     category: fixture.category
       ? {
           categoryId: fixture.category.id,
@@ -152,7 +155,7 @@ function toBackendDetail(strategyCase) {
     result: {
       generatedAt: strategyCase.completedAt,
       baselineSimulation: strategyCase.baselineSimulation,
-      noRecommendation: null,
+      noRecommendation: strategyCase.noRecommendation ?? null,
       options: strategyCase.options.map((option) => ({
         rank: option.rank,
         optionName: option.optionName,
@@ -376,6 +379,21 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.locator('[data-product-fallback="GF-SOUP-BEEF-06"]')).toBeVisible();
   });
 
+  test('생성중 Case 폴링 후에도 기존 상품 이미지를 재마운트하지 않는다', async ({ page }) => {
+    const productImage = page.getByRole('row').filter({ hasText: '#32' }).locator('img');
+    await expect(productImage).toBeVisible();
+    await productImage.evaluate((element) => {
+      element.dataset.pollingIdentity = 'preserved';
+    });
+
+    await page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === '/api/v1/ai-strategies' && response.request().method() === 'GET';
+    });
+
+    await expect.poll(() => productImage.getAttribute('data-polling-identity')).toBe('preserved');
+  });
+
   test('상태·검색·기간 필터를 URL과 목록에 반영한다', async ({ page }) => {
     await page.getByRole('button', { name: /생성중/ }).click();
     await expect(page).toHaveURL(/status=GENERATING/);
@@ -505,6 +523,8 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByRole('heading', { name: '버섯 들깨탕 수도권 재배치 전략' })).toBeVisible();
     await expect(page.getByRole('heading', { name: '추천 전략 요약 비교' })).toBeVisible();
     await expect(page.getByRole('link', { name: /시뮬레이션 보기/ })).toHaveCount(4);
+    await expect(page.getByRole('button', { name: /최종안/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Teams/ })).toHaveCount(0);
     await expect(page.getByText(/9개 중/)).toHaveCount(0);
   });
 
@@ -531,17 +551,24 @@ test.describe('AI 전략 생성 목록', () => {
     });
 
     await page.goto('/ai-strategy/32');
-    const teamsButton = page.getByRole('button', { name: 'Teams로 전송' });
+    await expect(page.getByRole('button', { name: /최종안/ })).toHaveCount(0);
+    await page
+      .getByRole('link', { name: /시뮬레이션 보기/ })
+      .first()
+      .click();
+
+    const teamsButton = page.getByRole('button', { name: 'Teams 검토 요청' });
     await expect(teamsButton).toBeDisabled();
     expect(reviewerRequested).toBe(false);
 
-    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).first().click();
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
     await expect(teamsButton).toBeEnabled();
     await teamsButton.click();
     await expect(page.getByRole('dialog', { name: 'Reviewer 선택' })).toBeVisible();
     await expect.poll(() => reviewerRequested).toBe(true);
     await expect(page.getByText('first@example.com')).toBeVisible();
     await expect(page.getByText('second@example.com')).toBeVisible();
+    await expect(page.getByText(/reviewerId/i)).toHaveCount(0);
 
     const submitButton = page.getByRole('button', { name: 'Teams로 전송' }).last();
     await expect(submitButton).toBeDisabled();
@@ -559,7 +586,7 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByText('1명에게 전송하지 못했습니다.')).toBeVisible();
     await expect(page.getByText('POWER_AUTOMATE_FAILED')).toBeVisible();
     await page.getByRole('button', { name: 'Reviewer 선택 모달 닫기' }).click();
-    await expect(page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).first()).toBeDisabled();
+    await expect(page.getByRole('button', { name: '최종안 선택됨' })).toBeDisabled();
     await page.getByRole('button', { name: 'Teams 전송 결과' }).click();
     await expect(page.getByText('POWER_AUTOMATE_FAILED')).toBeVisible();
     await page.getByRole('button', { name: '실패 대상 재시도 (1명)' }).click();
@@ -573,6 +600,66 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByText('Teams 검토 요청 완료')).toBeVisible();
   });
 
+  test('최종안 전송 조건이 변경되면 전용 안내 후 입력값을 유지한 채 다시 조정한다', async ({ page }) => {
+    await page.route('**/api/v1/ai-strategies/32/teams-requests', (route) =>
+      route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'AI_STRATEGY_SELECTION_CONFLICT',
+          message: '전략 생성 이후 실행 조건이 변경되었습니다.',
+          details: {
+            reason: 'INSUFFICIENT_INVENTORY',
+            requestedQuantity: 29,
+            currentAvailableQuantity: 18,
+            retryableWithAdjustment: true,
+          },
+        }),
+      }),
+    );
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+
+    await page.getByLabel('이동 수량').fill('10');
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+    await page.getByRole('button', { name: 'Teams 검토 요청' }).click();
+    await page.getByLabel('이주영 first@example.com 선택').check();
+    await page.getByRole('button', { name: 'Teams로 전송 (1명)' }).click();
+
+    const conflictDialog = page.getByRole('dialog', { name: '전략을 실행할 수 없습니다' });
+    await expect(conflictDialog).toBeVisible();
+    await expect(conflictDialog.getByText('현재 가용재고가 부족합니다.')).toBeVisible();
+    await expect(conflictDialog.getByText('요청 수량 29개 · 현재 가용재고 18개')).toBeVisible();
+    await expect(page.getByText('Teams 검토 요청을 전송하지 못했습니다.')).toHaveCount(0);
+
+    await conflictDialog.getByRole('button', { name: '최신 조건으로 다시 조정' }).click();
+    await expect(conflictDialog).toHaveCount(0);
+    await expect(page.getByLabel('이동 수량')).toHaveValue('10');
+    await expect(page.getByText('서버 계산 완료')).toBeVisible();
+  });
+
+  test('실행 조건 충돌 안내에서 새 전략 생성 진입점으로 이동한다', async ({ page }) => {
+    await page.route('**/api/v1/ai-strategies/32/teams-requests', (route) =>
+      route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'AI_STRATEGY_SELECTION_CONFLICT',
+          message: '전략 생성 이후 실행 조건이 변경되었습니다.',
+        }),
+      }),
+    );
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+    await page.getByRole('button', { name: '이 전략을 최종안으로 선택' }).click();
+    await page.getByRole('button', { name: 'Teams 검토 요청' }).click();
+    await page.getByLabel('이주영 first@example.com 선택').check();
+    await page.getByRole('button', { name: 'Teams로 전송 (1명)' }).click();
+
+    const conflictDialog = page.getByRole('dialog', { name: '전략을 실행할 수 없습니다' });
+    await expect(conflictDialog.getByText('재고 또는 판매 조건이 변경되었습니다.', { exact: true })).toBeVisible();
+    await conflictDialog.getByRole('button', { name: '새 전략 생성' }).click();
+    await expect(page).toHaveURL(/\/inventory$/);
+  });
+
   test('전략 요약에서 기존 데모형 시뮬레이션으로 이동하고 대안을 전환한다', async ({ page }) => {
     await page.goto('/ai-strategy/32');
     await page
@@ -582,6 +669,7 @@ test.describe('AI 전략 생성 목록', () => {
 
     await expect(page).toHaveURL(/\/ai-strategy\/32\/simulation\?option=opt-transfer-discount/);
     await expect(page.getByRole('heading', { name: '전략 비교 시뮬레이션' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'AI 최종 검토' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: '조건 조정' })).toBeVisible();
     await expect(page.getByTestId('strategy-simulation-chart')).toBeVisible();
     await expect(page.getByLabel('이동 수량')).toBeEnabled();
@@ -590,6 +678,12 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByRole('button', { name: /조건 적용/ })).toBeDisabled();
     await expect(page.getByRole('button', { name: /Teams 검토 요청/ })).toBeDisabled();
     await expect(page.getByText('8일 예측 평가 결과')).toBeVisible();
+
+    const resultTable = page.getByRole('table', { name: '현재 전략 예상 결과와 기준 시나리오 비교' });
+    await expect(resultTable.getByRole('row').filter({ hasText: '예상 폐기수량' })).toBeVisible();
+    await expect(resultTable.getByRole('row').filter({ hasText: '예상 재고 소진기간' })).toHaveCount(0);
+    await expect(resultTable.getByRole('row').filter({ hasText: '전략 종료 후 잔여재고' })).toHaveCount(0);
+    await expect(resultTable.getByRole('row').filter({ hasText: '예상 실행비' })).toHaveCount(0);
 
     const expectedSalesRow = page.getByRole('row').filter({ hasText: '예상 판매량' });
     const recommendedResult = await expectedSalesRow.textContent();
@@ -661,6 +755,16 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByText('AI 전략 결과를 찾을 수 없습니다.')).toBeVisible();
   });
 
+  test('실행 대안이 없으면 현상 유지 권장 상태를 별도로 안내한다', async ({ page }) => {
+    await page.goto('/ai-strategy/33');
+
+    await expect(page.getByText('현상 유지 권장', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '현재 운영 상태를 유지하는 것이 유리합니다.' })).toBeVisible();
+    await expect(page.getByText(/추가 전략을 실행하는 것보다 현 상태를 유지/)).toBeVisible();
+    await expect(page.getByRole('link', { name: /시뮬레이션 보기/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Teams/ })).toHaveCount(0);
+  });
+
   test('좁은 화면에서 전략 카드와 조건 패널을 재배치하고 차트 폭을 화면에 맞춘다', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
@@ -675,6 +779,20 @@ test.describe('AI 전략 생성 목록', () => {
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth))
       .toBe(true);
+  });
+
+  test('중간 화면 폭에서도 하단 액션바를 실제 사이드바 오른쪽에 정렬한다', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
+
+    const sidebar = page.locator('.sidebar');
+    const actionBar = page.getByTestId('strategy-simulation-action-bar');
+    const [sidebarBox, actionBarBox] = await Promise.all([sidebar.boundingBox(), actionBar.boundingBox()]);
+
+    expect(actionBarBox.x).toBe(sidebarBox.x + sidebarBox.width);
+    expect(actionBarBox.x + actionBarBox.width).toBeLessThanOrEqual(1024);
+    await expect(page.getByRole('button', { name: '이 전략을 최종안으로 선택' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Teams 검토 요청' })).toBeVisible();
   });
 
   test('생성중 Drawer를 열고 Escape로 닫은 뒤 화살표로 포커스를 복귀한다', async ({ page }) => {

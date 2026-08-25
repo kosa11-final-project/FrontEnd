@@ -219,6 +219,8 @@ a:focus-visible {
 
 /* APP SHELL: fixed navigation frame and global application background. */
 .app-shell {
+  --app-sidebar-width: 248px;
+
   display: flex;
   min-height: 100vh;
   background:
@@ -821,6 +823,10 @@ code {
 
 /* RESPONSIVE: shared shell and page adaptations. Keep component variants above. */
 @media (max-width: 900px) {
+  .app-shell {
+    --app-sidebar-width: 76px;
+  }
+
   .sidebar {
     width: 76px;
     align-items: center;

@@ -253,6 +253,8 @@ describe('InventoryPage Integration', () => {
     fireEvent.click(generateButton);
 
     expect(screen.getByRole('dialog', { name: 'AI 전략 생성' })).toBeInTheDocument();
+    expect(screen.queryByText(/선택한 1개 SKU는 각각 별도의 전략 Case로 생성됩니다/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/상품 탭마다 출발 판매처를 선택해 주세요/)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^전략명/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^현재·출발 판매처/)).toBeInTheDocument();
     expect(screen.getByText('희망 전략 타입')).toBeInTheDocument();
@@ -294,7 +296,13 @@ describe('InventoryPage Integration', () => {
     fireEvent.change(endDateInput, { target: { value: endDateInput.getAttribute('max') } });
     expect(screen.getByText('요청 조건 입력 1/1')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건 전체를 AI에게 추천받기/ }));
+    const recommendAllCheckbox = screen.getByRole('checkbox', {
+      name: /출발 판매처 외 조건 전체를 AI에게 추천받기/,
+    });
+    const requestSummary = recommendAllCheckbox.closest('aside');
+    expect(requestSummary).toHaveAccessibleName('생성 요청 요약');
+    expect(requestSummary).toHaveClass('xl:top-4');
+    fireEvent.click(recommendAllCheckbox);
     expect(sourceSalesPointSelect).toHaveValue('STORE_THE_HYUNDAI_SEOUL');
     expect(sourceSalesPointSelect).toBeEnabled();
     expect(lotCheckbox).not.toBeChecked();
