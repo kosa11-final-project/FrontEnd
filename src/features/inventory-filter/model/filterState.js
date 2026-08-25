@@ -1,7 +1,7 @@
 export const INVENTORY_CHANNEL_TYPES = ['GREETING', 'ECOMMERCE', 'HYUNDAI_DEPT', 'HMART'];
 export const INVENTORY_STORAGE_TYPES = ['FROZEN', 'COLD', 'ROOM_TEMP'];
 export const INVENTORY_RISK_GRADES = ['SAFE', 'NORMAL', 'CAUTION', 'DANGER'];
-export const INVENTORY_ASSESSMENT_STATUSES = ['ASSESSED', 'UNASSESSED', 'STALE', 'FAILED', 'REASSESSING'];
+export const INVENTORY_ASSESSMENT_STATUSES = ['ASSESSED', 'UNASSESSED'];
 export const INVENTORY_FILTER_OPERATORS = ['AND', 'OR'];
 export const INVENTORY_DETAIL_TABS = ['OVERVIEW', 'FORECAST'];
 export const INVENTORY_SORT_FIELDS = [
@@ -243,7 +243,7 @@ export function serializeInventoryFilters(filters) {
  * @returns {typeof DEFAULT_INVENTORY_FILTERS}
  */
 export function applyFilterChanges(currentFilters, changes) {
-  const nonResetKeys = ['page', 'sort', 'detailSkuCode', 'detailSalesPointCode', 'detailTab'];
+  const nonResetKeys = ['page', 'detailSkuCode', 'detailSalesPointCode', 'detailTab'];
   const isNonResetChangeOnly = Object.keys(changes).every((key) => nonResetKeys.includes(key));
   const resetPage = !isNonResetChangeOnly;
 

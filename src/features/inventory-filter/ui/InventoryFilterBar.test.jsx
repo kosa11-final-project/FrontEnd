@@ -21,4 +21,17 @@ describe('InventoryFilterBar', () => {
 
     expect(onFilterChange).toHaveBeenCalledWith({ filterOperator: 'OR' });
   });
+  it('counts and displays a region-only filter as an active detailed filter', () => {
+    render(
+      <InventoryFilterBar
+        filters={{ ...DEFAULT_INVENTORY_FILTERS, regionCode: ['GYEONGGI'] }}
+        filterOptions={{ channels: [], regions: [{ code: 'GYEONGGI', name: '경기권' }] }}
+        onFilterChange={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('경기권')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /상세 필터/ })).toHaveTextContent('1');
+  });
 });
