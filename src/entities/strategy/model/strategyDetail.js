@@ -54,6 +54,51 @@ export function getStrategyAdjustmentDefaults(option) {
   return { actions };
 }
 
+function inclusiveDateCount(startDate, endDate) {
+  const parseDate = (value) => {
+    const [year, month, day] = String(value ?? '')
+      .split('-')
+      .map(Number);
+    if (!year || !month || !day) return null;
+    return Date.UTC(year, month - 1, day);
+  };
+  const start = parseDate(startDate);
+  const end = parseDate(endDate);
+  if (start === null || end === null) return null;
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+export function getStrategyAdjustmentValidationError(option, adjustment) {
+  const defaults = getStrategyAdjustmentDefaults(option);
+  const actions = option?.actions ?? [];
+  const quantityAction = actions.find(
+    (action) => action.actionQuantity !== null && action.actionQuantity !== undefined,
+  );
+  const periodAction = quantityAction ?? actions[0];
+  const quantityValues =
+    adjustment?.actions?.[quantityAction?.actionOrder] ?? defaults.actions[quantityAction?.actionOrder];
+  const periodValues = adjustment?.actions?.[periodAction?.actionOrder] ?? defaults.actions[periodAction?.actionOrder];
+  const actionQuantity = Number(quantityValues?.quantity);
+
+  if (!Number.isInteger(actionQuantity) || actionQuantity <= 0) return '적용 수량을 1개 이상 입력해 주세요.';
+  if (!periodValues?.startDate || !periodValues?.endDate) return '전략 시작일과 종료일을 입력해 주세요.';
+  if (periodValues.startDate > periodValues.endDate) return '전략 종료일은 시작일보다 빠를 수 없습니다.';
+
+  const constraints = option?.adjustmentConstraints;
+  if (constraints?.minimumStartDate && periodValues.startDate < constraints.minimumStartDate) {
+    return `전략 시작일은 ${constraints.minimumStartDate} 이후여야 합니다.`;
+  }
+  if (constraints?.latestSelectableEndDate && periodValues.endDate > constraints.latestSelectableEndDate) {
+    return `전략 종료일은 ${constraints.latestSelectableEndDate} 이전이어야 합니다.`;
+  }
+
+  const periodDays = inclusiveDateCount(periodValues.startDate, periodValues.endDate);
+  if (constraints?.maximumPeriodDays && periodDays > constraints.maximumPeriodDays) {
+    return `전략 기간은 최대 ${constraints.maximumPeriodDays}일까지 선택할 수 있습니다.`;
+  }
+  return null;
+}
+
 export function buildStrategyAdjustmentPayload(option, adjustment) {
   const defaults = getStrategyAdjustmentDefaults(option);
   const actions = option?.actions ?? [];
@@ -70,9 +115,8 @@ export function buildStrategyAdjustmentPayload(option, adjustment) {
   const periodValues = adjustment?.actions?.[periodOrder] ?? defaults.actions[periodOrder];
   const actionQuantity = Number(quantityValues?.quantity);
 
-  if (!Number.isInteger(actionQuantity) || actionQuantity <= 0 || !periodValues?.startDate || !periodValues?.endDate) {
-    throw new Error('적용 수량과 전략 기간을 확인해 주세요.');
-  }
+  const validationError = getStrategyAdjustmentValidationError(option, adjustment);
+  if (validationError) throw new Error(validationError);
 
   return {
     actionQuantity,
@@ -82,7 +126,7 @@ export function buildStrategyAdjustmentPayload(option, adjustment) {
   };
 }
 
-export function buildStrategyChartData(strategyCase) {
+export function buildStrategyChartData(strategyCase, chartRange = null) {
   const baseline = strategyCase?.baselineSimulation?.dailySeries ?? [];
   const options = sortStrategyOptions(strategyCase?.options);
   const optionSeriesByDate = Object.fromEntries(
@@ -92,23 +136,29 @@ export function buildStrategyChartData(strategyCase) {
     ]),
   );
 
-  return baseline.map((point) => {
-    const row = {
-      date: point.date,
-      baselineRemainingQty: point.expectedRemainingQty,
-      baselineRevenue: point.cumulativeRevenue,
-      baselineContributionMargin: point.cumulativeContributionMargin,
-    };
+  return baseline
+    .filter(
+      (point) =>
+        (!chartRange?.startDate || point.date >= chartRange.startDate) &&
+        (!chartRange?.endDate || point.date <= chartRange.endDate),
+    )
+    .map((point) => {
+      const row = {
+        date: point.date,
+        baselineRemainingQty: point.expectedRemainingQty,
+        baselineRevenue: point.cumulativeRevenue,
+        baselineContributionMargin: point.cumulativeContributionMargin,
+      };
 
-    options.forEach((option) => {
-      const optionPoint = optionSeriesByDate[option.optionKey].get(point.date);
-      row[`${option.optionKey}RemainingQty`] = optionPoint?.expectedRemainingQty ?? null;
-      row[`${option.optionKey}Revenue`] = optionPoint?.cumulativeRevenue ?? null;
-      row[`${option.optionKey}ContributionMargin`] = optionPoint?.cumulativeContributionMargin ?? null;
+      options.forEach((option) => {
+        const optionPoint = optionSeriesByDate[option.optionKey].get(point.date);
+        row[`${option.optionKey}RemainingQty`] = optionPoint?.expectedRemainingQty ?? null;
+        row[`${option.optionKey}Revenue`] = optionPoint?.cumulativeRevenue ?? null;
+        row[`${option.optionKey}ContributionMargin`] = optionPoint?.cumulativeContributionMargin ?? null;
+      });
+
+      return row;
     });
-
-    return row;
-  });
 }
 
 export function getSimulationComparisonRows(strategyCase, option) {
@@ -116,6 +166,7 @@ export function getSimulationComparisonRows(strategyCase, option) {
   const baseline = strategyCase.baselineSimulation?.summary ?? {};
   const summary = option.simulationSummary ?? {};
   const comparison = summary.comparisonToBaseline ?? {};
+  const netEffect = summary.netEffect ?? comparison.incrementalEconomicBenefit;
 
   return [
     {
@@ -184,11 +235,17 @@ export function getSimulationComparisonRows(strategyCase, option) {
     },
     {
       key: 'netEffect',
-      label: '기준 대비 순효과',
-      kind: 'currency',
-      value: summary.netEffect,
-      baselineValue: 0,
-      change: comparison.incrementalEconomicBenefit,
+      label: '기준 대비 경제효과',
+      kind: 'economicEffect',
+      value:
+        Number.isFinite(netEffect) && Number.isFinite(baseline.totalContributionMargin)
+          ? baseline.totalContributionMargin > 0
+            ? netEffect / baseline.totalContributionMargin
+            : null
+          : null,
+      baselineValue: null,
+      change: null,
+      amount: netEffect,
     },
   ].filter((row) => row.value !== undefined);
 }
