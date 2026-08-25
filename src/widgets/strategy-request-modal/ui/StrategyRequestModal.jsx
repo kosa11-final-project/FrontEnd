@@ -285,13 +285,22 @@ function CandidateSalesPointSelector({ points, sourceCode, values, disabled, onC
   );
 }
 
-function RequestSummary({ item, draft, productCount, completedCount, isSubmitting, onSubmit }) {
+function RequestSummary({
+  item,
+  draft,
+  productCount,
+  completedCount,
+  isSubmitting,
+  requestPreferenceError,
+  onRecommendAllConditionsChange,
+  onSubmit,
+}) {
   const selectedTypeLabels = draft.strategyTypes.map(
     (type) => STRATEGY_REQUEST_TYPES.find((option) => option.value === type)?.label ?? type,
   );
 
   return (
-    <aside className="xl:sticky xl:top-24 xl:self-start">
+    <aside aria-label="생성 요청 요약" className="xl:sticky xl:top-4 xl:self-start">
       <Card padding="none" className="overflow-hidden">
         <div className="border-b border-[var(--border)] p-5">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--primary)]">REQUEST SUMMARY</p>
@@ -342,6 +351,40 @@ function RequestSummary({ item, draft, productCount, completedCount, isSubmittin
             </dd>
           </div>
         </dl>
+        <div
+          className={`border-t p-5 ${
+            requestPreferenceError
+              ? 'border-[var(--danger)] bg-[var(--danger-soft)]'
+              : 'border-[var(--border)] bg-[var(--primary-soft)]'
+          }`}
+        >
+          <label className="flex cursor-pointer items-start gap-3">
+            <Checkbox
+              size="lg"
+              checked={draft.recommendAllConditions}
+              onChange={(event) => onRecommendAllConditionsChange(event.target.checked)}
+              aria-describedby={requestPreferenceError ? 'request-preference-error' : 'recommend-all-help'}
+            />
+            <span>
+              <strong className="block text-sm text-[color:var(--text-heading)]">
+                출발 판매처 외 조건 전체를 AI에게 추천받기
+              </strong>
+              <span id="recommend-all-help" className="mt-1 block text-xs leading-5 text-[color:var(--text-muted)]">
+                LOT·후보 판매처·전략 타입·기간을 AI가 판단합니다.
+              </span>
+            </span>
+          </label>
+          {draft.recommendAllConditions ? (
+            <p className="mt-3 text-xs leading-5 text-[color:var(--primary)]">
+              출발 판매처는 유지하고 나머지 조건은 AI 추천을 사용합니다.
+            </p>
+          ) : null}
+          {requestPreferenceError ? (
+            <p id="request-preference-error" role="alert" className="mt-3 text-xs text-[color:var(--danger)]">
+              {requestPreferenceError}
+            </p>
+          ) : null}
+        </div>
         <div className="border-t border-[var(--border)] bg-[var(--surface-subtle)] p-4">
           <Button type="button" size="lg" className="w-full" disabled={isSubmitting} onClick={onSubmit}>
             {isSubmitting ? '요청 전송 중...' : 'AI 전략 생성 요청'}
@@ -521,13 +564,8 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-          <Alert variant="info" title={`선택한 ${selectedItems.length}개 SKU는 각각 별도의 전략 Case로 생성됩니다.`}>
-            상품 탭마다 출발 판매처를 선택해 주세요. 나머지 조건을 직접 정하지 않으려면 출발 판매처 외 조건 전체를
-            AI에게 추천받을 수 있습니다.
-          </Alert>
-
           {creationMutation.isError ? (
-            <Alert variant="danger" title="AI 전략 생성 요청을 전송하지 못했습니다." className="mt-4" role="alert">
+            <Alert variant="danger" title="AI 전략 생성 요청을 전송하지 못했습니다." role="alert">
               {creationMutation.error?.message || '잠시 후 다시 시도해 주세요.'}
             </Alert>
           ) : null}
@@ -540,7 +578,6 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                   ? '일부 AI 전략 생성 요청을 완료하지 못했습니다.'
                   : 'AI 전략 생성 요청을 전송하지 못했습니다.'
               }
-              className="mt-4"
               role="alert"
             >
               생성 완료 {Object.keys(createdCasesBySku).length}건 · 재시도 대상 {submissionFailures.length}건
@@ -556,7 +593,10 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
             </Alert>
           ) : null}
 
-          <section className="mt-5" aria-label="전략 생성 대상 상품 선택">
+          <section
+            className={creationMutation.isError || submissionFailures.length ? 'mt-4' : ''}
+            aria-label="전략 생성 대상 상품 선택"
+          >
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {selectedItems.map((item, index) => (
                 <ProductTargetTab
@@ -788,42 +828,6 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                   오늘로부터 최대 90일 뒤까지만 선택 가능합니다.
                 </div>
               </Card>
-
-              <Card
-                padding="lg"
-                className={errors.requestPreference ? 'border-[var(--danger)]' : 'border-[var(--primary)]'}
-              >
-                <label className="flex cursor-pointer items-start gap-3">
-                  <Checkbox
-                    size="lg"
-                    checked={draft.recommendAllConditions}
-                    onChange={(event) => handleRecommendAllConditions(event.target.checked)}
-                    aria-describedby={errors.requestPreference ? 'request-preference-error' : 'recommend-all-help'}
-                  />
-                  <span>
-                    <strong className="block text-sm text-[color:var(--text-heading)]">
-                      출발 판매처 외 조건 전체를 AI에게 추천받기
-                    </strong>
-                    <span
-                      id="recommend-all-help"
-                      className="mt-1 block text-xs leading-5 text-[color:var(--text-muted)]"
-                    >
-                      출발 판매처는 직접 선택하고, LOT·후보 판매처·전략 타입·기간은 AI가 판단합니다.
-                    </span>
-                  </span>
-                </label>
-                {draft.recommendAllConditions ? (
-                  <p className="mt-3 rounded-[var(--radius-card)] bg-[var(--primary-soft)] p-3 text-xs leading-5 text-[color:var(--primary)]">
-                    출발 판매처는 유지하고 나머지 입력 조건을 초기화했습니다. 개별 조건을 지정하려면 체크를 해제해
-                    주세요.
-                  </p>
-                ) : null}
-                {errors.requestPreference ? (
-                  <p id="request-preference-error" role="alert" className="mt-3 text-xs text-[color:var(--danger)]">
-                    {errors.requestPreference}
-                  </p>
-                ) : null}
-              </Card>
             </div>
 
             <RequestSummary
@@ -832,6 +836,8 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
               productCount={selectedItems.length}
               completedCount={completedCount}
               isSubmitting={creationMutation.isPending}
+              requestPreferenceError={errors.requestPreference}
+              onRecommendAllConditionsChange={handleRecommendAllConditions}
               onSubmit={handleSubmit}
             />
           </div>
