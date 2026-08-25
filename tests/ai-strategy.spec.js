@@ -162,6 +162,16 @@ function toBackendDetail(strategyCase) {
         recommendationReason: option.recommendationReason,
         advantage: option.advantage,
         caution: option.caution,
+        adjustmentConstraints: option.adjustmentConstraints ?? {
+          minimumStartDate: option.actions[0]?.startDate,
+          latestSelectableEndDate: option.actions[0]?.endDate,
+          maximumPeriodDays: 90,
+          requiresPeriodAdjustment: false,
+        },
+        chartRange: option.chartRange ?? {
+          startDate: option.actions[0]?.startDate,
+          endDate: option.actions[0]?.endDate,
+        },
         candidate: {
           candidateId: option.optionKey,
           strategyTypes: [...new Set(option.actions.map(({ actionType }) => actionType))],
@@ -333,6 +343,13 @@ async function mockAiStrategyDetail(page) {
             salesPointGroup: 'GENERAL',
             maximumDiscountRate: 0.3,
           },
+          adjustmentConstraints: {
+            minimumStartDate: conditions.startDate,
+            latestSelectableEndDate: conditions.endDate,
+            maximumPeriodDays: 90,
+            requiresPeriodAdjustment: false,
+          },
+          chartRange: { startDate: conditions.startDate, endDate: conditions.endDate },
           simulation: {
             ...original,
             summary: {
@@ -672,12 +689,15 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByRole('button', { name: 'AI 최종 검토' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: '조건 조정' })).toBeVisible();
     await expect(page.getByTestId('strategy-simulation-chart')).toBeVisible();
+    await expect(page.getByRole('tab', { name: '매출·이익' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: '누적 매출' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByLabel('이동 수량')).toBeEnabled();
     await expect(page.getByLabel('할인 적용 수량')).toBeEnabled();
     await expect(page.getByLabel('할인율')).toBeEnabled();
     await expect(page.getByRole('button', { name: /조건 적용/ })).toBeDisabled();
     await expect(page.getByRole('button', { name: /Teams 검토 요청/ })).toBeDisabled();
     await expect(page.getByText('8일 예측 평가 결과')).toBeVisible();
+    await expect(page.getByLabel('액션 1 종료일')).toHaveAttribute('max', '2026-08-27');
 
     const resultTable = page.getByRole('table', { name: '현재 전략 예상 결과와 기준 시나리오 비교' });
     await expect(resultTable.getByRole('row').filter({ hasText: '예상 폐기수량' })).toBeVisible();
