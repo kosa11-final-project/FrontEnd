@@ -162,11 +162,23 @@ function toBackendDetail(strategyCase) {
         recommendationReason: option.recommendationReason,
         advantage: option.advantage,
         caution: option.caution,
+        adjustmentConstraints: option.adjustmentConstraints ?? {
+          minimumStartDate: option.actions[0]?.startDate,
+          latestSelectableEndDate: option.actions[0]?.endDate,
+          maximumPeriodDays: 90,
+          requiresPeriodAdjustment: false,
+        },
+        chartRange: option.chartRange ?? {
+          startDate: option.actions[0]?.startDate,
+          endDate: option.actions[0]?.endDate,
+        },
         candidate: {
           candidateId: option.optionKey,
           strategyTypes: [...new Set(option.actions.map(({ actionType }) => actionType))],
           startDate: option.actions[0]?.startDate,
-          endDate: option.actions[0]?.endDate,
+          endDate: option.actions.some(({ actionType }) => ['REALLOCATION', 'RT_TRANSFER'].includes(actionType))
+            ? null
+            : option.actions[0]?.endDate,
           assumptions: [],
           preference: null,
           maxExecutableQty: Math.max(...option.actions.map(({ actionQuantity }) => actionQuantity ?? 0)),
@@ -333,6 +345,13 @@ async function mockAiStrategyDetail(page) {
             salesPointGroup: 'GENERAL',
             maximumDiscountRate: 0.3,
           },
+          adjustmentConstraints: {
+            minimumStartDate: conditions.startDate,
+            latestSelectableEndDate: conditions.endDate,
+            maximumPeriodDays: 90,
+            requiresPeriodAdjustment: false,
+          },
+          chartRange: { startDate: conditions.startDate, endDate: conditions.endDate },
           simulation: {
             ...original,
             summary: {
@@ -672,12 +691,21 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByRole('button', { name: 'AI 최종 검토' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: '조건 조정' })).toBeVisible();
     await expect(page.getByTestId('strategy-simulation-chart')).toBeVisible();
+    await expect(page.getByRole('tab', { name: '공헌이익' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: '재고 추이' })).toHaveAttribute('aria-selected', 'false');
     await expect(page.getByLabel('이동 수량')).toBeEnabled();
     await expect(page.getByLabel('할인 적용 수량')).toBeEnabled();
     await expect(page.getByLabel('할인율')).toBeEnabled();
-    await expect(page.getByRole('button', { name: /조건 적용/ })).toBeDisabled();
+    const conditionPanel = page.getByTestId('strategy-condition-panel');
+    await expect(conditionPanel.getByText('실물 재고 이동', { exact: true })).toBeVisible();
+    await expect(conditionPanel.getByText('출발 판매처', { exact: true })).toBeVisible();
+    await expect(conditionPanel.getByText('도착 판매처', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /조건 적용/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Teams 검토 요청/ })).toBeDisabled();
     await expect(page.getByText('8일 예측 평가 결과')).toBeVisible();
+    await expect(page.getByLabel('액션 1 시작일')).toHaveValue('2026-08-20');
+    await expect(page.getByLabel('액션 1 종료일')).toHaveValue('2026-08-27');
+    await expect(page.getByLabel('액션 1 종료일')).toHaveAttribute('max', '2026-08-27');
 
     const resultTable = page.getByRole('table', { name: '현재 전략 예상 결과와 기준 시나리오 비교' });
     await expect(resultTable.getByRole('row').filter({ hasText: '예상 폐기수량' })).toBeVisible();
@@ -698,7 +726,6 @@ test.describe('AI 전략 생성 목록', () => {
       .poll(() => inventorySeries.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('d'))))
       .toEqual(recommendedChartPaths);
 
-    await page.getByRole('button', { name: /조건 적용/ }).click();
     await expect(page.getByText('서버 계산 완료')).toBeVisible();
     await expect(expectedSalesRow).toContainText('33개');
     await expect(expectedSalesRow).not.toHaveText(recommendedResult);
@@ -715,6 +742,11 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByLabel('재할당 수량')).toBeEnabled();
     await expect(page.getByLabel('할인율')).toHaveCount(0);
     await expect(page.getByLabel(/전략 판매가/)).toHaveCount(0);
+    await expect(conditionPanel.getByText('기존 할당 판매처', { exact: true })).toBeVisible();
+    await expect(conditionPanel.getByText('변경 할당 판매처', { exact: true })).toBeVisible();
+    await expect(conditionPanel.getByText('물리적 이동 없음', { exact: true })).toBeVisible();
+    await expect(conditionPanel.getByText('출발 위치', { exact: true })).toHaveCount(0);
+    await expect(conditionPanel.getByText('도착 판매처', { exact: true })).toHaveCount(0);
   });
 
   test('전략별 조건 조정값을 전환 후에도 유지한다', async ({ page }) => {

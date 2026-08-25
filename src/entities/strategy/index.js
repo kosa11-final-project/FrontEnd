@@ -20,9 +20,11 @@ export { StrategyGenerationStatus } from './ui/StrategyGenerationStatus.jsx';
 export {
   buildStrategyAdjustmentPayload,
   buildStrategyChartData,
+  getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
   resolveStrategyActionType,
+  resolveStrategyLocationPresentation,
   resolveStrategyOption,
   sortStrategyOptions,
   strategyActionTypeMeta,

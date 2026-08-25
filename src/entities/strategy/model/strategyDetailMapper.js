@@ -38,7 +38,26 @@ function mapSimulation(simulation) {
   };
 }
 
-function mapAction(action, candidate, index) {
+function mapAdjustmentConstraints(constraints) {
+  if (!constraints) return null;
+
+  return {
+    minimumStartDate: constraints.minimumStartDate ?? null,
+    latestSelectableEndDate: constraints.latestSelectableEndDate ?? null,
+    maximumPeriodDays: Number.isInteger(constraints.maximumPeriodDays) ? constraints.maximumPeriodDays : null,
+    requiresPeriodAdjustment: Boolean(constraints.requiresPeriodAdjustment),
+  };
+}
+
+function mapChartRange(chartRange) {
+  if (!chartRange?.startDate || !chartRange?.endDate) return null;
+  return {
+    startDate: chartRange.startDate,
+    endDate: chartRange.endDate,
+  };
+}
+
+function mapAction(action, candidate, chartRange, index) {
   return {
     actionOrder: index + 1,
     actionType: action.actionType,
@@ -48,8 +67,8 @@ function mapAction(action, candidate, index) {
     estimatedActionCost: action.estimatedActionCost,
     strategyPrice: action.strategyPrice,
     discountRate: action.discountRate,
-    startDate: candidate.startDate,
-    endDate: candidate.endDate,
+    startDate: candidate.startDate ?? chartRange?.startDate ?? null,
+    endDate: candidate.endDate ?? chartRange?.endDate ?? null,
     lotAllocations: (action.lotAllocations ?? []).map((allocation) => ({
       ...allocation,
       allocatedQuantity: allocation.quantity,
@@ -93,7 +112,8 @@ function mapOption(option) {
   if (!candidate?.candidateId || !Array.isArray(candidate.actions) || !mappedSimulation) return null;
 
   const assumptions = candidate.assumptions ?? [];
-  const actions = candidate.actions.map((action, index) => mapAction(action, candidate, index));
+  const chartRange = mapChartRange(option.chartRange);
+  const actions = candidate.actions.map((action, index) => mapAction(action, candidate, chartRange, index));
   const displayText = (value) => replaceLocationCodesWithNames(value, actions);
   return {
     optionId: candidate.candidateId,
@@ -106,14 +126,16 @@ function mapOption(option) {
     constraints:
       assumptions.length > 0
         ? assumptions.map((assumption) => assumptionLabels[assumption] ?? assumption).join(' ')
-        : '추가로 적용된 계산 가정이 없습니다.',
+        : null,
     strategyTypes: candidate.strategyTypes ?? [],
-    startDate: candidate.startDate,
-    endDate: candidate.endDate,
+    startDate: candidate.startDate ?? chartRange?.startDate ?? null,
+    endDate: candidate.endDate ?? chartRange?.endDate ?? null,
     maxExecutableQty: candidate.maxExecutableQty,
     preference: candidate.preference ?? null,
     assumptions,
     actions,
+    adjustmentConstraints: mapAdjustmentConstraints(option.adjustmentConstraints),
+    chartRange,
     ...mappedSimulation,
   };
 }
@@ -204,6 +226,8 @@ export function applyAdjustedSimulationResult(option, response) {
       salesPointGroup: conditions.salesPointGroup,
       maximumDiscountRate: conditions.maximumDiscountRate,
     },
+    adjustmentConstraints: mapAdjustmentConstraints(data.adjustmentConstraints) ?? option.adjustmentConstraints,
+    chartRange: mapChartRange(data.chartRange) ?? option.chartRange,
     actions,
     ...mappedSimulation,
   };

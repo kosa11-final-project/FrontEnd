@@ -75,11 +75,18 @@ function detailResponse() {
             recommendationReason: 'S1보다 S11의 예상 수요가 높습니다.',
             advantage: 'S11의 판매 기회를 활용합니다.',
             caution: 'S1 출고 전 재고를 확인해야 합니다.',
+            adjustmentConstraints: {
+              minimumStartDate: '2026-08-24',
+              latestSelectableEndDate: '2026-08-29',
+              maximumPeriodDays: 6,
+              requiresPeriodAdjustment: true,
+            },
+            chartRange: { startDate: '2026-08-24', endDate: '2026-08-29' },
             candidate: {
               candidateId: 'CAND-1',
               strategyTypes: ['RT_TRANSFER', 'PRICE_DISCOUNT'],
               startDate: '2026-08-24',
-              endDate: '2026-08-31',
+              endDate: null,
               maxExecutableQty: 10,
               assumptions: ['INVENTORY_RESERVED_UNTIL_STRATEGY_START'],
               actions: [
@@ -132,7 +139,16 @@ describe('AI strategy detail mapper', () => {
           optionId: 'CAND-1',
           optionKey: 'CAND-1',
           maxExecutableQty: 10,
-          actions: [{ actionOrder: 1, startDate: '2026-08-24' }],
+          adjustmentConstraints: {
+            minimumStartDate: '2026-08-24',
+            latestSelectableEndDate: '2026-08-29',
+            maximumPeriodDays: 6,
+            requiresPeriodAdjustment: true,
+          },
+          chartRange: { startDate: '2026-08-24', endDate: '2026-08-29' },
+          startDate: '2026-08-24',
+          endDate: '2026-08-29',
+          actions: [{ actionOrder: 1, startDate: '2026-08-24', endDate: '2026-08-29' }],
           simulationSummary: {
             expectedSalesQty: 8,
             movementCost: 10000,
@@ -150,7 +166,18 @@ describe('AI strategy detail mapper', () => {
       recommendationReason: '목동점보다 판교점의 예상 수요가 높습니다.',
       advantage: '판교점의 판매 기회를 활용합니다.',
       caution: '목동점 출고 전 재고를 확인해야 합니다.',
+      constraints: '전략 시작일까지 대상 재고가 유지되는 것으로 계산했습니다.',
     });
+  });
+
+  it('omits the calculation assumptions copy when the server returns no assumptions', () => {
+    const response = detailResponse();
+    response.data.result.options[0].candidate.assumptions = [];
+
+    const result = mapAiStrategyDetailResponse(response);
+
+    expect(result.options[0].assumptions).toEqual([]);
+    expect(result.options[0].constraints).toBeNull();
   });
 
   it('applies the server-calculated conditions and simulation without changing the original option', () => {
@@ -168,11 +195,20 @@ describe('AI strategy detail mapper', () => {
         salesPointGroup: null,
         maximumDiscountRate: null,
       },
+      adjustmentConstraints: {
+        minimumStartDate: '2026-08-25',
+        latestSelectableEndDate: '2026-08-30',
+        maximumPeriodDays: 6,
+        requiresPeriodAdjustment: false,
+      },
+      chartRange: { startDate: '2026-08-25', endDate: '2026-08-30' },
       simulation: { ...simulation, summary: { ...simulation.summary, expectedSalesQty: 8 } },
     });
 
     expect(adjusted.actions[0]).toMatchObject({ actionQuantity: 7, startDate: '2026-08-25', endDate: '2026-08-30' });
     expect(adjusted.maxExecutableQty).toBe(8);
+    expect(adjusted.adjustmentConstraints.latestSelectableEndDate).toBe('2026-08-30');
+    expect(adjusted.chartRange).toEqual({ startDate: '2026-08-25', endDate: '2026-08-30' });
     expect(adjusted.simulationSummary.expectedSalesQty).toBe(8);
     expect(adjusted.simulationSummary.expectedSalesQty).toBeGreaterThan(adjusted.actions[0].actionQuantity);
     expect(option.actions[0].actionQuantity).toBe(10);

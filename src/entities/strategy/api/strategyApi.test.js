@@ -232,6 +232,13 @@ describe('AI strategy API', () => {
         strategyCaseId: 123,
         candidateId: 'CAND/1',
         adjustedConditions: payload,
+        adjustmentConstraints: {
+          minimumStartDate: '2026-08-24',
+          latestSelectableEndDate: '2026-08-31',
+          maximumPeriodDays: 90,
+          requiresPeriodAdjustment: false,
+        },
+        chartRange: { startDate: '2026-08-24', endDate: '2026-08-31' },
         simulation: { summary: {} },
       },
     });
