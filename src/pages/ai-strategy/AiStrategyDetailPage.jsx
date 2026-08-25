@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { aiStrategyDetailQueryOptions } from '@/entities/strategy';
 import { Button, StateView } from '@/shared/ui';
 import { StrategyComparisonView } from './ui/StrategyComparisonView.jsx';
+import { StrategyNoRecommendationView } from './ui/StrategyNoRecommendationView.jsx';
 
 export default function AiStrategyDetailPage() {
   const { strategyCaseId } = useParams();
@@ -46,15 +47,17 @@ export default function AiStrategyDetailPage() {
 
   const strategyCase = detailQuery.data;
 
+  if (strategyCase.noRecommendation) {
+    return <StrategyNoRecommendationView strategyCase={strategyCase} listPath={listPath} />;
+  }
+
   if (!['GENERATED', 'READY_TO_EXECUTE'].includes(strategyCase.caseStatus) || !strategyCase.options?.length) {
     return (
       <main className="page-shell grid gap-4">
         <StateView
           state="empty"
           title="표시할 전략 대안이 없습니다."
-          description={
-            strategyCase.noRecommendation?.message ?? '전략 생성 상태를 확인하거나 새 AI 전략을 생성해 주세요.'
-          }
+          description="전략 생성 상태를 확인하거나 새 AI 전략을 생성해 주세요."
         />
         <Button asChild variant="secondary" className="mx-auto">
           <Link to={listPath}>목록으로 돌아가기</Link>

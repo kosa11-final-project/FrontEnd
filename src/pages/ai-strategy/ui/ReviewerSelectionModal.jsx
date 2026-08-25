@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { CloseCircle, SearchNormal, Send } from 'reicon-react';
-import { aiStrategyReviewerQueryOptions, sendAiStrategyTeamsRequest } from '@/entities/strategy';
+import {
+  aiStrategyReviewerQueryOptions,
+  isAiStrategySelectionConflict,
+  sendAiStrategyTeamsRequest,
+} from '@/entities/strategy';
 import { Alert, Badge, Button, Checkbox, Icon, IconButton, Input } from '@/shared/ui';
 
 const focusableSelector = [
@@ -40,7 +44,7 @@ function ReviewerDeliveryResult({ result, reviewersById }) {
                     ? `${reviewer.reviewerName} · ${reviewer.email}`
                     : delivery.reviewerName && delivery.email
                       ? `${delivery.reviewerName} · ${delivery.email}`
-                      : `Reviewer #${delivery.reviewerId}`}
+                      : '선택한 Reviewer'}
                 </li>
               );
             })}
@@ -59,7 +63,7 @@ function ReviewerDeliveryResult({ result, reviewersById }) {
                     ? `${reviewer.reviewerName} · ${reviewer.email}`
                     : delivery.reviewerName && delivery.email
                       ? `${delivery.reviewerName} · ${delivery.email}`
-                      : `Reviewer #${delivery.reviewerId}`}
+                      : '선택한 Reviewer'}
                   {reason ? ` — ${reason}` : ''}
                 </li>
               );
@@ -71,7 +75,14 @@ function ReviewerDeliveryResult({ result, reviewersById }) {
   );
 }
 
-export function ReviewerSelectionModal({ strategyCaseId, option, initialDeliveryResult, onClose, onCompleted }) {
+export function ReviewerSelectionModal({
+  strategyCaseId,
+  option,
+  initialDeliveryResult,
+  onClose,
+  onCompleted,
+  onSelectionConflict,
+}) {
   const dialogRef = useRef(null);
   const closeButtonRef = useRef(null);
   const onCloseRef = useRef(onClose);
@@ -89,6 +100,9 @@ export function ReviewerSelectionModal({ strategyCaseId, option, initialDelivery
       const mergedResult = mergeDeliveryResults(deliveryResult, result);
       setDeliveryResult(mergedResult);
       onCompleted?.(mergedResult);
+    },
+    onError: (error) => {
+      if (isAiStrategySelectionConflict(error)) onSelectionConflict?.(error);
     },
   });
   const isSending = teamsMutation.isPending;
@@ -291,7 +305,7 @@ export function ReviewerSelectionModal({ strategyCaseId, option, initialDelivery
             </>
           )}
 
-          {teamsMutation.isError ? (
+          {teamsMutation.isError && !isAiStrategySelectionConflict(teamsMutation.error) ? (
             <Alert variant="danger" title="Teams 검토 요청을 전송하지 못했습니다." className="mt-4">
               {teamsMutation.error?.message ?? '잠시 후 다시 시도해 주세요.'}
             </Alert>
@@ -304,7 +318,7 @@ export function ReviewerSelectionModal({ strategyCaseId, option, initialDelivery
               ? failedReviewerIds.length
                 ? '실패한 Reviewer만 다시 전송할 수 있습니다.'
                 : '모든 Reviewer에게 전송했습니다.'
-              : 'Reviewer 이메일은 표시용이며 요청에는 reviewerId만 전송합니다.'}
+              : '검토자를 한 명 이상 선택해 주세요.'}
           </p>
           <div className="ml-auto flex gap-2">
             <Button type="button" variant="secondary" disabled={isSending} onClick={onClose}>
