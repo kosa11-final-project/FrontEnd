@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Package } from 'reicon-react';
 import { formatNumber, formatQuantity } from '@/shared/lib/format';
-import { getSalesPointStateLabel, InventoryStatusBadge } from '@/entities/inventory';
+import { InventoryStatusBadge } from '@/entities/inventory';
 import { CHANNEL_BADGE_LABELS, CHANNEL_BADGE_STYLES } from './constants.js';
 
 /**
@@ -28,6 +28,19 @@ export function InventorySalesPointsSection({
     unassignedInventory?.availableQuantity != null ||
     unassignedInventory?.reservedQuantity != null,
   );
+  const warehouseNames = useMemo(() => {
+    const names = (unassignedInventory?.locations || [])
+      .map((location) => location?.warehouseName?.trim())
+      .filter(Boolean);
+
+    return [...new Set(names)];
+  }, [unassignedInventory?.locations]);
+  const warehouseLabel =
+    warehouseNames.length === 0
+      ? '보관센터 미지정'
+      : warehouseNames.length === 1
+        ? warehouseNames[0]
+        : `${warehouseNames[0]} 외 ${warehouseNames.length - 1}곳`;
   const priceMap = useMemo(() => {
     const map = new Map();
     (channelPrices || []).forEach((cp) => {
@@ -60,7 +73,7 @@ export function InventorySalesPointsSection({
             <button
               type="button"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => onSelectSalesPoint?.(selectedSalesPointCode === 'UNASSIGNED' ? '__ALL__' : 'UNASSIGNED')}
+              onClick={() => onSelectSalesPoint?.('UNASSIGNED')}
               className={`w-full text-left rounded-xl p-2.5 transition-colors border ${
                 selectedSalesPointCode === 'UNASSIGNED'
                   ? 'border-amber-400 bg-amber-50 shadow-xs ring-1 ring-amber-300/60'
@@ -72,16 +85,20 @@ export function InventorySalesPointsSection({
                   <span className="rounded px-1.5 py-0.2 text-[9px] font-bold border border-amber-200 bg-white text-amber-800 shrink-0">
                     물류센터
                   </span>
-                  <span className="text-xs font-bold text-gray-900 truncate">미할당 재고</span>
-                  <span className="rounded border border-amber-200 bg-white px-1 py-0.5 text-[9px] font-semibold text-amber-800 shrink-0">
-                    판매처 미귀속
+                  <span
+                    className="min-w-0 text-[11px] font-semibold text-amber-900 truncate"
+                    title={warehouseNames.join(', ') || warehouseLabel}
+                  >
+                    {warehouseLabel}
                   </span>
+                  <span className="text-xs font-bold text-gray-900 truncate shrink-0">미할당 재고</span>
                 </div>
                 <InventoryStatusBadge status={unassignedInventory.riskGrade} />
               </div>
               <div className="mt-2 flex items-center justify-between text-[11px]">
                 <span className="text-amber-800">판매처 재고를 제외한 센터 보관분</span>
                 <div className="tabular-nums text-right shrink-0">
+                  <span className="text-[10px] text-gray-500 mr-1">현재고</span>
                   <strong className="font-bold text-gray-900">
                     {formatQuantity(unassignedInventory.currentQuantity)}
                   </strong>
@@ -105,7 +122,7 @@ export function InventorySalesPointsSection({
                 key={sp.salesPointCode}
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => onSelectSalesPoint?.(isSelected ? '__ALL__' : sp.salesPointCode)}
+                onClick={() => onSelectSalesPoint?.(sp.salesPointCode)}
                 className={`w-full text-left rounded-xl p-2.5 transition-colors border ${
                   isSelected
                     ? 'border-[var(--primary)] bg-[#F0FDF4] shadow-xs ring-1 ring-[var(--primary)]/30'
@@ -118,11 +135,6 @@ export function InventorySalesPointsSection({
                       {channelLabel}
                     </span>
                     <span className="text-xs font-bold text-gray-900 truncate">{sp.salesPointName}</span>
-                    {sp.salesPointState && sp.salesPointState !== 'OWNED' && (
-                      <span className="rounded border border-slate-200 bg-slate-50 px-1 py-0.5 text-[9px] font-semibold text-slate-600">
-                        {getSalesPointStateLabel(sp.salesPointState)}
-                      </span>
-                    )}
                   </div>
                   <InventoryStatusBadge status={sp.riskGrade} />
                 </div>
@@ -138,6 +150,7 @@ export function InventorySalesPointsSection({
                     )}
                   </div>
                   <div className="tabular-nums text-right shrink-0">
+                    <span className="text-[10px] text-gray-500 mr-1">현재고</span>
                     <strong className="font-bold text-gray-900">{formatQuantity(sp.currentQuantity)}</strong>
                     <span className="text-[10px] text-[#1E8251] ml-1">
                       (가용 {formatQuantity(sp.availableQuantity)})

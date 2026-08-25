@@ -25,9 +25,11 @@ describe('inventoryQueries', () => {
   it('provides query options with correct query keys and enablement rules', () => {
     const listOptions = inventoryListQueryOptions({ q: '만두' });
     expect(listOptions.queryKey).toEqual(['inventory', 'list', { q: '만두' }]);
+    expect(listOptions.staleTime).toBe(30_000);
 
     const summaryOptions = inventorySummaryQueryOptions({});
     expect(summaryOptions.queryKey).toEqual(['inventory', 'summary', {}]);
+    expect(summaryOptions.staleTime).toBe(30_000);
 
     const detailEnabled = inventoryDetailQueryOptions('SKU_01', 'STORE_01');
     expect(detailEnabled.enabled).toBe(true);
@@ -67,6 +69,33 @@ describe('inventoryQueries', () => {
     });
 
     expect(options.queryKey).toEqual(['inventory', 'summary', { filterOperator: 'OR', riskGrade: ['DANGER'] }]);
+  });
+
+  it('keeps multiple category ids in the summary cache key', () => {
+    expect(inventoryKeys.summary({ categoryIds: ['301', '302'], page: 2 })).toEqual([
+      'inventory',
+      'summary',
+      { categoryIds: ['301', '302'] },
+    ]);
+  });
+
+  it('keeps safety-stock shortage in the summary cache key while ignoring pagination', () => {
+    expect(inventoryKeys.summary({ shortageYn: 'Y', page: 3, size: 50 })).toEqual([
+      'inventory',
+      'summary',
+      { shortageYn: 'Y' },
+    ]);
+  });
+
+  it('does not vary the summary cache key for removed legacy filter groups', () => {
+    expect(
+      inventoryKeys.summary({
+        filterOperator: 'OR',
+        storageType: ['FROZEN'],
+        regionCode: ['GYEONGGI'],
+        assessmentStatus: ['ASSESSED'],
+      }),
+    ).toEqual(['inventory', 'summary', { filterOperator: 'OR', storageType: ['FROZEN'] }]);
   });
 
   it('does not keep another seller detail or LOT response as placeholder data', () => {

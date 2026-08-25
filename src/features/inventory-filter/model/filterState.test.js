@@ -20,13 +20,14 @@ describe('Inventory Filter State (URL SearchParams)', () => {
 
   it('correctly parses valid search params and repeated multi-value keys', () => {
     const raw =
-      '?q=만두&channelType=GREETING&channelType=HMART&storageType=FROZEN&riskGrade=CAUTION&filterOperator=OR&page=2&size=50&sort=availableQuantity,asc&detailSkuCode=SKU-1&detailSalesPointCode=SP-1&detailTab=FORECAST';
+      '?q=만두&channelType=GREETING&channelType=HMART&storageType=FROZEN&riskGrade=CAUTION&shortageYn=Y&filterOperator=OR&page=2&size=50&sort=availableQuantity,asc&detailSkuCode=SKU-1&detailSalesPointCode=SP-1&detailTab=FORECAST';
     const filters = parseInventoryFilters(raw);
 
     expect(filters.q).toBe('만두');
     expect(filters.channelType).toEqual(['GREETING', 'HMART']);
     expect(filters.storageType).toEqual(['FROZEN']);
     expect(filters.riskGrade).toEqual(['CAUTION']);
+    expect(filters.shortageYn).toBe('Y');
     expect(filters.filterOperator).toBe('OR');
     expect(filters.page).toBe(2);
     expect(filters.size).toBe(50);
@@ -34,6 +35,13 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     expect(filters.detailSkuCode).toBe('SKU-1');
     expect(filters.detailSalesPointCode).toBe('SP-1');
     expect(filters.detailTab).toBe('FORECAST');
+  });
+
+  it('parses repeated category ids while keeping the legacy first category id', () => {
+    const filters = parseInventoryFilters('?categoryId=301&categoryId=302');
+
+    expect(filters.categoryIds).toEqual(['301', '302']);
+    expect(filters.categoryId).toBe('301');
   });
 
   it('correctly parses FORECAST detailTab', () => {
@@ -101,6 +109,34 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     expect(params).toEqual({ q: '만두', page: 2, size: 50, sort: 'updatedAt,desc' });
   });
 
+  it('does not send removed legacy filter groups to inventory queries', () => {
+    const params = toInventoryQueryParams({
+      q: '만두',
+      filterOperator: 'OR',
+      regionCode: ['GYEONGGI'],
+      assessmentStatus: ['ASSESSED'],
+      storageType: ['FROZEN'],
+    });
+
+    expect(params).toEqual({
+      q: '만두',
+      filterOperator: 'OR',
+      storageType: ['FROZEN'],
+      page: 1,
+      size: 20,
+      sort: 'updatedAt,desc',
+    });
+    expect(params).not.toHaveProperty('regionCode');
+    expect(params).not.toHaveProperty('assessmentStatus');
+
+    const serialized = serializeInventoryFilters({
+      filterOperator: 'OR',
+      regionCode: ['GYEONGGI'],
+      assessmentStatus: ['ASSESSED'],
+    });
+    expect(serialized.toString()).toBe('filterOperator=OR');
+  });
+
   it('serializes and parses round-trip preserving multi-value filter state', () => {
     const initial = {
       q: '비비고',
@@ -109,6 +145,7 @@ describe('Inventory Filter State (URL SearchParams)', () => {
       warehouseCode: ['GYEONGIN_1'],
       storageType: ['COLD', 'FROZEN'],
       riskGrade: ['DANGER'],
+      shortageYn: 'Y',
       filterOperator: 'OR',
       page: 3,
       size: 30,
@@ -122,6 +159,14 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     const parsed = parseInventoryFilters(serialized);
 
     expect(parsed).toEqual(expect.objectContaining(initial));
+  });
+
+  it('forwards only the safety-stock shortage flag to inventory APIs', () => {
+    const params = toInventoryQueryParams({ shortageYn: 'Y' });
+
+    expect(params).toEqual({ shortageYn: 'Y', page: 1, size: 20, sort: 'updatedAt,desc' });
+    expect(serializeInventoryFilters({ shortageYn: 'Y' }).get('shortageYn')).toBe('Y');
+    expect(parseInventoryFilters('?shortageYn=N').shortageYn).toBe('');
   });
 
   it('resets page to 1 when search filters change, but retains page during pagination or detail context changes', () => {
@@ -152,5 +197,11 @@ describe('Inventory Filter State (URL SearchParams)', () => {
 
     expect(changed.sort).toBe('riskGrade,asc');
     expect(changed.page).toBe(1);
+  });
+
+  it('accepts safety-stock shortage as a server-backed sort field', () => {
+    const filters = parseInventoryFilters('?sort=shortageYn,asc');
+
+    expect(filters.sort).toBe('shortageYn,asc');
   });
 });

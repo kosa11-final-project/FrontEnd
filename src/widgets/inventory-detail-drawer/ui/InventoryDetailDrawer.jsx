@@ -12,7 +12,7 @@ import { inventoryRiskQueryOptions, RiskExplanationPanel } from '@/entities/risk
 import { formatQuantity } from '@/shared/lib/format';
 import { Button, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
 import { InventoryDetailHeader } from './InventoryDetailHeader.jsx';
-import { InventoryDetailKpiRibbon } from './InventoryDetailKpiRibbon.jsx';
+import { InventoryOverviewSkeleton } from './InventoryOverviewSkeleton.jsx';
 import { InventorySalesPointsSection } from './InventorySalesPointsSection.jsx';
 import { InventoryLotsSection } from './InventoryLotsSection.jsx';
 import { CHANNEL_BADGE_LABELS, CHANNEL_BADGE_STYLES } from './constants.js';
@@ -74,8 +74,7 @@ export function InventoryDetailDrawer({
 
   // 1) 재고 개요 탭 전용 판매처 선택 상태 (URL 및 부모 상태와 연동, 미지정 시 최상단 기본 선택)
   const effectiveOverviewSalesPointCode = useMemo(() => {
-    if (selectedSalesPointCode === '__ALL__') return '';
-    if (selectedSalesPointCode) return selectedSalesPointCode;
+    if (selectedSalesPointCode && selectedSalesPointCode !== '__ALL__') return selectedSalesPointCode;
     return topOverviewSalesPointCode;
   }, [selectedSalesPointCode, topOverviewSalesPointCode]);
 
@@ -91,7 +90,7 @@ export function InventoryDetailDrawer({
       : selectedSalesPointCode;
 
   const setForecastSalesPointCode = (spCode) => {
-    const nextCode = spCode === '__ALL__' ? '__ALL__' : spCode;
+    const nextCode = spCode && spCode !== '__ALL__' ? spCode : topForecastSalesPointCode;
     setForecastSelection({
       skuCode,
       salesPointCode: nextCode,
@@ -100,12 +99,17 @@ export function InventoryDetailDrawer({
   };
 
   const effectiveForecastSalesPointCode = useMemo(() => {
-    if (currentForecastSalesPointCode === '__ALL__') return '';
-    if (currentForecastSalesPointCode && currentForecastSalesPointCode !== 'UNASSIGNED') {
+    if (
+      currentForecastSalesPointCode &&
+      currentForecastSalesPointCode !== '__ALL__' &&
+      currentForecastSalesPointCode !== 'UNASSIGNED'
+    ) {
       return currentForecastSalesPointCode;
     }
     return topForecastSalesPointCode;
   }, [currentForecastSalesPointCode, topForecastSalesPointCode]);
+
+  const currentTab = activeTab === 'FORECAST' ? 'FORECAST' : 'OVERVIEW';
 
   // 1. 판매처 상세 헤더 쿼리: 개요 탭 기준
   const detailQuery = useQuery({
@@ -122,16 +126,9 @@ export function InventoryDetailDrawer({
   // 3) 재고 개요 탭의 서버 위험 판정: 예상 소진일수와 부족 여부를 함께 표시합니다.
   const riskQuery = useQuery({
     ...inventoryRiskQueryOptions(skuCode, effectiveOverviewSalesPointCode),
-    enabled: Boolean(
-      open &&
-      activeTab === 'OVERVIEW' &&
-      skuCode &&
-      effectiveOverviewSalesPointCode &&
-      effectiveOverviewSalesPointCode !== 'UNASSIGNED',
-    ),
+    enabled: Boolean(open && activeTab === 'OVERVIEW' && skuCode && effectiveOverviewSalesPointCode),
   });
 
-  const isOverviewUnassigned = effectiveOverviewSalesPointCode === 'UNASSIGNED';
   const isForecastUnassigned = effectiveForecastSalesPointCode === 'UNASSIGNED';
 
   // 4. 수요예측 쿼리: 수요예측 탭 독립 판매처 기준
@@ -151,6 +148,12 @@ export function InventoryDetailDrawer({
   // 수요예측 탭 선택 판매처 객체
   const selectedForecastSalesPoint =
     allSalesPoints.find((point) => point.salesPointCode === effectiveForecastSalesPointCode) || null;
+
+  // 판매처를 바꾸면 세부·LOT·위험판정 쿼리가 동시에 새 키로 전환됩니다.
+  // 세 섹션을 각각 먼저 렌더링하면 기존 내용이 순차적으로 사라졌다가 채워져 깜빡이므로,
+  // 새 판매처의 필수 데이터가 모두 준비될 때까지 오른쪽 개요 영역을 하나의 스켈레톤으로 유지합니다.
+  const isOverviewLoading =
+    open && currentTab === 'OVERVIEW' && [detailQuery, lotsQuery, riskQuery].some((query) => query.isLoading);
 
   // 전체 요약 vs 선택 판매처 상세 융합
   const item = effectiveOverviewSalesPointCode
@@ -185,7 +188,13 @@ export function InventoryDetailDrawer({
 
     previousActiveElementRef.current = document.activeElement;
     const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      const currentPaddingRight = Number.parseFloat(window.getComputedStyle(document.body).paddingRight) || 0;
+      document.body.style.paddingRight = `${currentPaddingRight + scrollbarWidth}px`;
+    }
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -221,6 +230,7 @@ export function InventoryDetailDrawer({
 
     return () => {
       document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
       window.removeEventListener('keydown', handleKeyDown);
       clearTimeout(timer);
       if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
@@ -231,8 +241,6 @@ export function InventoryDetailDrawer({
 
   if (!open || !item) return null;
 
-  const currentTab = activeTab === 'FORECAST' ? 'FORECAST' : 'OVERVIEW';
-
   const handleCopySku = () => {
     if (!item.skuCode) return;
     navigator.clipboard?.writeText(item.skuCode);
@@ -241,7 +249,7 @@ export function InventoryDetailDrawer({
   };
 
   const handleSelectSalesPoint = (spCode) => {
-    const nextCode = spCode === '__ALL__' ? '__ALL__' : spCode;
+    const nextCode = spCode && spCode !== '__ALL__' ? spCode : topOverviewSalesPointCode;
     setForecastSelection({
       skuCode,
       salesPointCode: nextCode,
@@ -251,13 +259,13 @@ export function InventoryDetailDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-slate-950/45 backdrop-blur-[2px] transition-opacity duration-300 animate-in fade-in"
+      className="inventory-detail-drawer-overlay fixed inset-0 z-50 flex justify-end bg-slate-950/45 backdrop-blur-[2px]"
       role="presentation"
       onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}
     >
       <aside
         ref={drawerRef}
-        className="flex h-full w-full md:w-[85vw] lg:w-[78vw] xl:w-[70vw] min-w-[360px] max-w-[1120px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out animate-in slide-in-from-right"
+        className="inventory-detail-drawer-panel flex h-full w-full min-w-[360px] max-w-[1120px] flex-col bg-white shadow-2xl md:w-[85vw] lg:w-[78vw] xl:w-[70vw]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-product-title"
@@ -291,10 +299,7 @@ export function InventoryDetailDrawer({
           </div>
         )}
 
-        {/* 2. 4대 핵심 KPI 메트릭 리본 */}
-        <InventoryDetailKpiRibbon item={item} showRisk={currentTab !== 'FORECAST' && !isOverviewUnassigned} />
-
-        {/* 3. 2단 통합 탭 네비게이션 (재고 개요 | 수요예측) */}
+        {/* 2. 2단 통합 탭 네비게이션 (재고 개요 | 수요예측) */}
         <Tabs
           value={currentTab}
           onValueChange={onTabChange}
@@ -326,7 +331,7 @@ export function InventoryDetailDrawer({
           )}
         </Tabs>
 
-        {/* 4. 본문 워크스페이스 */}
+        {/* 3. 본문 워크스페이스 */}
         <div className="flex-1 min-h-0 overflow-hidden bg-[#F9FAFB]">
           {/* TAB 1: 재고 개요 (보관센터 + 판매처 분산 + 기본 LOT 요약) */}
           {currentTab === 'OVERVIEW' && (
@@ -348,17 +353,14 @@ export function InventoryDetailDrawer({
                 />
               </div>
 
-              <div className="lg:col-span-7 flex flex-col p-4 space-y-4 overflow-y-auto h-full min-h-0">
-                {!isOverviewUnassigned && (
+              <div
+                className="lg:col-span-7 flex flex-col p-4 space-y-4 overflow-y-auto h-full min-h-0"
+                aria-busy={isOverviewLoading}
+              >
+                {isOverviewLoading ? (
+                  <InventoryOverviewSkeleton />
+                ) : (
                   <>
-                    {riskQuery.isLoading && (
-                      <div
-                        role="status"
-                        className="rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-500"
-                      >
-                        서버 위험 판정 정보를 불러오는 중입니다...
-                      </div>
-                    )}
                     {riskQuery.isError && (
                       <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
                         <span>서버 위험 판정 정보를 불러오지 못했습니다.</span>
@@ -372,14 +374,14 @@ export function InventoryDetailDrawer({
                       </div>
                     )}
                     {riskQuery.data && <RiskExplanationPanel data={riskQuery.data} />}
+                    <InventoryLotsSection
+                      selectedSalesPoint={selectedOverviewSalesPoint}
+                      selectedSalesPointCode={effectiveOverviewSalesPointCode}
+                      lotsQuery={lotsQuery}
+                      onNavigateToOverview={() => onTabChange?.('OVERVIEW')}
+                    />
                   </>
                 )}
-                <InventoryLotsSection
-                  selectedSalesPoint={selectedOverviewSalesPoint}
-                  selectedSalesPointCode={effectiveOverviewSalesPointCode}
-                  lotsQuery={lotsQuery}
-                  onNavigateToOverview={() => onTabChange?.('OVERVIEW')}
-                />
               </div>
             </div>
           )}
@@ -414,7 +416,7 @@ export function InventoryDetailDrawer({
                         <button
                           key={sp.salesPointCode}
                           type="button"
-                          onClick={() => setForecastSalesPointCode(isSelected ? '__ALL__' : sp.salesPointCode)}
+                          onClick={() => setForecastSalesPointCode(sp.salesPointCode)}
                           className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-all border shrink-0 ${
                             isSelected
                               ? 'border-[var(--primary)] bg-[#F0FDF4] text-[#1E8251] shadow-2xs ring-1 ring-[var(--primary)]/30'
@@ -448,15 +450,11 @@ export function InventoryDetailDrawer({
                     </p>
                   </div>
 
-                  {forecastQuery.data?.modelVersion && (
+                  {forecastQuery.data?.confidenceLevel && (
                     <div className="text-[11px] text-slate-400">
-                      모델:{' '}
-                      <span className="font-mono font-medium text-slate-600">{forecastQuery.data.modelVersion}</span>
-                      {forecastQuery.data.confidenceLevel && (
-                        <span className="ml-2 rounded-sm bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
-                          신뢰도 {forecastQuery.data.confidenceLevel}
-                        </span>
-                      )}
+                      <span className="rounded-sm bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
+                        신뢰도 {forecastQuery.data.confidenceLevel}
+                      </span>
                     </div>
                   )}
                 </div>

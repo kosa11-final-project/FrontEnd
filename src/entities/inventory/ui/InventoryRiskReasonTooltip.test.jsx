@@ -38,6 +38,29 @@ describe('InventoryRiskReasonTooltip', () => {
     });
   });
 
+  it('explains sellable stock after excluding stopped or expired lots', () => {
+    expect(
+      parseInventoryRiskReason(
+        '[ASSESSED/v1.4.0/OPTIMAL_STOCK] 적정 재고 및 유효기한 유지 상태 | 산식: 판매가능재고=on_hand_qty(100)-판매제외LOT(40)=60, D+7예상잔고=max(0, 판매가능재고-예측D7)=50, 판매 제외 LOT=40, 소비기한/LOT 규칙을 함께 적용했습니다.',
+      ),
+    ).toMatchObject({
+      ruleVersion: 'v1.4.0',
+      primaryReason: '적정 재고 및 유효기한 유지 상태',
+      calculationEvidence:
+        '판매 가능 재고: 60개 (전체 가용 100개 중 판매 제외 40개), 7일 후 예상 잔고: 50개, 판매 제외 LOT: 40개, 소비기한과 로트 규칙도 함께 적용했습니다.',
+    });
+  });
+
+  it('shows legacy sale-stop arrival wording as imminent', () => {
+    expect(
+      parseInventoryRiskReason(
+        '[ASSESSED/v1.3.0/LOT_SALE_STOPPED] 판매중지일 도래 LOT 존재 (LOT-SKU002569-02)',
+      ),
+    ).toMatchObject({
+      primaryReason: '판매중지일 임박 LOT 존재 (LOT-SKU002569-02)',
+    });
+  });
+
   it('shows the DB-persisted reason and formula from an accessible trigger', async () => {
     const user = userEvent.setup();
 

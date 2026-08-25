@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -8,6 +8,7 @@ import {
   RESULT_STATE,
 } from '@/entities/inventory';
 import {
+  DEFAULT_INVENTORY_FILTERS,
   applyFilterChanges,
   parseInventoryFilters,
   serializeInventoryFilters,
@@ -19,55 +20,51 @@ import { InventorySummaryBar } from '@/widgets/inventory-summary';
 import { InventoryTable } from '@/widgets/inventory-table';
 import { InventoryDetailDrawer } from '@/widgets/inventory-detail-drawer';
 import { StrategyRequestModal } from '@/widgets/strategy-request-modal';
-import { Badge, StatusDot } from '@/shared/ui';
 
-const DB_STATUS_META = Object.freeze({
-  error: {
-    badgeClass: 'border-rose-200 bg-rose-50 text-xs font-semibold text-rose-700',
-    dotClass: 'bg-rose-500',
-    dotTone: 'danger',
-    label: 'DB 연결 확인 필요',
-  },
-  loading: {
-    badgeClass: 'border-gray-200 bg-gray-50 text-xs font-semibold text-gray-600',
-    dotClass: 'animate-pulse bg-gray-400',
-    dotTone: 'ready',
-    label: 'DB 확인 중...',
-  },
-  fetching: {
-    badgeClass: 'border-blue-200 bg-blue-50 text-xs font-semibold text-blue-700',
-    dotClass: 'animate-pulse bg-blue-500',
-    dotTone: 'ready',
-    label: '업데이트 중...',
-  },
-  ready: {
-    badgeClass: 'border-[#B7ECCF] bg-[#DAF7E9] text-xs font-semibold text-[#1E8251]',
-    dotClass: 'bg-[#27B06E]',
-    dotTone: 'good',
-    label: '현재 DB 기준',
-  },
-});
+const FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY = Object.freeze([
+  'q',
+  'filterOperator',
+  'channelType',
+  'salesPointCode',
+  'warehouseCode',
+  'regionCode',
+  'categoryId',
+  'categoryIds',
+  'storageType',
+  'riskGrade',
+  'assessmentStatus',
+  'shortageYn',
+]);
 
-function InventoryDbStatusBadge({ isError, isLoading, isFetching }) {
-  const status = isError ? 'error' : isLoading ? 'loading' : isFetching ? 'fetching' : 'ready';
-  const meta = DB_STATUS_META[status];
-
-  return (
-    <Badge className={meta.badgeClass} role="status" aria-live={status === 'fetching' ? 'polite' : undefined}>
-      <StatusDot tone={meta.dotTone} className={meta.dotClass} />
-      {meta.label}
-    </Badge>
-  );
-}
+const hasPersistedFilterQuery = (searchParams) =>
+  FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY.some((key) => searchParams.has(key));
 
 export default function InventoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [shouldResetFilterQueryOnEntry] = useState(() => hasPersistedFilterQuery(searchParams));
   const [selectedSkuItems, setSelectedSkuItems] = useState([]);
   const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
   const selectedSkuCodes = useMemo(() => selectedSkuItems.map((item) => item.skuCode), [selectedSkuItems]);
 
+  // 페이지에 다시 진입하거나 새로고침하면 이전 필터 query를 제거하고 기본 조건으로 시작합니다.
+  // 상세 드로어·페이지 크기·정렬 같은 화면 문맥은 유지하되, 검색/선택 필터만 초기화합니다.
+  useEffect(() => {
+    if (!shouldResetFilterQueryOnEntry) return;
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY.forEach((key) => nextSearchParams.delete(key));
+
+    if (nextSearchParams.toString() !== searchParams.toString()) {
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, shouldResetFilterQueryOnEntry]);
+
   // 1. URL searchParams로부터 필터 상태 파싱 (SSOT)
-  const filters = useMemo(() => parseInventoryFilters(searchParams), [searchParams]);
+  const isResettingFilterQuery = shouldResetFilterQueryOnEntry && hasPersistedFilterQuery(searchParams);
+  const filters = useMemo(
+    () => (isResettingFilterQuery ? DEFAULT_INVENTORY_FILTERS : parseInventoryFilters(searchParams)),
+    [isResettingFilterQuery, searchParams],
+  );
   const queryParams = useMemo(() => toInventoryQueryParams(filters), [filters]);
 
   // 2. TanStack Query로 목록 데이터 조회
@@ -75,7 +72,7 @@ export default function InventoryPage() {
     data: listData,
     isLoading: isListLoading,
     isError: isListError,
-    isFetching: isListFetching,
+    error: listError,
     refetch: refetchList,
   } = useQuery(inventoryListQueryOptions(queryParams));
 
@@ -84,6 +81,7 @@ export default function InventoryPage() {
     data: summaryData,
     isLoading: isSummaryLoading,
     isError: isSummaryError,
+    error: summaryError,
     refetch: refetchSummary,
   } = useQuery(inventorySummaryQueryOptions(queryParams));
 
@@ -94,6 +92,16 @@ export default function InventoryPage() {
     isError: isFilterOptionsError,
     refetch: refetchFilterOptions,
   } = useQuery(inventoryFilterOptionsQueryOptions());
+
+  // 필터 적용으로 전체 페이지 수가 줄어 현재 URL page가 범위를 벗어나면
+  // 빈 목록을 그대로 보여주지 않고 마지막 유효 페이지로 보정합니다.
+  useEffect(() => {
+    const totalPages = listData?.totalPages;
+    if (!Number.isInteger(totalPages) || totalPages < 1 || filters.page <= totalPages) return;
+
+    const boundedPage = Math.min(filters.page, totalPages);
+    setSearchParams(serializeInventoryFilters({ ...filters, page: boundedPage }), { replace: true });
+  }, [filters, listData?.totalPages, setSearchParams]);
 
   // 필터 변경 핸들러 -> URL SearchParams 업데이트 (URL이 필터 상태의 단일 원천입니다.)
   const handleFilterChange = useCallback(
@@ -230,27 +238,15 @@ export default function InventoryPage() {
   }, [selectedSkuItems.length]);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* 상단: 프리미엄 대시보드 헤더 */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">통합 재고 관제</h1>
-            <InventoryDbStatusBadge isError={isListError} isLoading={isListLoading} isFetching={isListFetching} />
-          </div>
-          <p className="text-xs font-medium text-gray-500">
-            통합 판매채널과 물류센터에 적재된 현재 재고 현황과 위험도를 관제합니다.
-          </p>
-        </div>
-
-        <InventorySyncControl />
-      </div>
+    <div className="inventory-page flex flex-col gap-4">
+      <InventorySyncControl />
 
       {/* 1. 상단 KPI 요약 카드 바 */}
       <InventorySummaryBar
         summary={summaryData}
         isLoading={isSummaryLoading}
         isError={isSummaryError}
+        error={summaryError}
         onRetry={refetchSummary}
       />
 
@@ -281,8 +277,10 @@ export default function InventoryPage() {
       <InventoryTable
         items={listData?.items || []}
         totalCount={listData?.totalCount || 0}
-        page={listData?.page || filters.page}
-        size={listData?.size || filters.size}
+        // URL 필터가 단일 원천이므로 keepPreviousData 중에도 페이지네이션은
+        // 새 필터의 page/size를 즉시 반영합니다.
+        page={filters.page}
+        size={filters.size}
         sort={filters.sort}
         totalPages={listData?.totalPages || 1}
         selectedItem={selectedItem}
@@ -294,6 +292,7 @@ export default function InventoryPage() {
         resultState={listData?.resultState || RESULT_STATE.HAS_DATA}
         isLoading={isListLoading}
         isError={isListError}
+        error={listError}
         onRetry={refetchList}
         onPageChange={handlePageChange}
         onSizeChange={handleSizeChange}
@@ -308,6 +307,8 @@ export default function InventoryPage() {
 
       {/* 4. 우측 상세 관제 드로어 */}
       <InventoryDetailDrawer
+        // 닫힘/재오픈 또는 SKU 전환은 새 상세 세션으로 취급해 내부 판매처 선택을 초기화합니다.
+        key={isDrawerOpen ? filters.detailSkuCode : 'closed'}
         item={selectedItem}
         open={isDrawerOpen}
         activeTab={filters.detailTab}

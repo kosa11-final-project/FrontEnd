@@ -1,4 +1,4 @@
-import { Building, ChevronRight, Shop, ShoppingCart, Store } from 'reicon-react';
+import { Building, Shop, ShoppingCart, Store } from 'reicon-react';
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory';
 import { getAssessmentStatusLabel } from '@/entities/risk';
@@ -74,9 +74,19 @@ export function InventoryTableDesktop({
   return (
     <div className="hidden lg:block overflow-x-auto">
       <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
+        <colgroup>
+          <col className="w-[4%]" />
+          <col className="w-[28%]" />
+          <col className="w-[20%]" />
+          <col className="w-[8%]" />
+          <col className="w-[11%]" />
+          <col className="w-[12%]" />
+          <col className="w-[9%]" />
+          <col className="w-[8%]" />
+        </colgroup>
         <thead className="border-b border-[var(--border)] bg-[#F8F9FA] text-[11px] font-bold tracking-wider text-gray-500 uppercase">
           <tr>
-            <th scope="col" className="w-11 min-w-[44px] px-3 py-3.5 text-center">
+            <th scope="col" className="min-w-[52px] py-3.5 pl-3 pr-2 text-left">
               <input
                 type="checkbox"
                 checked={isAllSelected}
@@ -93,19 +103,16 @@ export function InventoryTableDesktop({
                 className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
               />
             </th>
-            <th scope="col" className="w-[26%] min-w-[240px] px-4 py-3.5">
+            <th scope="col" className="min-w-[240px] px-4 py-3.5">
               SKU 및 상품 정보
             </th>
-            <th scope="col" className="w-[18%] min-w-[180px] px-4 py-3.5">
+            <th scope="col" className="min-w-[180px] px-4 py-3.5">
               판매처
             </th>
-            <th scope="col" className="w-[8%] min-w-[80px] px-3 py-3.5 text-right">
-              미할당 재고
-            </th>
-            <th scope="col" className="w-[7%] min-w-[75px] px-3 py-3.5">
+            <th scope="col" className="min-w-[75px] px-3 py-3.5">
               보관유형
             </th>
-            <th scope="col" className="w-[8%] min-w-[80px] px-4 py-3.5 text-right">
+            <th scope="col" className="min-w-[80px] px-4 py-3.5 text-right">
               <div className="flex justify-end">
                 <SortHeaderButton
                   label="현재고"
@@ -116,7 +123,7 @@ export function InventoryTableDesktop({
                 />
               </div>
             </th>
-            <th scope="col" className="w-[9%] min-w-[90px] px-4 py-3.5 text-right">
+            <th scope="col" className="min-w-[90px] px-4 py-3.5 text-right">
               <div className="flex justify-end">
                 <SortHeaderButton
                   label="가용수량"
@@ -127,10 +134,10 @@ export function InventoryTableDesktop({
                 />
               </div>
             </th>
-            <th scope="col" className="w-[10%] min-w-[100px] px-4 py-3.5 text-center">
+            <th scope="col" className="min-w-[100px] px-4 py-3.5 text-center">
               <div className="flex justify-center">
                 <SortHeaderButton
-                  label="종합 위험도"
+                  label="최고 위험도"
                   field="riskGrade"
                   currentSort={sort}
                   onSortChange={onSortChange}
@@ -138,7 +145,7 @@ export function InventoryTableDesktop({
                 />
               </div>
             </th>
-            <th scope="col" className="w-[8%] min-w-[80px] px-4 py-3.5 text-center">
+            <th scope="col" className="min-w-[80px] px-4 py-3.5 text-center">
               <div className="flex justify-center">
                 <SortHeaderButton
                   label="소비기한"
@@ -149,7 +156,6 @@ export function InventoryTableDesktop({
                 />
               </div>
             </th>
-            <th scope="col" className="w-10 min-w-[40px] px-2 py-3.5 text-center"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-[#F3F4F6]">
@@ -168,11 +174,10 @@ export function InventoryTableDesktop({
             const categoryPathLabel = item.categoryPathLabel || categoryLeafName;
             const ownerSalesPointCount = item.ownerSalesPointCount ?? salesPoints.length;
             const unassignedInventory = item.unassignedInventory || {};
-            const hasUnassignedInventory =
-              unassignedInventory.hasStock ||
-              unassignedInventory.currentQuantity != null ||
-              unassignedInventory.availableQuantity != null ||
-              unassignedInventory.reservedQuantity != null;
+            const hasSafetyShortage =
+              item.shortageYn === 'Y' ||
+              unassignedInventory.shortageYn === 'Y' ||
+              salesPoints.some((point) => point.shortageYn === 'Y');
 
             return (
               <tr
@@ -195,7 +200,7 @@ export function InventoryTableDesktop({
               >
                 {/* 0. 체크박스 (최대 5개 다중 선택) */}
                 <td
-                  className="w-11 min-w-[44px] px-3 py-4 text-center"
+                  className="min-w-[52px] py-4 pl-3 pr-2 text-left align-middle"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
@@ -321,18 +326,7 @@ export function InventoryTableDesktop({
                   </div>
                 </td>
 
-                {/* 3. 미할당 재고 */}
-                <td className="px-4 py-4 text-right">
-                  {hasUnassignedInventory && unassignedInventory.currentQuantity != null ? (
-                    <span className="font-semibold text-gray-800 tabular-nums">
-                      {formatQuantity(unassignedInventory.currentQuantity)}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-gray-400">-</span>
-                  )}
-                </td>
-
-                {/* 4. 보관유형 */}
+                {/* 3. 보관유형 */}
                 <td className="px-3 py-4">
                   <span
                     className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${storageBadgeClass}`}
@@ -341,14 +335,14 @@ export function InventoryTableDesktop({
                   </span>
                 </td>
 
-                {/* 5. 총 현재고 */}
+                {/* 4. 총 현재고 */}
                 <td className="px-4 py-4 text-right">
                   <span className="font-semibold text-gray-800 tabular-nums">
                     {formatQuantity(item.currentQuantity)}
                   </span>
                 </td>
 
-                {/* 6. 가용수량 */}
+                {/* 5. 가용수량 */}
                 <td className="px-4 py-4 text-right">
                   <div className="flex flex-col items-end">
                     <span className="text-base font-bold text-[color:var(--primary)] tabular-nums">
@@ -360,7 +354,7 @@ export function InventoryTableDesktop({
                   </div>
                 </td>
 
-                {/* 7. 종합 위험도 */}
+                {/* 6. 최고 위험도 */}
                 <td className="px-4 py-4 text-center">
                   <div className="flex flex-col items-center gap-1">
                     <InventoryStatusBadge status={item.riskGrade} />
@@ -384,6 +378,9 @@ export function InventoryTableDesktop({
                         {item.inventoryFactLabel || '재고 상태 확인 필요'}
                       </span>
                     )}
+                    {hasSafetyShortage && (
+                      <span className="text-[10px] font-medium text-amber-700">안전재고 미달 상품 포함</span>
+                    )}
                   </div>
                 </td>
 
@@ -404,19 +401,6 @@ export function InventoryTableDesktop({
                   ) : (
                     <span className="text-xs text-gray-400">-</span>
                   )}
-                </td>
-
-                {/* 8. 상세 드로어 열기 버튼 */}
-                <td className="px-3 py-4 text-center">
-                  <span
-                    className={`flex size-7 items-center justify-center rounded-lg transition-all ${
-                      isSelected
-                        ? 'bg-[var(--primary)] text-white shadow-xs'
-                        : 'text-gray-400 group-hover:bg-gray-100 group-hover:text-gray-700'
-                    }`}
-                  >
-                    <ChevronRight size={16} />
-                  </span>
                 </td>
               </tr>
             );

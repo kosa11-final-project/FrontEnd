@@ -29,6 +29,10 @@ export function InventoryTableMobile({
           unassignedInventory.currentQuantity != null ||
           unassignedInventory.availableQuantity != null ||
           unassignedInventory.reservedQuantity != null;
+        const hasSafetyShortage =
+          item.shortageYn === 'Y' ||
+          unassignedInventory.shortageYn === 'Y' ||
+          salesPoints.some((point) => point.shortageYn === 'Y');
         const storageBadgeClass = STORAGE_BADGE_STYLES[item.storageType] || 'bg-gray-100 text-gray-700';
 
         return (
@@ -108,6 +112,9 @@ export function InventoryTableMobile({
               </div>
               <div className="shrink-0 flex flex-col items-end gap-1">
                 <InventoryStatusBadge status={item.riskGrade} />
+                {hasSafetyShortage ? (
+                  <span className="text-[10px] font-medium text-amber-700">안전재고 미달 상품 포함</span>
+                ) : null}
                 {item.assessmentStatus && item.assessmentStatus !== 'ASSESSED' && (
                   <span className="text-[10px] font-medium text-gray-500">
                     {getAssessmentStatusLabel(item.assessmentStatus)}

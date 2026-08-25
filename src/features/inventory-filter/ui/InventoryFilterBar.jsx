@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { SearchNormal, Refresh, Filter, CloseCircle } from 'reicon-react';
 import { INVENTORY_CHANNEL_TYPES } from '../model/filterState.js';
-import { CHANNEL_NAMES, STORAGE_NAMES, REGION_NAMES } from '@/entities/inventory';
-import { getAssessmentStatusLabel, getRiskGradeLabel } from '@/entities/risk';
+import { CHANNEL_NAMES, STORAGE_NAMES } from '@/entities/inventory';
+import { getRiskGradeLabel } from '@/entities/risk';
 import { InventoryFilterModal } from './InventoryFilterModal.jsx';
 
 export function InventoryFilterBar({
@@ -81,31 +81,39 @@ export function InventoryFilterBar({
       ? [filters.riskGrade]
       : [];
 
-  const selectedAssessmentStatuses = Array.isArray(filters.assessmentStatus)
-    ? filters.assessmentStatus
-    : filters.assessmentStatus
-      ? [filters.assessmentStatus]
-      : [];
+  const selectedCategoryIds = useMemo(
+    () => (Array.isArray(filters.categoryIds) ? filters.categoryIds : filters.categoryId ? [filters.categoryId] : []),
+    [filters.categoryIds, filters.categoryId],
+  );
 
-  const selectedWarehouse = Array.isArray(filters.warehouseCode)
-    ? filters.warehouseCode[0] || ''
-    : filters.warehouseCode || '';
+  const selectedWarehouses = useMemo(
+    () =>
+      Array.isArray(filters.warehouseCode)
+        ? filters.warehouseCode.filter(Boolean)
+        : filters.warehouseCode
+          ? [filters.warehouseCode]
+          : [],
+    [filters.warehouseCode],
+  );
 
-  const selectedSalesPoint = Array.isArray(filters.salesPointCode)
-    ? filters.salesPointCode[0] || ''
-    : filters.salesPointCode || '';
+  const selectedSalesPoints = useMemo(
+    () =>
+      Array.isArray(filters.salesPointCode)
+        ? filters.salesPointCode.filter(Boolean)
+        : filters.salesPointCode
+          ? [filters.salesPointCode]
+          : [],
+    [filters.salesPointCode],
+  );
 
-  const selectedRegion = Array.isArray(filters.regionCode) ? filters.regionCode[0] || '' : filters.regionCode || '';
-
-  // 상세 필터 활성 조건 개수 계산 (카테고리, 보관유형, 위험도, 판정상태, 물류센터, 판매처, 권역)
+  // 상세 필터 활성 조건 개수 계산 (카테고리, 보관유형, 위험도, 안전재고, 물류센터, 판매처)
   const detailFilterCount =
-    (filters.categoryId ? 1 : 0) +
+    selectedCategoryIds.length +
     selectedStorageTypes.length +
     selectedRiskGrades.length +
-    selectedAssessmentStatuses.length +
-    (selectedWarehouse ? 1 : 0) +
-    (selectedSalesPoint ? 1 : 0) +
-    (selectedRegion ? 1 : 0);
+    selectedWarehouses.length +
+    selectedSalesPoints.length +
+    (filters.shortageYn === 'Y' ? 1 : 0);
 
   // 검색창 엔터 즉시 제출
   const handleSearchSubmit = (e) => {
@@ -129,7 +137,6 @@ export function InventoryFilterBar({
   const categories = filterOptions?.categories;
   const warehouses = filterOptions?.warehouses;
   const salesPoints = filterOptions?.salesPoints;
-  const regions = filterOptions?.regions;
 
   // 전체 초기화
   const handleReset = () => {
@@ -139,53 +146,49 @@ export function InventoryFilterBar({
   };
 
   // 카테고리명 역조회
-  const activeCategoryLabel = useMemo(() => {
-    if (!filters.categoryId || !categories?.length) return '';
-    const target = categories.find((c) => String(c.code) === String(filters.categoryId));
-    if (!target) return `카테고리 (${filters.categoryId})`;
+  const activeCategoryLabels = useMemo(() => {
+    if (!selectedCategoryIds.length) return [];
 
-    // 부모를 추적하여 경로 생성
-    const path = [target.name];
-    let curr = target;
-    const visited = new Set([String(target.code)]);
-    while (curr?.parentCode) {
-      const parentCode = String(curr.parentCode);
-      if (visited.has(parentCode)) break;
+    return selectedCategoryIds.map((categoryId) => {
+      const target = categories?.find((c) => String(c.code) === String(categoryId));
+      if (!target) return { id: categoryId, label: `카테고리 (${categoryId})` };
 
-      const parent = categories.find((c) => String(c.code) === parentCode);
-      if (parent) {
+      const path = [target.name];
+      let curr = target;
+      const visited = new Set([String(target.code)]);
+      while (curr?.parentCode) {
+        const parentCode = String(curr.parentCode);
+        if (visited.has(parentCode)) break;
+
+        const parent = categories.find((c) => String(c.code) === parentCode);
+        if (!parent) break;
         path.unshift(parent.name);
         visited.add(parentCode);
         curr = parent;
-      } else {
-        break;
       }
-    }
-    return path.join(' › ');
-  }, [filters.categoryId, categories]);
+      return { id: categoryId, label: path.join(' › ') };
+    });
+  }, [selectedCategoryIds, categories]);
 
   // 물류센터명 조회
-  const activeWarehouseName = useMemo(() => {
-    if (!selectedWarehouse || !warehouses?.length) return selectedWarehouse || '';
-    const target = warehouses.find((w) => (w.code || w.warehouseCode) === selectedWarehouse);
-    return target?.name || target?.warehouseName || selectedWarehouse;
-  }, [selectedWarehouse, warehouses]);
+  const activeWarehouseNames = useMemo(
+    () =>
+      selectedWarehouses.map((code) => {
+        const target = warehouses?.find((w) => (w.code || w.warehouseCode) === code);
+        return target?.name || target?.warehouseName || code;
+      }),
+    [selectedWarehouses, warehouses],
+  );
 
   // 판매처명 조회
-  const activeSalesPointName = useMemo(() => {
-    if (!selectedSalesPoint || !salesPoints?.length) return selectedSalesPoint || '';
-    const target = salesPoints.find((sp) => (sp.code || sp.salesPointCode) === selectedSalesPoint);
-    return target?.name || target?.salesPointName || selectedSalesPoint;
-  }, [selectedSalesPoint, salesPoints]);
-
-  // 권역명 조회
-  const activeRegionName = useMemo(() => {
-    if (!selectedRegion) return '';
-    if (REGION_NAMES[selectedRegion]) return REGION_NAMES[selectedRegion];
-    if (!regions?.length) return selectedRegion;
-    const target = regions.find((r) => (r.code || r.regionCode) === selectedRegion);
-    return target?.name || target?.regionName || selectedRegion;
-  }, [selectedRegion, regions]);
+  const activeSalesPointNames = useMemo(
+    () =>
+      selectedSalesPoints.map((code) => {
+        const target = salesPoints?.find((sp) => (sp.code || sp.salesPointCode) === code);
+        return target?.name || target?.salesPointName || code;
+      }),
+    [selectedSalesPoints, salesPoints],
+  );
 
   // 어떤 조건이라도 활성화되었는지 여부
   const hasAnyActiveFilter = Boolean(filters.q) || selectedChannels.length > 0 || detailFilterCount > 0;
@@ -256,7 +259,7 @@ export function InventoryFilterBar({
             })}
           </div>
 
-          {/* 검색·채널·상세 필터 그룹의 결합 방식 */}
+          {/* 검색·채널·상세 필터 조건의 결합 방식 */}
           <div
             className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-1"
             role="group"
@@ -270,7 +273,7 @@ export function InventoryFilterBar({
                   type="button"
                   aria-label={`${operator} 조건으로 필터링`}
                   aria-pressed={isSelected}
-                  title={operator === 'AND' ? '모든 필터 그룹 만족' : '필터 그룹 중 하나 이상 만족'}
+                  title={operator === 'AND' ? '선택한 조건을 모두 만족' : '선택한 조건 중 하나 이상 만족'}
                   onClick={() => onFilterChange({ filterOperator: operator })}
                   className={`rounded-md px-2.5 py-1.5 text-[11px] font-black transition-colors ${
                     isSelected
@@ -303,15 +306,16 @@ export function InventoryFilterBar({
             )}
           </button>
 
-          {/* 전체 초기화 버튼 */}
+          {/* 필터 초기화 버튼 */}
           <button
             type="button"
             onClick={handleReset}
-            title="모든 필터 초기화"
+            title="필터 초기화"
+            aria-label="필터 초기화"
             className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors"
           >
             <Refresh size={14} />
-            <span>초기화</span>
+            <span>필터 초기화</span>
           </button>
         </div>
       </div>
@@ -359,21 +363,27 @@ export function InventoryFilterBar({
             </span>
           ))}
 
-          {/* 3. 카테고리 칩 */}
-          {activeCategoryLabel && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-900">
+          {/* 3. 카테고리 칩들 */}
+          {activeCategoryLabels.map(({ id, label }) => (
+            <span
+              key={id}
+              className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-900"
+            >
               <span className="text-emerald-700 font-bold">카테고리:</span>
-              <span>{activeCategoryLabel}</span>
+              <span>{label}</span>
               <button
                 type="button"
-                onClick={() => onFilterChange({ categoryId: '' })}
+                onClick={() => {
+                  const nextCategoryIds = selectedCategoryIds.filter((categoryId) => categoryId !== id);
+                  onFilterChange({ categoryId: nextCategoryIds[0] || '', categoryIds: nextCategoryIds });
+                }}
                 className="text-emerald-600 hover:text-emerald-900"
-                aria-label="카테고리 필터 해제"
+                aria-label={`${label} 카테고리 필터 해제`}
               >
                 <CloseCircle size={13} />
               </button>
             </span>
-          )}
+          ))}
 
           {/* 4. 보관유형 칩들 */}
           {selectedStorageTypes.map((type) => (
@@ -413,85 +423,67 @@ export function InventoryFilterBar({
             </span>
           ))}
 
-          {/* 6. 판정 상태 칩들 */}
-          {selectedAssessmentStatuses.map((status) => (
+          {/* 6. 안전재고 미달 상품이 포함된 SKU 칩 */}
+          {filters.shortageYn === 'Y' && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-900">
+              <span className="text-amber-700 font-bold">재고:</span>
+              <span>안전재고 미달 포함</span>
+              <button
+                type="button"
+                onClick={() => onFilterChange({ shortageYn: '' })}
+                className="text-amber-600 hover:text-amber-900"
+                aria-label="안전재고 미달 포함 필터 해제"
+              >
+                <CloseCircle size={13} />
+              </button>
+            </span>
+          )}
+
+          {/* 7. 물류센터 칩들 */}
+          {activeWarehouseNames.map((name, index) => (
             <span
-              key={status}
-              className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 font-medium text-purple-900"
+              key={`warehouse-${selectedWarehouses[index]}`}
+              className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-800"
             >
-              <span className="text-purple-700 font-bold">판정:</span>
-              <span>{getAssessmentStatusLabel(status)}</span>
+              <span className="text-gray-500 font-bold">센터:</span>
+              <span>{name}</span>
               <button
                 type="button"
                 onClick={() =>
                   onFilterChange({
-                    assessmentStatus: selectedAssessmentStatuses.filter((s) => s !== status),
+                    warehouseCode: selectedWarehouses.filter((_, selectedIndex) => selectedIndex !== index),
                   })
                 }
-                className="text-purple-600 hover:text-purple-900"
-                aria-label={`${getAssessmentStatusLabel(status)} 판정 필터 해제`}
+                className="text-gray-400 hover:text-gray-700"
+                aria-label={`${name} 물류센터 필터 해제`}
               >
                 <CloseCircle size={13} />
               </button>
             </span>
           ))}
 
-          {/* 7. 물류센터 칩 */}
-          {activeWarehouseName && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-800">
-              <span className="text-gray-500 font-bold">센터:</span>
-              <span>{activeWarehouseName}</span>
-              <button
-                type="button"
-                onClick={() => onFilterChange({ warehouseCode: [] })}
-                className="text-gray-400 hover:text-gray-700"
-                aria-label="물류센터 필터 해제"
-              >
-                <CloseCircle size={13} />
-              </button>
-            </span>
-          )}
-
-          {/* 8. 판매처 칩 */}
-          {activeSalesPointName && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-800">
+          {/* 8. 판매처 칩들 */}
+          {activeSalesPointNames.map((name, index) => (
+            <span
+              key={`sales-point-${selectedSalesPoints[index]}`}
+              className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-800"
+            >
               <span className="text-gray-500 font-bold">판매처:</span>
-              <span>{activeSalesPointName}</span>
+              <span>{name}</span>
               <button
                 type="button"
-                onClick={() => onFilterChange({ salesPointCode: [] })}
+                onClick={() =>
+                  onFilterChange({
+                    salesPointCode: selectedSalesPoints.filter((_, selectedIndex) => selectedIndex !== index),
+                  })
+                }
                 className="text-gray-400 hover:text-gray-700"
-                aria-label="판매처 필터 해제"
+                aria-label={`${name} 판매처 필터 해제`}
               >
                 <CloseCircle size={13} />
               </button>
             </span>
-          )}
-
-          {/* 9. 권역 칩 */}
-          {activeRegionName && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-800">
-              <span className="text-gray-500 font-bold">권역:</span>
-              <span>{activeRegionName}</span>
-              <button
-                type="button"
-                onClick={() => onFilterChange({ regionCode: [] })}
-                className="text-gray-400 hover:text-gray-700"
-                aria-label="권역 필터 해제"
-              >
-                <CloseCircle size={13} />
-              </button>
-            </span>
-          )}
-
-          {/* 1-Click 조건 전체 초기화 텍스트 버튼 */}
-          <button
-            type="button"
-            onClick={handleReset}
-            className="ml-auto text-[11px] font-semibold text-gray-400 hover:text-rose-600 transition-colors"
-          >
-            모든 조건 지우기
-          </button>
+          ))}
         </div>
       )}
 

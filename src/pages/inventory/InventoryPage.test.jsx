@@ -95,6 +95,7 @@ describe('InventoryPage Integration', () => {
         (candidate) =>
           candidate.sku_code === skuCode &&
           (candidate.sales_point_code === salesPointCode ||
+            (salesPointCode === 'UNASSIGNED' && candidate.locations?.length > 0) ||
             candidate.sales_points?.some((sp) => sp.sales_point_code === salesPointCode)),
       );
       if (!item) {
@@ -107,6 +108,7 @@ describe('InventoryPage Integration', () => {
         (candidate) =>
           candidate.sku_code === skuCode &&
           (candidate.sales_point_code === salesPointCode ||
+            (salesPointCode === 'UNASSIGNED' && candidate.locations?.length > 0) ||
             candidate.sales_points?.some((sp) => sp.sales_point_code === salesPointCode)),
       );
       if (!item) {
@@ -155,34 +157,41 @@ describe('InventoryPage Integration', () => {
     });
   });
 
-  it('renders page header, summary KPI cards, filter bar and inventory table', async () => {
+  it('renders inventory sync card, summary KPI cards, filter bar and inventory table', async () => {
     renderWithProviders(<InventoryPage />);
 
-    expect(screen.getByText('통합 재고 관제')).toBeInTheDocument();
-    expect(await screen.findByText('현재 DB 기준')).toBeInTheDocument();
+    expect(document.querySelector('.inventory-page')).toHaveClass('gap-4');
+    expect(screen.queryByText('통합 재고 관제')).not.toBeInTheDocument();
     expect(await screen.findByRole('button', { name: '재고 동기화' })).toBeEnabled();
-    expect(screen.getByText('원천 4종을 정제해 통합재고에 반영합니다.')).toBeInTheDocument();
+    const syncCard = screen.getByRole('region', { name: '재고 동기화' });
+    expect(syncCard).toHaveTextContent('통합 재고 동기화');
+    expect(syncCard).toHaveTextContent(
+      '그리팅, 이커머스(모두의 맛집), 백화점, 직영점의 재고가 통합재고로 동기화됩니다.',
+    );
+    expect(screen.getAllByRole('button', { name: '재고 동기화' })).toHaveLength(1);
 
     // 상단 KPI 카드 비동기 렌더링 확인
     expect(await screen.findByText(/총 현재고/)).toBeInTheDocument();
     expect(await screen.findByText(/총 가용수량/)).toBeInTheDocument();
-    expect(await screen.findByText(/안전재고 미달/)).toBeInTheDocument();
+    expect(await screen.findByText('안전재고 미달 SKU')).toBeInTheDocument();
+    expect(screen.queryByText('개 SKU')).not.toBeInTheDocument();
 
     // 필터바 컨트롤 확인
     expect(screen.getByPlaceholderText(/상품명, SKU 코드, 판매처명/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /검색/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /초기화/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '필터 초기화' })).toBeInTheDocument();
 
     // 목록의 주 식별자는 상품명이 아니라 SKU 규격입니다.
     expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('does not claim current DB data when the inventory request failed', async () => {
+  it('does not render the removed DB status badge when the inventory request fails', async () => {
     inventoryApiMock.getInventories.mockRejectedValueOnce(new Error('database unavailable'));
 
     renderWithProviders(<InventoryPage />);
 
-    expect(await screen.findByText('DB 연결 확인 필요')).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: '재고 동기화' })).toBeInTheDocument();
+    expect(screen.queryByText('DB 연결 확인 필요')).not.toBeInTheDocument();
     expect(screen.queryByText('현재 DB 기준')).not.toBeInTheDocument();
   });
 
@@ -205,29 +214,80 @@ describe('InventoryPage Integration', () => {
     expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('forwards the OR operator and overall risk filter to both list and summary requests', async () => {
+  it('clears persisted filter query parameters when the inventory page opens', async () => {
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: [
+        '/inventory?q=비비고&filterOperator=OR&storageType=FROZEN&riskGrade=DANGER&categoryId=12&shortageYn=Y',
+      ],
+    });
+
+    await vi.waitFor(() => {
+      const latestListParams = inventoryApiMock.getInventories.mock.calls.at(-1)?.[0];
+      const latestSummaryParams = inventoryApiMock.getInventorySummary.mock.calls.at(-1)?.[0];
+
+      expect(latestListParams).not.toHaveProperty('q');
+      expect(latestListParams).not.toHaveProperty('filterOperator');
+      expect(latestListParams).not.toHaveProperty('storageType');
+      expect(latestListParams).not.toHaveProperty('riskGrade');
+      expect(latestListParams).not.toHaveProperty('categoryId');
+      expect(latestListParams).not.toHaveProperty('shortageYn');
+      expect(latestSummaryParams).not.toHaveProperty('q');
+      expect(latestSummaryParams).not.toHaveProperty('filterOperator');
+      expect(latestSummaryParams).not.toHaveProperty('storageType');
+      expect(latestSummaryParams).not.toHaveProperty('riskGrade');
+      expect(latestSummaryParams).not.toHaveProperty('categoryId');
+      expect(latestSummaryParams).not.toHaveProperty('shortageYn');
+    });
+
+    expect(screen.getByPlaceholderText(/상품명, SKU 코드, 판매처명/)).toHaveValue('');
+  });
+
+  it('does not restore a persisted OR operator or detailed filters on page entry', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: ['/inventory?filterOperator=OR&storageType=FROZEN&riskGrade=DANGER'],
     });
 
     await vi.waitFor(() => {
-      expect(inventoryApiMock.getInventories).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filterOperator: 'OR',
-          storageType: ['FROZEN'],
-          riskGrade: ['DANGER'],
-        }),
-        expect.anything(),
-      );
-      expect(inventoryApiMock.getInventorySummary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filterOperator: 'OR',
-          storageType: ['FROZEN'],
-          riskGrade: ['DANGER'],
-        }),
-        expect.anything(),
-      );
+      const listParams = inventoryApiMock.getInventories.mock.calls.at(-1)?.[0];
+      const summaryParams = inventoryApiMock.getInventorySummary.mock.calls.at(-1)?.[0];
+      expect(listParams).not.toHaveProperty('filterOperator');
+      expect(listParams).not.toHaveProperty('storageType');
+      expect(listParams).not.toHaveProperty('riskGrade');
+      expect(summaryParams).not.toHaveProperty('filterOperator');
+      expect(summaryParams).not.toHaveProperty('storageType');
+      expect(summaryParams).not.toHaveProperty('riskGrade');
     });
+  });
+
+  it('moves back to page one when the filtered result no longer contains the current page', async () => {
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: ['/inventory?page=4'],
+    });
+
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: '1', current: 'page' })).toBeInTheDocument());
+  });
+
+  it('does not let removed legacy URL filters affect list or summary requests', async () => {
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: ['/inventory?filterOperator=OR&storageType=FROZEN&regionCode=GYEONGGI&assessmentStatus=ASSESSED'],
+    });
+
+    await vi.waitFor(() => {
+      expect(inventoryApiMock.getInventories).toHaveBeenCalled();
+      expect(inventoryApiMock.getInventorySummary).toHaveBeenCalled();
+    });
+
+    const listParams = inventoryApiMock.getInventories.mock.calls.at(-1)[0];
+    const summaryParams = inventoryApiMock.getInventorySummary.mock.calls.at(-1)[0];
+
+    expect(listParams).not.toHaveProperty('filterOperator');
+    expect(listParams).not.toHaveProperty('storageType');
+    expect(summaryParams).not.toHaveProperty('filterOperator');
+    expect(summaryParams).not.toHaveProperty('storageType');
+    expect(listParams).not.toHaveProperty('regionCode');
+    expect(listParams).not.toHaveProperty('assessmentStatus');
+    expect(summaryParams).not.toHaveProperty('regionCode');
+    expect(summaryParams).not.toHaveProperty('assessmentStatus');
   });
 
   it('opens the AI strategy request popup for selected products', async () => {
@@ -275,9 +335,11 @@ describe('InventoryPage Integration', () => {
   });
 
   it('renders filter empty state when no items match search query', async () => {
-    renderWithProviders(<InventoryPage />, {
-      initialEntries: ['/inventory?q=존재하지않는상품검색어xyz'],
-    });
+    renderWithProviders(<InventoryPage />);
+
+    const searchInput = await screen.findByPlaceholderText(/상품명, SKU 코드, 판매처명/);
+    fireEvent.change(searchInput, { target: { value: '존재하지않는상품검색어xyz' } });
+    fireEvent.click(screen.getByRole('button', { name: /검색/i }));
 
     expect(await screen.findByText('일치하는 재고가 없습니다')).toBeInTheDocument();
   });
@@ -305,6 +367,33 @@ describe('InventoryPage Integration', () => {
     expect(screen.queryByText('판정 실패')).not.toBeInTheDocument();
   });
 
+  it('shows a stable overview skeleton while switching to an uncached sales point', async () => {
+    const initialDetailImplementation = inventoryApiMock.getInventoryDetail.getMockImplementation();
+    let releaseDetail;
+    const pendingDetail = new Promise((resolve) => {
+      releaseDetail = resolve;
+    });
+    inventoryApiMock.getInventoryDetail.mockImplementation((skuCode, salesPointCode, signal) => {
+      if (salesPointCode === 'GREETING_ONLINE') return pendingDetail;
+      return initialDetailImplementation(skuCode, salesPointCode, signal);
+    });
+
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: [
+        '/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=STORE_THE_HYUNDAI_SEOUL&detailTab=OVERVIEW',
+      ],
+    });
+
+    expect(await screen.findByText('총 3개 LOT')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('상세 판매처 선택'), { target: { value: 'GREETING_ONLINE' } });
+
+    expect(
+      await screen.findByRole('status', { name: '선택한 판매처의 재고 상세 정보를 불러오는 중' }),
+    ).toBeInTheDocument();
+
+    releaseDetail?.(initialDetailImplementation('SKU_MANDU_001_105', 'GREETING_ONLINE'));
+  });
+
   it('opens detail drawer directly from URL query state', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: [
@@ -314,6 +403,36 @@ describe('InventoryPage Integration', () => {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect((await screen.findAllByText(/FEFO 1순위/)).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('resets the forecast sales point after closing and reopening the detail drawer', async () => {
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: [
+        '/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=STORE_THE_HYUNDAI_SEOUL&detailTab=FORECAST',
+      ],
+    });
+
+    expect(await screen.findByText(/수요예측 & 예상 잔고 추이/)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /신촌점/ }));
+    await vi.waitFor(() => expect(screen.getByLabelText('상세 판매처 선택')).toHaveValue('STORE_SINCHON'));
+
+    fireEvent.click(screen.getByRole('button', { name: '상세 드로어 닫기' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click((await screen.findAllByRole('button', { name: /재고 상세 보기/ }))[0]);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await vi.waitFor(() => expect(screen.getByLabelText('상세 판매처 선택')).toHaveValue('GREETING_ONLINE'));
+  });
+
+  it('loads the server risk assessment for unassigned inventory', async () => {
+    renderWithProviders(<InventoryPage />, {
+      initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=UNASSIGNED&detailTab=OVERVIEW'],
+    });
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByText('서버 위험 판정 결과')).toBeInTheDocument();
+    expect(riskApiMock.getInventoryRisk).toHaveBeenCalledWith('SKU_MANDU_001_105', 'UNASSIGNED', expect.anything());
+    expect(screen.getAllByText('주의').length).toBeGreaterThan(0);
   });
 
   it('loads LOTs for a selected seller even when the desktop drawer starts on the overview tab', async () => {
@@ -334,14 +453,18 @@ describe('InventoryPage Integration', () => {
     );
   });
 
-  it('defaults to the top sales point or shows all-summary when __ALL__ is specified', async () => {
+  it('keeps a sales point selected when a legacy __ALL__ value is present', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=__ALL__'],
     });
 
-    expect(await screen.findByText('판매처를 먼저 선택해 주세요')).toBeInTheDocument();
-    expect(screen.getByText('판매처 선택하기')).toBeInTheDocument();
-    expect(inventoryApiMock.getInventoryLots).not.toHaveBeenCalled();
+    expect(await screen.findByText('총 3개 LOT')).toBeInTheDocument();
+    expect(screen.queryByText('판매처를 먼저 선택해 주세요')).not.toBeInTheDocument();
+    expect(inventoryApiMock.getInventoryLots).toHaveBeenCalledWith(
+      'SKU_MANDU_001_105',
+      'GREETING_ONLINE',
+      expect.anything(),
+    );
   });
 
   it('automatically defaults to the top sales point when opening detail drawer without sales point parameter', async () => {
@@ -358,14 +481,18 @@ describe('InventoryPage Integration', () => {
     );
   });
 
-  it('does not request forecasts when __ALL__ summary is chosen', async () => {
+  it('defaults the forecast tab to a sales point when a legacy __ALL__ value is present', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: ['/inventory?detailSkuCode=SKU_MANDU_001_105&detailSalesPointCode=__ALL__&detailTab=FORECAST'],
     });
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(await screen.findByText(/수요예측을 조회할 판매처를 먼저 선택해 주세요/)).toBeInTheDocument();
-    expect(forecastApiMock.getDemandForecast).not.toHaveBeenCalled();
+    expect(await screen.findByText(/수요예측 & 예상 잔고 추이/)).toBeInTheDocument();
+    expect(forecastApiMock.getDemandForecast).toHaveBeenCalledWith(
+      'SKU_MANDU_001_105',
+      'GREETING_ONLINE',
+      expect.anything(),
+    );
   });
 
   it('shows forecast without requesting or rendering risk assessment in the forecast tab', async () => {
@@ -377,6 +504,8 @@ describe('InventoryPage Integration', () => {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(await screen.findByText(/수요예측 & 예상 잔고 추이/)).toBeInTheDocument();
+    expect(await screen.findByText('신뢰도 LOW')).toBeInTheDocument();
+    expect(screen.queryByText('모델:')).not.toBeInTheDocument();
     expect(screen.queryByText('판정 실패')).not.toBeInTheDocument();
     expect(screen.queryByText('위험 판정')).not.toBeInTheDocument();
     expect(riskApiMock.getInventoryRisk).not.toHaveBeenCalled();

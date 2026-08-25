@@ -24,6 +24,7 @@ export function InventoryTable({
   resultState = RESULT_STATE.HAS_DATA,
   isLoading = false,
   isError = false,
+  error,
   onRetry,
   onPageChange,
   onSizeChange,
@@ -68,7 +69,11 @@ export function InventoryTable({
         <StateView
           state="error"
           title="재고 데이터를 불러오지 못했습니다"
-          description="서버와의 통신 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요."
+          description={
+            error?.code === 'REQUEST_TIMEOUT'
+              ? '재고 조회 시간이 초과되었습니다. 조건을 줄이거나 잠시 후 다시 시도해 주세요.'
+              : '서버와의 통신 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+          }
           actionLabel="다시 조회"
           onAction={onRetry || (() => onPageChange?.(page))}
         />
@@ -131,7 +136,13 @@ export function InventoryTable({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button type="button" size="sm" disabled={selectedSkuCodes.length === 0} onClick={onGenerateStrategy}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={selectedSkuCodes.length === 0}
+            onClick={onGenerateStrategy}
+            className="disabled:opacity-100 disabled:bg-[var(--primary-soft)] disabled:text-[color:var(--text-muted)]"
+          >
             <Icon icon={DocumentText} size={15} aria-hidden="true" /> AI 전략 생성
           </Button>
         </div>

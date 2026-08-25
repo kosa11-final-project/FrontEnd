@@ -153,7 +153,6 @@ export function InventoryDetailHeader({
           onChange={(event) => onSelectSalesPoint?.(event.target.value)}
           className="sr-only"
         >
-          <option value="">전체 판매처 요약</option>
           {allSalesPoints.map((point) => (
             <option key={point.salesPointCode} value={point.salesPointCode}>
               {point.salesPointName} ({point.salesPointCode})
