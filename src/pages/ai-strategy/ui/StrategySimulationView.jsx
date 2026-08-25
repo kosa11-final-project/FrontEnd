@@ -1,3 +1,4 @@
+import { useMutation } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -14,7 +15,10 @@ import {
 } from 'recharts';
 import { ArrowLeft, ChartBar, Check, DocumentText, Refresh, Send } from 'reicon-react';
 import {
+  adjustAiStrategySimulation,
+  applyAdjustedSimulationResult,
   buildAdjustedStrategyOption,
+  buildStrategyAdjustmentPayload,
   buildStrategyChartData,
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
@@ -30,7 +34,6 @@ import {
   DetailLayout,
   Icon,
   Input,
-  Select,
   Table,
   TableElement,
   Tabs,
@@ -142,7 +145,7 @@ function StrategySwitcher({ strategyCase, options, activeOptionKey, finalOptionK
   );
 }
 
-function EditableRange({ label, value, displayValue, min = 0, max = 100, onChange }) {
+function EditableRange({ label, value, displayValue, min = 0, max = 100, step = 1, onChange }) {
   const numericValue = Math.min(Math.max(Number(value) || 0, min), max);
   const progress = max === min ? 0 : ((numericValue - min) / (max - min)) * 100;
 
@@ -156,6 +159,7 @@ function EditableRange({ label, value, displayValue, min = 0, max = 100, onChang
         type="range"
         min={min}
         max={max}
+        step={step}
         value={numericValue}
         onChange={(event) => onChange(Number(event.target.value))}
         aria-label={label}
@@ -166,47 +170,16 @@ function EditableRange({ label, value, displayValue, min = 0, max = 100, onChang
   );
 }
 
-function getLocationOptions(strategyCase, action) {
-  const locations = new Map();
-  const addLocation = (location) => {
-    if (location?.locationId === null || location?.locationId === undefined) return;
-    locations.set(String(location.locationId), location);
-  };
-
-  addLocation(action.targetLocation);
-  strategyCase.requestConditions.candidateSalesPointIds?.forEach((locationId, index) => {
-    addLocation({
-      locationType: 'SALES_POINT',
-      locationId,
-      locationCode: `SP-${String(locationId).padStart(4, '0')}`,
-      locationName: strategyCase.requestConditions.candidateSalesPointNames?.[index] ?? `판매처 ${locationId}`,
-    });
-  });
-
-  return [...locations.values()];
-}
-
-function CurrencyInput({ label, ariaLabel, value, onChange }) {
+function ReadOnlyCondition({ label, children }) {
   return (
-    <label className="grid min-w-0 gap-2 text-sm font-semibold text-[color:var(--text-body)]">
-      {label}
-      <span className="relative min-w-0">
-        <Input
-          type="number"
-          min="0"
-          step="1000"
-          value={value}
-          onChange={(event) => onChange(Number(event.target.value))}
-          aria-label={ariaLabel}
-          className="min-w-0 pr-9 text-right font-semibold tabular-nums"
-        />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[color:var(--text-muted)]">원</span>
-      </span>
-    </label>
+    <dl className="grid min-w-0 gap-1 rounded-lg bg-[var(--surface-subtle)] p-3 text-xs">
+      <dt className="text-[color:var(--text-muted)]">{label}</dt>
+      <dd className="break-words font-semibold text-[color:var(--text-heading)]">{children}</dd>
+    </dl>
   );
 }
 
-function DateRangeFields({ actionOrder, values, onChange }) {
+function DateRangeFields({ actionOrder, values, minimumDate, maximumDate, onChange }) {
   return (
     <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
       <label className="grid min-w-0 gap-2 text-xs font-semibold text-[color:var(--text-body)]">
@@ -214,6 +187,7 @@ function DateRangeFields({ actionOrder, values, onChange }) {
         <Input
           type="date"
           value={values.startDate}
+          min={minimumDate || undefined}
           max={values.endDate || undefined}
           onChange={(event) => onChange(actionOrder, 'startDate', event.target.value)}
           aria-label={`액션 ${actionOrder} 시작일`}
@@ -226,6 +200,7 @@ function DateRangeFields({ actionOrder, values, onChange }) {
           type="date"
           value={values.endDate}
           min={values.startDate || undefined}
+          max={maximumDate || undefined}
           onChange={(event) => onChange(actionOrder, 'endDate', event.target.value)}
           aria-label={`액션 ${actionOrder} 종료일`}
           className="min-w-0"
@@ -235,9 +210,8 @@ function DateRangeFields({ actionOrder, values, onChange }) {
   );
 }
 
-function ActionConditionSection({ strategyCase, action, values, maxQuantity, onChange }) {
+function ActionConditionSection({ strategyCase, action, values, maxQuantity, maxDiscountPercent, onChange }) {
   const meta = resolveStrategyActionType(action.actionType);
-  const locationOptions = getLocationOptions(strategyCase, action);
   const isLocationAction = action.actionType === 'REALLOCATION' || action.actionType === 'RT_TRANSFER';
   const isChannelAction = action.actionType === 'CHANNEL_EXPANSION' || action.actionType === 'CHANNEL_CONCENTRATION';
   const isDiscountAction = action.actionType === 'PRICE_DISCOUNT';
@@ -276,33 +250,13 @@ function ActionConditionSection({ strategyCase, action, values, maxQuantity, onC
       {(isLocationAction || isChannelAction) && (
         <div className="grid min-w-0 gap-3">
           {isLocationAction && (
-            <dl className="grid min-w-0 gap-1 rounded-lg bg-[var(--surface-subtle)] p-3 text-xs">
-              <dt className="text-[color:var(--text-muted)]">출발 위치</dt>
-              <dd className="break-words font-semibold text-[color:var(--text-heading)]">
-                {values.sourceLocation?.locationName ?? '서버 자동 선택'}
-              </dd>
-            </dl>
+            <ReadOnlyCondition label="출발 위치">
+              {values.sourceLocation?.locationName ?? '서버 자동 선택'}
+            </ReadOnlyCondition>
           )}
-          <label className="grid min-w-0 gap-2 text-sm font-semibold text-[color:var(--text-body)]">
-            {targetLabel}
-            <Select
-              value={String(values.targetLocation?.locationId ?? '')}
-              onChange={(event) => {
-                const nextLocation = locationOptions.find(
-                  (location) => String(location.locationId) === event.target.value,
-                );
-                onChange(action.actionOrder, 'targetLocation', nextLocation ?? values.targetLocation);
-              }}
-              aria-label={`액션 ${action.actionOrder} ${targetLabel}`}
-              className="min-w-0"
-            >
-              {locationOptions.map((location) => (
-                <option key={location.locationId} value={location.locationId}>
-                  {location.locationName}
-                </option>
-              ))}
-            </Select>
-          </label>
+          <ReadOnlyCondition label={targetLabel}>
+            {values.targetLocation?.locationName ?? '서버 자동 선택'}
+          </ReadOnlyCondition>
         </div>
       )}
 
@@ -311,28 +265,28 @@ function ActionConditionSection({ strategyCase, action, values, maxQuantity, onC
           <EditableRange
             label="할인율"
             value={values.discountPercent}
-            max={50}
+            min={5}
+            max={maxDiscountPercent}
+            step={5}
             displayValue={`${formatNumber(values.discountPercent, { maximumFractionDigits: 0 })}%`}
             onChange={(value) => onChange(action.actionOrder, 'discountPercent', value)}
           />
-          <CurrencyInput
-            label="전략 판매가"
-            ariaLabel={`액션 ${action.actionOrder} 전략 판매가`}
-            value={values.strategyPrice}
-            onChange={(value) => onChange(action.actionOrder, 'strategyPrice', value)}
-          />
+          <ReadOnlyCondition label="전략 판매가">{formatCurrency(values.strategyPrice)}</ReadOnlyCondition>
         </>
       )}
 
-      <DateRangeFields actionOrder={action.actionOrder} values={values} onChange={onChange} />
+      <DateRangeFields
+        actionOrder={action.actionOrder}
+        values={values}
+        minimumDate={strategyCase.requestConditions.forecastStartDate}
+        maximumDate={strategyCase.requestConditions.forecastEndDate}
+        onChange={onChange}
+      />
 
       {!isDiscountAction && (
-        <CurrencyInput
-          label={isChannelAction ? '채널 운영 비용' : '이동·실행 비용'}
-          ariaLabel={`액션 ${action.actionOrder} 실행 비용`}
-          value={values.actionCost}
-          onChange={(value) => onChange(action.actionOrder, 'actionCost', value)}
-        />
+        <ReadOnlyCondition label={isChannelAction ? '채널 운영 비용' : '이동·실행 비용'}>
+          {formatCurrency(values.actionCost)}
+        </ReadOnlyCondition>
       )}
 
       {action.lotAllocations?.length ? (
@@ -347,7 +301,23 @@ function ActionConditionSection({ strategyCase, action, values, maxQuantity, onC
   );
 }
 
-function ConditionPanel({ strategyCase, option, values, defaults, maxQuantity, saved, onChange, onReset, onSave }) {
+function ConditionPanel({
+  strategyCase,
+  option,
+  values,
+  defaults,
+  appliedValues,
+  maxQuantity,
+  maxDiscountPercent,
+  applied,
+  applying,
+  error,
+  onChange,
+  onReset,
+  onApply,
+}) {
+  const recommendationUnchanged = areAdjustmentValuesEqual(values, defaults);
+  const unappliedChanges = !areAdjustmentValuesEqual(values, appliedValues ?? defaults);
   return (
     <Card padding="none" className="min-w-0 overflow-clip" data-testid="strategy-condition-panel">
       <div className="border-b border-[var(--border)] p-5">
@@ -356,14 +326,23 @@ function ConditionPanel({ strategyCase, option, values, defaults, maxQuantity, s
             <h2 className="text-lg font-bold text-[color:var(--text-heading)]">조건 조정</h2>
             <p className="mt-1 break-words text-xs leading-5 text-[color:var(--text-muted)]">{option.optionName}</p>
           </div>
-          <Badge variant={saved ? 'good' : 'info'}>{saved ? '조정안 저장됨' : '데모 미리보기'}</Badge>
+          <Badge variant={applied ? 'good' : recommendationUnchanged ? 'neutral' : 'info'}>
+            {applied ? '서버 계산 완료' : recommendationUnchanged ? 'AI 추천 조건' : '예상 미리보기'}
+          </Badge>
         </div>
       </div>
 
       <div className="grid min-w-0 gap-5 p-5">
-        <Alert variant="info" title="조건 조정 미리보기">
-          값을 바꾸면 차트와 예상 결과가 즉시 갱신됩니다. 현재 계산은 화면 시연용입니다.
+        <Alert variant="info" title="조건 조정">
+          입력값은 차트와 예상 결과에 즉시 반영됩니다. 조건 적용을 누르면 서버가 생성 당시 계산 기준으로 정확한 결과를
+          다시 계산합니다.
         </Alert>
+
+        {error ? (
+          <Alert variant="danger" title="조정 시뮬레이션을 실행하지 못했습니다.">
+            {error.message}
+          </Alert>
+        ) : null}
 
         <div className="grid min-w-0 gap-4">
           {option.actions.map((action) => (
@@ -373,26 +352,22 @@ function ConditionPanel({ strategyCase, option, values, defaults, maxQuantity, s
               action={action}
               values={values.actions[action.actionOrder]}
               maxQuantity={maxQuantity}
+              maxDiscountPercent={maxDiscountPercent}
               onChange={onChange}
             />
           ))}
         </div>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onReset}
-            disabled={areAdjustmentValuesEqual(values, defaults)}
-          >
+          <Button type="button" variant="secondary" onClick={onReset} disabled={recommendationUnchanged}>
             <Icon icon={Refresh} size={15} /> 추천값 복원
           </Button>
-          <Button type="button" variant="secondary" onClick={onSave}>
-            <Icon icon={DocumentText} size={15} /> 조정안 저장
+          <Button type="button" variant="secondary" onClick={onApply} disabled={!unappliedChanges || applying}>
+            <Icon icon={DocumentText} size={15} /> {applying ? '계산 중...' : '조건 적용'}
           </Button>
         </div>
         <p className="-mt-3 text-center text-xs text-[color:var(--text-muted)]">
-          서버 API 연결 전까지 이 화면에서만 유지됩니다.
+          원본 AI 추천 결과는 변경되지 않습니다.
         </p>
       </div>
     </Card>
@@ -402,6 +377,7 @@ function ConditionPanel({ strategyCase, option, values, defaults, maxQuantity, s
 function StrategyChart({ strategyCase, options, activeOption }) {
   const [chartTab, setChartTab] = useState('inventory');
   const chartData = useMemo(() => buildStrategyChartData({ ...strategyCase, options }), [options, strategyCase]);
+  const periodDays = activeOption.simulationDailySeries?.length ?? 0;
   const financialData = useMemo(
     () => [
       {
@@ -423,7 +399,9 @@ function StrategyChart({ strategyCase, options, activeOption }) {
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[color:var(--text-heading)]">시뮬레이션 차트</h2>
-          <p className="mt-1 text-xs text-[color:var(--text-muted)]">{activeOption.optionName} · 8일 예상 변화</p>
+          <p className="mt-1 text-xs text-[color:var(--text-muted)]">
+            {activeOption.optionName} · {formatNumber(periodDays)}일 예상 변화
+          </p>
         </div>
         <Tabs value={chartTab} onValueChange={setChartTab}>
           {({ value, setValue }) => (
@@ -489,9 +467,6 @@ function StrategyChart({ strategyCase, options, activeOption }) {
           )}
         </ResponsiveContainer>
       </div>
-      <p className="mt-3 text-xs text-[color:var(--text-muted)]">
-        차트의 일별 값은 상세 Response에 시계열 계약이 추가되기 전까지 디자인 검증용 목업입니다.
-      </p>
     </Card>
   );
 }
@@ -523,7 +498,9 @@ function SimulationResultTable({ strategyCase, option }) {
           <tbody className="divide-y divide-[var(--border)] text-sm">
             {rows.map((row) => {
               const favorable =
-                row.key === 'expectedRemainingQty' || row.key === 'expectedSellThroughDays'
+                row.key === 'expectedRemainingQty' ||
+                row.key === 'expectedSellThroughDays' ||
+                row.key === 'expectedDisposalQty'
                   ? row.change < 0
                   : row.key === 'movementCost'
                     ? false
@@ -595,34 +572,68 @@ function ActionTimeline({ option }) {
   );
 }
 
+function resolveMaximumDiscountPercent(option) {
+  const serverLimit = option.adjustmentPolicy?.maximumDiscountRate;
+  if (Number.isFinite(serverLimit)) return serverLimit * 100;
+
+  const discountAction = option.actions.find((action) => action.actionType === 'PRICE_DISCOUNT');
+  const locationCode = discountAction?.targetLocation?.locationCode ?? discountAction?.sourceLocation?.locationCode;
+  return locationCode?.startsWith('DEPT_') ? 20 : 30;
+}
+
 export function StrategySimulationView({ strategyCase, activeOption, listPath, onActiveOptionChange }) {
   const options = useMemo(() => sortStrategyOptions(strategyCase.options), [strategyCase.options]);
   const [finalOptionKey, setFinalOptionKey] = useState(null);
   const adjustmentDefaultsByOption = useMemo(
     () =>
       Object.fromEntries(
-        options.map((option) => [option.optionKey, { values: getStrategyAdjustmentDefaults(option), saved: false }]),
+        options.map((option) => [
+          option.optionKey,
+          { values: getStrategyAdjustmentDefaults(option), applied: false, appliedValues: null },
+        ]),
       ),
     [options],
   );
   const [adjustmentStateByOption, setAdjustmentStateByOption] = useState(() => adjustmentDefaultsByOption);
+  const [simulatedOptionsByKey, setSimulatedOptionsByKey] = useState({});
+  const [adjustmentErrorsByOption, setAdjustmentErrorsByOption] = useState({});
+  const simulationMutation = useMutation({
+    mutationFn: ({ optionKey, payload }) => adjustAiStrategySimulation(strategyCase.strategyCaseId, optionKey, payload),
+  });
   const comparePath = `/ai-strategy/${strategyCase.strategyCaseId}`;
-  const maxQuantity = strategyCase.baselineSimulation.dailySeries[0]?.expectedRemainingQty ?? 100;
   const adjustmentDefaults = adjustmentDefaultsByOption[activeOption.optionKey];
   const adjustmentState = adjustmentStateByOption[activeOption.optionKey] ?? adjustmentDefaults;
   const adjustment = adjustmentState.values;
-  const adjustmentSaved = adjustmentState.saved;
-
-  const adjustedOption = useMemo(
-    () => buildAdjustedStrategyOption(strategyCase, activeOption, adjustment),
-    [activeOption, adjustment, strategyCase],
+  const authoritativeOption = simulatedOptionsByKey[activeOption.optionKey] ?? activeOption;
+  const hasUnappliedChanges = !areAdjustmentValuesEqual(
+    adjustment,
+    adjustmentState.appliedValues ?? adjustmentDefaults.values,
+  );
+  const displayedActiveOption = useMemo(
+    () =>
+      hasUnappliedChanges
+        ? buildAdjustedStrategyOption(strategyCase, authoritativeOption, adjustment)
+        : authoritativeOption,
+    [adjustment, authoritativeOption, hasUnappliedChanges, strategyCase],
   );
   const displayedOptions = useMemo(
-    () => options.map((option) => (option.optionKey === activeOption.optionKey ? adjustedOption : option)),
-    [activeOption.optionKey, adjustedOption, options],
+    () =>
+      options.map((option) =>
+        option.optionKey === activeOption.optionKey
+          ? displayedActiveOption
+          : (simulatedOptionsByKey[option.optionKey] ?? option),
+      ),
+    [activeOption.optionKey, displayedActiveOption, options, simulatedOptionsByKey],
   );
+  const maxQuantity =
+    Number(displayedActiveOption.maxExecutableQty) ||
+    strategyCase.baselineSimulation.dailySeries[0]?.expectedRemainingQty ||
+    100;
+  const maxDiscountPercent = resolveMaximumDiscountPercent(displayedActiveOption);
+  const activeMutation = simulationMutation.variables?.optionKey === activeOption.optionKey;
 
   function handleConditionChange(actionOrder, field, value) {
+    setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: null }));
     setAdjustmentStateByOption((current) => {
       const optionState = current[activeOption.optionKey] ?? adjustmentDefaults;
       const actionValues = optionState.values.actions[actionOrder];
@@ -640,17 +651,60 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
         };
       }
 
+      let nextActions = { ...optionState.values.actions, [actionOrder]: nextActionValues };
+      if (field === 'quantity' || field === 'startDate' || field === 'endDate') {
+        nextActions = Object.fromEntries(
+          Object.entries(nextActions).map(([order, values]) => [
+            order,
+            Object.hasOwn(values, field) ? { ...values, [field]: value } : values,
+          ]),
+        );
+      }
+
       return {
         ...current,
         [activeOption.optionKey]: {
+          ...optionState,
           values: {
             ...optionState.values,
-            actions: { ...optionState.values.actions, [actionOrder]: nextActionValues },
+            actions: nextActions,
           },
-          saved: false,
+          applied: false,
         },
       };
     });
+  }
+
+  async function handleApplyAdjustment() {
+    try {
+      const payload = buildStrategyAdjustmentPayload(activeOption, adjustment);
+      const result = await simulationMutation.mutateAsync({ optionKey: activeOption.optionKey, payload });
+      const adjustedOption = applyAdjustedSimulationResult(activeOption, result);
+      const adjustedValues = getStrategyAdjustmentDefaults(adjustedOption);
+
+      setSimulatedOptionsByKey((current) => ({ ...current, [activeOption.optionKey]: adjustedOption }));
+      setAdjustmentStateByOption((current) => ({
+        ...current,
+        [activeOption.optionKey]: { values: adjustedValues, applied: true, appliedValues: adjustedValues },
+      }));
+      setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: null }));
+    } catch (error) {
+      setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: error }));
+    }
+  }
+
+  function handleResetAdjustment() {
+    setAdjustmentStateByOption((current) => ({
+      ...current,
+      [activeOption.optionKey]: adjustmentDefaults,
+    }));
+    setSimulatedOptionsByKey((current) => {
+      const next = { ...current };
+      delete next[activeOption.optionKey];
+      return next;
+    });
+    simulationMutation.reset();
+    setAdjustmentErrorsByOption((current) => ({ ...current, [activeOption.optionKey]: null }));
   }
 
   return (
@@ -675,24 +729,18 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
         asideContent={
           <ConditionPanel
             strategyCase={strategyCase}
-            option={adjustedOption}
+            option={displayedActiveOption}
             values={adjustment}
             defaults={adjustmentDefaults.values}
+            appliedValues={adjustmentState.appliedValues}
             maxQuantity={maxQuantity}
-            saved={adjustmentSaved}
+            maxDiscountPercent={maxDiscountPercent}
+            applied={adjustmentState.applied}
+            applying={activeMutation && simulationMutation.isPending}
+            error={adjustmentErrorsByOption[activeOption.optionKey]}
             onChange={handleConditionChange}
-            onReset={() =>
-              setAdjustmentStateByOption((current) => ({
-                ...current,
-                [activeOption.optionKey]: adjustmentDefaults,
-              }))
-            }
-            onSave={() =>
-              setAdjustmentStateByOption((current) => ({
-                ...current,
-                [activeOption.optionKey]: { values: adjustment, saved: true },
-              }))
-            }
+            onReset={handleResetAdjustment}
+            onApply={handleApplyAdjustment}
           />
         }
       >
@@ -714,10 +762,14 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
             </div>
           </Card>
           <div className="w-full min-w-0 max-w-full rounded-[var(--radius-panel)]">
-            <StrategyChart strategyCase={strategyCase} options={displayedOptions} activeOption={adjustedOption} />
+            <StrategyChart
+              strategyCase={strategyCase}
+              options={displayedOptions}
+              activeOption={displayedActiveOption}
+            />
           </div>
-          <SimulationResultTable strategyCase={strategyCase} option={adjustedOption} />
-          <ActionTimeline option={adjustedOption} />
+          <SimulationResultTable strategyCase={strategyCase} option={displayedActiveOption} />
+          <ActionTimeline option={displayedActiveOption} />
         </div>
       </DetailLayout>
 

@@ -80,6 +80,34 @@ export function getStrategyAdjustmentDefaults(option) {
   return { actions };
 }
 
+export function buildStrategyAdjustmentPayload(option, adjustment) {
+  const defaults = getStrategyAdjustmentDefaults(option);
+  const actions = option?.actions ?? [];
+  const quantityAction = actions.find(
+    (action) => action.actionQuantity !== null && action.actionQuantity !== undefined,
+  );
+  const discountAction = actions.find((action) => action.actionType === 'PRICE_DISCOUNT');
+  const periodAction = quantityAction ?? actions[0];
+  const quantityOrder = quantityAction?.actionOrder;
+  const discountOrder = discountAction?.actionOrder;
+  const periodOrder = periodAction?.actionOrder;
+  const quantityValues = adjustment?.actions?.[quantityOrder] ?? defaults.actions[quantityOrder];
+  const discountValues = adjustment?.actions?.[discountOrder] ?? defaults.actions[discountOrder];
+  const periodValues = adjustment?.actions?.[periodOrder] ?? defaults.actions[periodOrder];
+  const actionQuantity = Number(quantityValues?.quantity);
+
+  if (!Number.isInteger(actionQuantity) || actionQuantity <= 0 || !periodValues?.startDate || !periodValues?.endDate) {
+    throw new Error('적용 수량과 전략 기간을 확인해 주세요.');
+  }
+
+  return {
+    actionQuantity,
+    discountRate: discountAction ? Number(discountValues?.discountPercent ?? 0) / 100 : null,
+    startDate: periodValues.startDate,
+    endDate: periodValues.endDate,
+  };
+}
+
 export function buildAdjustedStrategyOption(strategyCase, option, adjustment) {
   if (!strategyCase || !option) return option;
 
@@ -103,11 +131,13 @@ export function buildAdjustedStrategyOption(strategyCase, option, adjustment) {
   );
   const defaultDiscountPercent = discountAction?.defaults.discountPercent ?? 0;
   const discountPercent = clamp(discountAction?.values.discountPercent ?? 0, 0, 50);
+  const baseSales = option.simulationSummary.expectedSalesQty || 1;
+  const inferredUnitRevenue = (option.simulationSummary.expectedRevenue || 0) / baseSales;
   const defaultStrategyPrice =
     discountAction?.defaults.strategyPrice ??
     quantityAction?.action.strategyPrice ??
     option.actions[0]?.strategyPrice ??
-    0;
+    inferredUnitRevenue;
   const strategyPrice = Math.max(
     Number(discountAction?.values.strategyPrice ?? quantityAction?.action.strategyPrice ?? defaultStrategyPrice) || 0,
     0,
@@ -116,7 +146,6 @@ export function buildAdjustedStrategyOption(strategyCase, option, adjustment) {
     (sum, item) => sum + Math.max(Number(item.values.actionCost ?? item.action.estimatedActionCost) || 0, 0),
     0,
   );
-  const baseSales = option.simulationSummary.expectedSalesQty || 1;
   const baseQuantity = quantityAction?.defaults.quantity || 1;
   const baseDuration = getStrategyDuration(quantityActions, 'defaults');
   const adjustedDuration = getStrategyDuration(quantityActions, 'values');
@@ -142,8 +171,14 @@ export function buildAdjustedStrategyOption(strategyCase, option, adjustment) {
   const expectedSellThroughDays = expectedSalesQty >= quantity && quantity > 0 ? adjustedDuration : null;
   const salesRatio = expectedSalesQty / baseSales;
   const baseline = strategyCase.baselineSimulation?.summary ?? {};
-  const avoidedHoldingCost = Math.max(0, Math.round(option.simulationSummary.avoidedHoldingCost * salesRatio));
-  const avoidedDisposalCost = Math.max(0, Math.round(option.simulationSummary.avoidedDisposalCost * salesRatio));
+  const avoidedHoldingCost = Math.max(
+    0,
+    Math.round((Number(option.simulationSummary.avoidedHoldingCost) || 0) * salesRatio),
+  );
+  const avoidedDisposalCost = Math.max(
+    0,
+    Math.round((Number(option.simulationSummary.avoidedDisposalCost) || 0) * salesRatio),
+  );
 
   const simulationSummary = {
     ...option.simulationSummary,
@@ -288,28 +323,28 @@ export function getSimulationComparisonRows(strategyCase, option) {
       change: negateOrNull(comparison.reducedRemainingQty),
     },
     {
+      key: 'expectedDisposalQty',
+      label: '예상 폐기수량',
+      kind: 'quantity',
+      value: summary.expectedDisposalQty,
+      baselineValue: baseline.expectedDisposalQty,
+      change: negateOrNull(comparison.reducedDisposalQty),
+    },
+    {
       key: 'movementCost',
-      label: '예상 이동비',
+      label: '예상 실행비',
       kind: 'currency',
       value: summary.movementCost,
       baselineValue: 0,
       change: summary.movementCost,
     },
     {
-      key: 'avoidedHoldingCost',
-      label: '보관비 절감',
+      key: 'netEffect',
+      label: '기준 대비 순효과',
       kind: 'currency',
-      value: summary.avoidedHoldingCost,
+      value: summary.netEffect,
       baselineValue: 0,
-      change: summary.avoidedHoldingCost,
+      change: comparison.incrementalEconomicBenefit,
     },
-    {
-      key: 'avoidedDisposalCost',
-      label: '폐기비 절감',
-      kind: 'currency',
-      value: summary.avoidedDisposalCost,
-      baselineValue: 0,
-      change: summary.avoidedDisposalCost,
-    },
-  ];
+  ].filter((row) => row.value !== undefined);
 }

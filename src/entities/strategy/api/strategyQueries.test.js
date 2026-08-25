@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aiStrategyKeys, aiStrategyListQueryOptions } from './strategyQueries.js';
+import { aiStrategyDetailQueryOptions, aiStrategyKeys, aiStrategyListQueryOptions } from './strategyQueries.js';
 
 describe('AI strategy list query options', () => {
   it('includes the complete normalized search condition in the query key', () => {
@@ -35,5 +35,14 @@ describe('AI strategy list query options', () => {
     expect(options.retry(0, { status: 500 })).toBe(true);
     expect(options.retry(1, { status: 500 })).toBe(false);
     expect(options.retry(0, { status: 400 })).toBe(false);
+  });
+
+  it('uses a stable detail key and does not retry missing or expired results', () => {
+    const options = aiStrategyDetailQueryOptions(123);
+
+    expect(options.queryKey).toEqual(['ai-strategies', 'detail', '123']);
+    expect(options.retry(0, { status: 404 })).toBe(false);
+    expect(options.retry(0, { status: 410 })).toBe(false);
+    expect(options.retry(0, { status: 500 })).toBe(true);
   });
 });

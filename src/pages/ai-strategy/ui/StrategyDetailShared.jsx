@@ -55,7 +55,9 @@ export function StrategyCaseSummary({ strategyCase }) {
       <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
         <div>
           <dt className="text-[color:var(--text-muted)]">요청자</dt>
-          <dd className="mt-1 font-semibold text-[color:var(--text-heading)]">{strategyCase.requestedBy.userName}</dd>
+          <dd className="mt-1 font-semibold text-[color:var(--text-heading)]">
+            {strategyCase.requestedBy?.userName ?? '요청자 정보 없음'}
+          </dd>
         </div>
         <div>
           <dt className="text-[color:var(--text-muted)]">생성 요청</dt>

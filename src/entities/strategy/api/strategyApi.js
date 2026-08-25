@@ -1,4 +1,5 @@
 import { getJson, postJson } from '@/shared/api';
+import { mapAiStrategyDetailResponse } from '../model/strategyDetailMapper.js';
 import { mapAiStrategyListResponse } from '../model/strategyListMapper.js';
 
 const aiStrategyPath = 'v1/ai-strategies';
@@ -38,4 +39,26 @@ export async function createAiStrategyCase(payload, signal) {
   }
 
   return data;
+}
+
+export async function getAiStrategyCase(strategyCaseId, signal) {
+  const response = await getJson({
+    path: `${aiStrategyPath}/${strategyCaseId}`,
+    signal,
+  });
+
+  return mapAiStrategyDetailResponse(response);
+}
+
+export async function adjustAiStrategySimulation(strategyCaseId, candidateId, payload, signal) {
+  const response = await postJson({
+    path: `${aiStrategyPath}/${strategyCaseId}/candidates/${encodeURIComponent(candidateId)}/simulations`,
+    body: payload,
+    signal,
+  });
+
+  if (!response?.data?.adjustedConditions || !response?.data?.simulation) {
+    throw new Error('AI 전략 조정 시뮬레이션 결과를 확인할 수 없습니다.');
+  }
+  return response.data;
 }
