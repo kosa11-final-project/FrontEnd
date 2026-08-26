@@ -50,13 +50,15 @@ function renderWithProviders(ui, { initialEntries = ['/inventory'] } = {}) {
     },
   });
 
-  return render(
+  const renderResult = render(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>
       </TooltipProvider>
     </QueryClientProvider>,
   );
+
+  return { ...renderResult, queryClient };
 }
 
 describe('InventoryPage Integration', () => {
@@ -243,7 +245,8 @@ describe('InventoryPage Integration', () => {
   });
 
   it('opens the AI strategy request popup for selected products', async () => {
-    renderWithProviders(<InventoryPage />);
+    const { queryClient } = renderWithProviders(<InventoryPage />);
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
     const productCheckboxes = await screen.findAllByRole('checkbox', { name: /1\.05kg 단품팩 선택/ });
     fireEvent.click(productCheckboxes[0]);
@@ -297,7 +300,7 @@ describe('InventoryPage Integration', () => {
     expect(screen.getByText('요청 조건 입력 1/1')).toBeInTheDocument();
 
     const recommendAllCheckbox = screen.getByRole('checkbox', {
-      name: /출발 판매처 외 조건 전체를 AI에게 추천받기/,
+      name: /출발 판매처 외 조건을 AI에게 추천받기/,
     });
     const requestSummary = recommendAllCheckbox.closest('aside');
     expect(requestSummary).toHaveAccessibleName('생성 요청 요약');
@@ -329,6 +332,12 @@ describe('InventoryPage Integration', () => {
         preferredEndDate: null,
       }),
     );
+    await waitFor(() =>
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['ai-strategies', 'list'],
+        refetchType: 'all',
+      }),
+    );
     expect(screen.queryByRole('dialog', { name: 'AI 전략 생성' })).not.toBeInTheDocument();
   });
 
@@ -342,7 +351,7 @@ describe('InventoryPage Integration', () => {
     fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
       target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
     });
-    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건 전체를 AI에게 추천받기/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건을 AI에게 추천받기/ }));
     fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
 
     expect(await screen.findByText('AI 전략 생성 요청을 전송하지 못했습니다.')).toBeInTheDocument();
@@ -367,12 +376,15 @@ describe('InventoryPage Integration', () => {
     fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
       target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
     });
-    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건 전체를 AI에게 추천받기/ }));
+    const recommendAllCheckbox = screen.getByRole('checkbox', {
+      name: /출발 판매처 외 조건을 AI에게 추천받기/,
+    });
+    fireEvent.click(recommendAllCheckbox);
     fireEvent.click(screen.getByRole('button', { name: /현대명품 한우/ }));
+    expect(recommendAllCheckbox).toBeChecked();
     fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
       target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
     });
-    fireEvent.click(screen.getByRole('checkbox', { name: /출발 판매처 외 조건 전체를 AI에게 추천받기/ }));
     fireEvent.click(screen.getByRole('button', { name: /AI 전략 생성 요청/ }));
 
     expect(await screen.findByText('일부 AI 전략 생성 요청을 완료하지 못했습니다.')).toBeInTheDocument();

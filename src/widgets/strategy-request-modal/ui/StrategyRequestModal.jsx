@@ -290,6 +290,7 @@ function RequestSummary({
   draft,
   productCount,
   completedCount,
+  recommendAllSelectedProducts,
   isSubmitting,
   requestPreferenceError,
   onRecommendAllConditionsChange,
@@ -361,22 +362,22 @@ function RequestSummary({
           <label className="flex cursor-pointer items-start gap-3">
             <Checkbox
               size="lg"
-              checked={draft.recommendAllConditions}
+              checked={recommendAllSelectedProducts}
               onChange={(event) => onRecommendAllConditionsChange(event.target.checked)}
               aria-describedby={requestPreferenceError ? 'request-preference-error' : 'recommend-all-help'}
             />
             <span>
               <strong className="block text-sm text-[color:var(--text-heading)]">
-                출발 판매처 외 조건 전체를 AI에게 추천받기
+                출발 판매처 외 조건을 AI에게 추천받기
               </strong>
               <span id="recommend-all-help" className="mt-1 block text-xs leading-5 text-[color:var(--text-muted)]">
-                LOT·후보 판매처·전략 타입·기간을 AI가 판단합니다.
+                선택한 {productCount}개 상품의 LOT·후보 판매처·전략 타입·기간에 일괄 적용됩니다.
               </span>
             </span>
           </label>
-          {draft.recommendAllConditions ? (
+          {recommendAllSelectedProducts ? (
             <p className="mt-3 text-xs leading-5 text-[color:var(--primary)]">
-              출발 판매처는 유지하고 나머지 조건은 AI 추천을 사용합니다.
+              상품별 출발 판매처는 유지하고 나머지 조건은 모두 AI 추천을 사용합니다.
             </p>
           ) : null}
           {requestPreferenceError ? (
@@ -447,6 +448,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
   const isRequestReady = (requestDraft) =>
     hasStrategyRequestSource(requestDraft) && hasStrategyRequestPreference(requestDraft);
   const completedCount = selectedItems.filter((item) => isRequestReady(drafts[item.skuCode])).length;
+  const recommendAllSelectedProducts = selectedItems.every((item) => drafts[item.skuCode]?.recommendAllConditions);
   const selectedSourceCode = draft.sourceSalesPointCode;
   const lotsQuery = useQuery({
     ...inventoryLotsQueryOptions(activeItem.skuCode, selectedSourceCode),
@@ -483,19 +485,33 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
   };
 
   const handleRecommendAllConditions = (checked) => {
-    updateDraft({
-      recommendAllConditions: checked,
-      ...(checked
-        ? {
-            lotIds: [],
-            candidateSalesPointCodes: [],
-            candidateSalesPointIds: [],
-            strategyTypes: [],
-            preferredStartDate: '',
-            preferredEndDate: '',
-          }
-        : {}),
-    });
+    creationMutation.reset();
+    setSubmissionFailures([]);
+    setErrorsBySku({});
+    setDrafts((current) =>
+      Object.fromEntries(
+        selectedItems.map((item) => {
+          const currentDraft = current[item.skuCode] ?? createStrategyRequestDraft(item);
+          return [
+            item.skuCode,
+            {
+              ...currentDraft,
+              recommendAllConditions: checked,
+              ...(checked
+                ? {
+                    lotIds: [],
+                    candidateSalesPointCodes: [],
+                    candidateSalesPointIds: [],
+                    strategyTypes: [],
+                    preferredStartDate: '',
+                    preferredEndDate: '',
+                  }
+                : {}),
+            },
+          ];
+        }),
+      ),
+    );
   };
 
   const handleSubmit = () => {
@@ -835,6 +851,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
               draft={draft}
               productCount={selectedItems.length}
               completedCount={completedCount}
+              recommendAllSelectedProducts={recommendAllSelectedProducts}
               isSubmitting={creationMutation.isPending}
               requestPreferenceError={errors.requestPreference}
               onRecommendAllConditionsChange={handleRecommendAllConditions}
