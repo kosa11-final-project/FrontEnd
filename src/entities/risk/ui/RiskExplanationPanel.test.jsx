@@ -16,6 +16,7 @@ describe('RiskExplanationPanel', () => {
   it('renders the compact risk explanation panel with core reason and details', () => {
     const { container } = render(
       <RiskExplanationPanel
+        expectedDisposalQuantity={18}
         data={{
           assessmentStatus: 'ASSESSED',
           riskGrade: 'CAUTION',
@@ -44,6 +45,10 @@ describe('RiskExplanationPanel', () => {
     expect(screen.queryByText('규칙 v1.1.0')).not.toBeInTheDocument();
     expect(screen.getByText('기준일 2026-08-22')).toBeInTheDocument();
     expect(screen.getByText('안전재고 기준 1개')).toBeInTheDocument();
+    expect(screen.getByText('30일 예상 폐기수량')).toBeInTheDocument();
+    expect(screen.getByText('18개')).toBeInTheDocument();
+    expect(screen.getByTestId('risk-metric-grid')).toHaveClass('grid-cols-3');
+    expect(screen.getByText('30일 예상 폐기수량')).toHaveClass('whitespace-nowrap');
     expect(screen.getByText('+9개 충족')).toBeInTheDocument();
     expect(screen.getByText('세부 평가 내역 (1건)')).toBeInTheDocument();
     expect(screen.getByText('predictedQtyD30=154, availableQty=140')).toBeInTheDocument();

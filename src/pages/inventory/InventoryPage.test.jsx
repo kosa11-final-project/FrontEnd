@@ -359,7 +359,7 @@ describe('InventoryPage Integration', () => {
     expect(generateButton).toBeEnabled();
     fireEvent.click(generateButton);
 
-    expect(screen.getByRole('dialog', { name: 'AI 전략 생성' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'AI 전략 생성' })).toBeInTheDocument();
     expect(screen.queryByText(/선택한 1개 SKU는 각각 별도의 전략 Case로 생성됩니다/)).not.toBeInTheDocument();
     expect(screen.queryByText(/상품 탭마다 출발 판매처를 선택해 주세요/)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^전략명/)).toBeInTheDocument();
@@ -452,6 +452,7 @@ describe('InventoryPage Integration', () => {
     const productCheckboxes = await screen.findAllByRole('checkbox', { name: /1\.05kg 단품팩 선택/ });
     fireEvent.click(productCheckboxes[0]);
     fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성' }));
+    await screen.findByRole('dialog', { name: 'AI 전략 생성' });
     fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
       target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
     });
@@ -476,6 +477,7 @@ describe('InventoryPage Integration', () => {
     fireEvent.click((await screen.findAllByRole('checkbox', { name: /1\.05kg 단품팩 선택/ }))[0]);
     fireEvent.click((await screen.findAllByRole('checkbox', { name: /500g 냉장팩 선택/ }))[0]);
     fireEvent.click(screen.getByRole('button', { name: 'AI 전략 생성' }));
+    await screen.findByRole('dialog', { name: 'AI 전략 생성' });
 
     fireEvent.change(screen.getByLabelText(/^현재·출발 판매처/), {
       target: { value: 'STORE_THE_HYUNDAI_SEOUL' },
@@ -517,8 +519,8 @@ describe('InventoryPage Integration', () => {
   it('opens detail drawer when clicking a table row and renders 2-tab navigation', async () => {
     renderWithProviders(<InventoryPage />);
 
-    const rowButtons = await screen.findAllByRole('button', { name: /재고 상세 보기/ });
-    fireEvent.click(rowButtons[0]);
+    const productItems = await screen.findAllByText(/1\.05kg/);
+    fireEvent.click(productItems[0].closest('tr') || productItems[0]);
 
     // 드로어 렌더링 확인
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -532,6 +534,8 @@ describe('InventoryPage Integration', () => {
     // 재고 개요 탭 내 우측 LOT 섹션에 FEFO 목록 표시 확인
     expect((await screen.findAllByText(/FEFO 1순위/)).length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText('재고 부족 여부')).toBeInTheDocument();
+    const expectedDisposalLabel = await screen.findByText('30일 예상 폐기수량');
+    expect(expectedDisposalLabel.parentElement).toHaveTextContent('18개');
     expect(await screen.findByText('부족')).toBeInTheDocument();
     expect(screen.queryByText('재고 위험 판정')).not.toBeInTheDocument();
     expect(screen.queryByText('판정 실패')).not.toBeInTheDocument();
@@ -589,7 +593,8 @@ describe('InventoryPage Integration', () => {
     fireEvent.click(screen.getByRole('button', { name: '상세 드로어 닫기' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    fireEvent.click((await screen.findAllByRole('button', { name: /재고 상세 보기/ }))[0]);
+    const productItems = await screen.findAllByText(/1\.05kg/);
+    fireEvent.click(productItems[0].closest('tr') || productItems[0]);
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     await vi.waitFor(() => expect(screen.getByLabelText('상세 판매처 선택')).toHaveValue('GREETING_ONLINE'));
   });

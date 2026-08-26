@@ -1,4 +1,4 @@
-import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
+import { formatDate, formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory/ui/InventoryStatusBadge.jsx';
 import { getAssessmentStatusLabel } from '@/entities/risk/model/risk.js';
 import { STORAGE_BADGE_STYLES } from './constants.js';
@@ -22,7 +22,7 @@ export function InventoryTableMobile({
 
   return (
     <div className="lg:hidden divide-y divide-gray-100 bg-white" aria-busy={isFetching || undefined}>
-      {items.map((item) => {
+      {items.map((item, index) => {
         const isSelected = selectedItem?.rowId === item.rowId;
         const isSelectedSku = selectedSkuCodes.includes(item.skuCode);
         const isMaxReached = selectedSkuCodes.length >= maxSelection;
@@ -46,7 +46,6 @@ export function InventoryTableMobile({
         return (
           <div
             key={item.rowId}
-            role="button"
             tabIndex={0}
             onClick={() => onRowClick?.(item)}
             onKeyDown={(e) => {
@@ -62,7 +61,7 @@ export function InventoryTableMobile({
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
                 <label
-                  className="flex size-12 items-center justify-center -ml-3 -mt-2 shrink-0 cursor-pointer rounded-xl hover:bg-gray-100/80 active:bg-gray-200/60"
+                  className="flex size-10 items-center justify-center -ml-2 -mt-1 shrink-0 cursor-pointer rounded-lg hover:bg-gray-100/80 active:bg-gray-200/60"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
@@ -77,7 +76,7 @@ export function InventoryTableMobile({
                         ? `최대 ${maxSelection}개까지 선택 가능합니다`
                         : `${skuLabel} 선택 (${selectedSkuCodes.length}/${maxSelection})`
                     }
-                    className="size-5 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   />
                 </label>
                 <LazyThumbnailImage
@@ -88,6 +87,7 @@ export function InventoryTableMobile({
                   className="size-14 rounded-xl"
                   item={item}
                   onImageClick={onImageClick}
+                  priority={index < 2}
                 />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -125,9 +125,16 @@ export function InventoryTableMobile({
                   </span>
                 )}
                 {item.nearestExpiryDays != null && (
-                  <span className="rounded-md border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-950">
-                    {formatDaysRemaining(item.nearestExpiryDays)}
-                  </span>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="inline-flex whitespace-nowrap rounded-md border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-950">
+                      {formatDaysRemaining(item.nearestExpiryDays)}
+                    </span>
+                    {item.nearestExpiryDate && (
+                      <span className="text-[10px] font-medium text-gray-500">
+                        {formatDate(item.nearestExpiryDate)}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -157,19 +164,28 @@ export function InventoryTableMobile({
                     : `전체 ${ownerSalesPointCount}개`}
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-right">
-                <div>
+              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-right">
+                <div className="min-w-[3.5rem]">
                   <span className="text-[10px] text-gray-400 block">현재고</span>
                   <strong className="text-xs font-extrabold text-gray-800 tabular-nums">
                     {formatQuantity(item.currentQuantity)}
                   </strong>
                 </div>
-                <div>
+                <div className="min-w-[3.5rem]">
                   <span className="text-[10px] text-gray-400 block">가용수량</span>
                   <strong className="text-xs font-extrabold text-[color:var(--primary)] tabular-nums">
                     {formatQuantity(item.availableQuantity)}
                   </strong>
                   <span className="block text-[10px] text-gray-400">예약 {formatQuantity(item.reservedQuantity)}</span>
+                </div>
+                <div
+                  className="min-w-[4.5rem]"
+                  title="소비기한 또는 판매중지일이 30일 이내인 재고 중 예상 판매량을 제외하고 남는 수량"
+                >
+                  <span className="block whitespace-nowrap text-[10px] text-gray-400">30일 예상 폐기</span>
+                  <strong className="text-xs font-extrabold text-amber-700 tabular-nums">
+                    {formatQuantity(item.expectedDisposalQuantity)}
+                  </strong>
                 </div>
               </div>
             </div>

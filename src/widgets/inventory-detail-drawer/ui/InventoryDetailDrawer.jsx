@@ -376,7 +376,12 @@ export function InventoryDetailDrawer({
                         </button>
                       </div>
                     )}
-                    {riskQuery.data && <RiskExplanationPanel data={riskQuery.data} />}
+                    {riskQuery.data && (
+                      <RiskExplanationPanel
+                        data={riskQuery.data}
+                        expectedDisposalQuantity={detailQuery.data?.expectedDisposalQuantity ?? null}
+                      />
+                    )}
                     <InventoryLotsSection
                       selectedSalesPoint={selectedOverviewSalesPoint}
                       selectedSalesPointCode={effectiveOverviewSalesPointCode}

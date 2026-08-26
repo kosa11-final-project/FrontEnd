@@ -22,8 +22,9 @@ function cleanDecimalsInText(text) {
  * 위험도 평가 상세 설명 및 근거 패널 컴포넌트
  * @param {object} props
  * @param {Record<string, any> | null} props.data - 위험도 평가 뷰 모델 데이터
+ * @param {number | null} props.expectedDisposalQuantity - 선택한 판매처 기준 향후 30일 예상 폐기수량
  */
-export function RiskExplanationPanel({ data }) {
+export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) {
   const [calculationOpen, setCalculationOpen] = useState(false);
 
   if (!data) return null;
@@ -105,16 +106,18 @@ export function RiskExplanationPanel({ data }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 px-2.5 py-2">
-          <div className="text-[11px] text-indigo-600">예상 보유 가능 일수</div>
-          <div className="mt-1 text-sm font-bold text-indigo-700">
+      <div data-testid="risk-metric-grid" className="grid grid-cols-3 gap-1.5">
+        <div className="min-w-0 rounded-lg border border-indigo-100 bg-indigo-50/40 px-2 py-1.5">
+          <div className="whitespace-nowrap text-[10px] text-indigo-600">예상 보유 가능 일수</div>
+          <div className="mt-1 whitespace-nowrap text-xs font-bold text-indigo-700">
             {stockCoverageDays != null ? `${formatNumber(stockCoverageDays)}일` : '산정 불가'}
           </div>
-          {stockCoverageDays != null && <div className="mt-0.5 text-[10px] text-indigo-500">30일 평균 수요 기준</div>}
+          {stockCoverageDays != null && (
+            <div className="mt-0.5 whitespace-nowrap text-[9px] text-indigo-500">30일 평균 수요 기준</div>
+          )}
         </div>
         <div
-          className={`rounded-lg border px-2.5 py-2 ${
+          className={`min-w-0 rounded-lg border px-2 py-1.5 ${
             resolvedShortageYn === 'Y'
               ? 'border-rose-100 bg-rose-50/40'
               : resolvedShortageYn === 'N'
@@ -123,7 +126,7 @@ export function RiskExplanationPanel({ data }) {
           }`}
         >
           <div
-            className={`text-[11px] ${
+            className={`whitespace-nowrap text-[10px] ${
               resolvedShortageYn === 'Y'
                 ? 'text-rose-600'
                 : resolvedShortageYn === 'N'
@@ -133,11 +136,11 @@ export function RiskExplanationPanel({ data }) {
           >
             재고 부족 여부
           </div>
-          <div className="mt-0.5 text-[10px] text-slate-400">
+          <div className="mt-0.5 whitespace-nowrap text-[9px] text-slate-400">
             안전재고 기준 {safetyStockQty != null ? `${formatNumber(safetyStockQty)}개` : '산정 불가'}
           </div>
           <div
-            className={`mt-1 text-sm font-bold ${
+            className={`mt-1 whitespace-nowrap text-xs font-bold ${
               resolvedShortageYn === 'Y'
                 ? 'text-rose-700'
                 : resolvedShortageYn === 'N'
@@ -149,7 +152,7 @@ export function RiskExplanationPanel({ data }) {
           </div>
           {hasSafetyStockDelta && (
             <div
-              className={`mt-0.5 text-[10px] font-semibold ${
+              className={`mt-0.5 whitespace-nowrap text-[9px] font-semibold ${
                 safetyStockDelta >= 0 ? 'text-emerald-700' : 'text-rose-700'
               }`}
             >
@@ -158,6 +161,13 @@ export function RiskExplanationPanel({ data }) {
                 : `${formatNumber(safetyStockDelta)}개 부족`}
             </div>
           )}
+        </div>
+        <div className="min-w-0 rounded-lg border border-amber-100 bg-amber-50/40 px-2 py-1.5">
+          <div className="whitespace-nowrap text-[10px] text-amber-700">30일 예상 폐기수량</div>
+          <div className="mt-1 whitespace-nowrap text-xs font-bold tabular-nums text-amber-800">
+            {expectedDisposalQuantity != null ? `${formatNumber(expectedDisposalQuantity)}개` : '산정 불가'}
+          </div>
+          <div className="mt-0.5 whitespace-nowrap text-[9px] text-amber-600">향후 30일 기준</div>
         </div>
       </div>
 

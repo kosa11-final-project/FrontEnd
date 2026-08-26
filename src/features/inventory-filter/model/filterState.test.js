@@ -96,6 +96,10 @@ describe('Inventory Filter State (URL SearchParams)', () => {
     expect(filters.sort).toBe('updatedAt,desc');
   });
 
+  it('keeps the server-supported expected disposal sort in URL state', () => {
+    expect(parseInventoryFilters('?sort=expectedDisposalQuantity,desc').sort).toBe('expectedDisposalQuantity,desc');
+  });
+
   it('keeps drawer state out of list and summary API parameters', () => {
     const params = toInventoryQueryParams({
       q: '만두',

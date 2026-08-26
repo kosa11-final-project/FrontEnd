@@ -14,6 +14,7 @@ const item = {
   currentQuantity: 10,
   availableQuantity: 8,
   reservedQuantity: 2,
+  expectedDisposalQuantity: 3,
   salesPoints: [
     {
       salesPointCode: 'STORE-1',
@@ -267,7 +268,7 @@ describe('InventoryTable pagination', () => {
     expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '100개씩 보기' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: '200개씩 보기' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /3개 판매처/ })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: /3개 판매처/ })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     expect(onPageChange).toHaveBeenCalledWith(2);
@@ -284,7 +285,56 @@ describe('InventoryTable pagination', () => {
 
     expect(table.querySelector('th')).toHaveClass('text-left', 'pl-3');
     expect(table.querySelector('tbody td')).toHaveClass('text-left', 'pl-3');
-    expect(columnWidths).toEqual(['w-[4%]', 'w-[34%]', 'w-[18%]', 'w-[6%]', 'w-[8%]', 'w-[9%]', 'w-[13%]', 'w-[8%]']);
+    expect(columnWidths).toEqual([
+      'w-[4%]',
+      'w-[30%]',
+      'w-[16%]',
+      'w-[6%]',
+      'w-[8%]',
+      'w-[9%]',
+      'w-[8%]',
+      'w-[12%]',
+      'w-[7%]',
+    ]);
+  });
+
+  it('shows the server-calculated 30-day expected disposal quantity on desktop and mobile', () => {
+    render(<InventoryTable items={[item]} totalCount={1} page={1} size={20} totalPages={1} />);
+
+    expect(screen.getByRole('columnheader', { name: '30일 예상 폐기' })).toBeInTheDocument();
+    expect(screen.getAllByText('3개')).toHaveLength(2);
+    expect(screen.getByText('향후 30일')).toBeInTheDocument();
+    expect(screen.getAllByText('30일 예상 폐기')).toHaveLength(2);
+  });
+
+  it('shows the nearest expiry date alongside the remaining days', () => {
+    render(
+      <InventoryTable
+        items={[{ ...item, nearestExpiryDays: 14, nearestExpiryDate: '2026-12-31' }]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+      />,
+    );
+
+    expect(screen.getAllByText('D-14')).toHaveLength(2);
+    expect(screen.getAllByText('2026.12.31')).toHaveLength(2);
+  });
+
+  it('keeps expiry headers and remaining-day badges on one line', () => {
+    render(
+      <InventoryTable
+        items={[{ ...item, nearestExpiryDays: 204, nearestExpiryDate: '2027-03-18' }]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+      />,
+    );
+
+    expect(screen.getByRole('columnheader', { name: /소비기한/ })).toHaveClass('whitespace-nowrap');
+    expect(screen.getAllByText('D-204').every((element) => element.classList.contains('whitespace-nowrap'))).toBe(true);
   });
 
   it('renders a compact sort caret and announces the next sort direction', () => {
@@ -326,6 +376,39 @@ describe('InventoryTable pagination', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '가용수량 내림차순 정렬' }));
     expect(onSortChange).toHaveBeenLastCalledWith('availableQuantity,desc');
+  });
+
+  it('sorts the 30-day expected disposal column in both directions', () => {
+    const onSortChange = vi.fn();
+    const { rerender } = render(
+      <InventoryTable
+        items={[item]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+        sort="updatedAt,desc"
+        onSortChange={onSortChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '30일 예상 폐기 내림차순 정렬' }));
+    expect(onSortChange).toHaveBeenLastCalledWith('expectedDisposalQuantity,desc');
+
+    rerender(
+      <InventoryTable
+        items={[item]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+        sort="expectedDisposalQuantity,desc"
+        onSortChange={onSortChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '30일 예상 폐기 오름차순 정렬' }));
+    expect(onSortChange).toHaveBeenLastCalledWith('expectedDisposalQuantity,asc');
   });
 
   it('starts 최고 위험도 sorting from 양호 and toggles to 위험 first', () => {
