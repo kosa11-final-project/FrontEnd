@@ -77,7 +77,11 @@ describe('strategy execution API', () => {
 
     await expect(synchronizeStrategyPerformances()).resolves.toEqual(response.data);
 
-    expect(postJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions/sync', signal: undefined });
+    expect(postJson).toHaveBeenCalledWith({
+      path: 'v1/strategy-executions/sync',
+      signal: undefined,
+      timeout: 120_000,
+    });
     expect(unwrapApiResponse).toHaveBeenCalledWith(response);
   });
 

@@ -1,4 +1,5 @@
 import { getJson, postJson, unwrapApiResponse } from '@/shared/api';
+import { env } from '@/shared/config/env.js';
 import { SUPPORTED_ACTION_TYPES } from '../model/strategy.js';
 
 const strategyExecutionPath = 'v1/strategy-executions';
@@ -116,6 +117,10 @@ export async function getStrategyExecution(strategyCaseId, signal) {
 }
 
 export async function synchronizeStrategyPerformances(signal) {
-  const response = await postJson({ path: `${strategyExecutionPath}/sync`, signal });
+  const response = await postJson({
+    path: `${strategyExecutionPath}/sync`,
+    signal,
+    timeout: env.strategyPerformanceSyncRequestTimeoutMs,
+  });
   return unwrapApiResponse(response);
 }
