@@ -46,8 +46,8 @@ the `Jenkinsfile`:
 
 | Environment variable | Value |
 | --- | --- |
-| `FRONTEND_BUCKET` | `stockfit-frontend-prod-7` |
-| `CLOUDFRONT_DISTRIBUTION_ID` | `E226SCR3XTL2OH` |
+| `stockfit-frontend-s3-bucket` | `stockfit-frontend-prod-7` |
+| `stockfit-cloudfront-distribution-id` | `E226SCR3XTL20H` |
 
 The bucket must be dedicated to the frontend. The pipeline uploads the current
 `dist/` contents but does not delete older hashed assets. The current
@@ -96,7 +96,7 @@ policy with the real bucket, account, and distribution values:
         "cloudfront:CreateInvalidation",
         "cloudfront:GetInvalidation"
       ],
-      "Resource": "arn:aws:cloudfront::143924590050:distribution/E226SCR3XTL2OH"
+      "Resource": "arn:aws:cloudfront::143924590050:distribution/E226SCR3XTL20H"
     }
   ]
 }
