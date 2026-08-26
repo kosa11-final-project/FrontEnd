@@ -53,9 +53,7 @@ describe('InventoryRiskReasonTooltip', () => {
 
   it('shows legacy sale-stop arrival wording as imminent', () => {
     expect(
-      parseInventoryRiskReason(
-        '[ASSESSED/v1.3.0/LOT_SALE_STOPPED] 판매중지일 도래 LOT 존재 (LOT-SKU002569-02)',
-      ),
+      parseInventoryRiskReason('[ASSESSED/v1.3.0/LOT_SALE_STOPPED] 판매중지일 도래 LOT 존재 (LOT-SKU002569-02)'),
     ).toMatchObject({
       primaryReason: '판매중지일 임박 LOT 존재 (LOT-SKU002569-02)',
     });
