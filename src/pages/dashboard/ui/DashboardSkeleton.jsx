@@ -55,10 +55,7 @@ export function DashboardSkeleton() {
 
             {/* 행 아이템 4개 스켈레톤 */}
             {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-xl border border-gray-100 p-3.5"
-              >
+              <div key={i} className="flex items-center justify-between rounded-xl border border-gray-100 p-3.5">
                 <div className="flex items-center gap-3">
                   <div className="size-10 animate-pulse rounded-lg bg-[#F3F4F6]" />
                   <div className="flex flex-col gap-1.5">
