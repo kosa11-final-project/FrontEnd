@@ -1,168 +1,221 @@
+import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowRight } from 'reicon-react';
+import { AlertCircle, ArrowRight, ChevronDown, ChevronUp, InfoCircle } from 'reicon-react';
 import {
   getBlockedActionCount,
-  getRepresentativeKpis,
-  formatKpiValue,
+  isDisplayableStrategyNumber,
   StrategyActionStepProgress,
   StrategyActionTypeBadge,
   StrategyProductImage,
   StrategyStatusBadge,
   StrategySyncStatus,
 } from '@/entities/strategy';
-import { cn } from '@/shared/lib/cn';
-import { Button, Card, Icon } from '@/shared/ui';
+import { formatPercent, formatQuantity } from '@/shared/lib/format';
+import { Badge, Button, Card, Icon, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui';
 
-const actionCardToneClasses = Object.freeze({
-  REALLOCATION: {
-    card: 'border-[color:color-mix(in_srgb,var(--primary)_55%,var(--border))] bg-[color:color-mix(in_srgb,var(--primary)_5%,var(--card))]',
-    badge:
-      'border-[color:color-mix(in_srgb,var(--primary)_42%,var(--border))] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]',
-    dot: 'bg-[var(--primary)]',
-  },
-  RT_TRANSFER: {
-    card: 'border-[color:color-mix(in_srgb,var(--info)_55%,var(--border))] bg-[color:color-mix(in_srgb,var(--info)_6%,var(--card))]',
-    badge:
-      'border-[color:color-mix(in_srgb,var(--info)_42%,var(--border))] bg-[var(--info-soft)] text-[color:var(--info)]',
-    dot: 'bg-[var(--info)]',
-  },
-  PRICE_DISCOUNT: {
-    card: 'border-[color:color-mix(in_srgb,var(--warning)_62%,var(--border))] bg-[color:color-mix(in_srgb,var(--warning)_8%,var(--card))]',
-    badge:
-      'border-[color:color-mix(in_srgb,var(--warning)_48%,var(--border))] bg-[var(--warning-soft)] text-[color:var(--chart-3)]',
-    dot: 'bg-[var(--warning)]',
-  },
-  CHANNEL_EXPANSION: {
-    card: 'border-[color:color-mix(in_srgb,var(--chart-4)_55%,var(--border))] bg-[color:color-mix(in_srgb,var(--chart-4)_6%,var(--card))]',
-    badge:
-      'border-[color:color-mix(in_srgb,var(--chart-4)_42%,var(--border))] bg-[color:color-mix(in_srgb,var(--chart-4)_10%,var(--card))] text-[color:var(--chart-4)]',
-    dot: 'bg-[var(--chart-4)]',
-  },
-  CHANNEL_CONCENTRATION: {
-    card: 'border-[var(--border-strong)] bg-[var(--surface-subtle)]',
-    badge: 'border-[var(--border-strong)] bg-[var(--card)] text-[color:var(--text-body)]',
-    dot: 'bg-[var(--text-body)]',
-  },
-});
+const salesResultPattern =
+  /실제\s*판매(?:량)?\s*([\d,.]+)\s*\/\s*목표(?:\s*판매(?:량)?)?\s*([\d,.]+)(?:\s*\(달성률\s*([\d,.]+)%\))?/;
 
-const defaultActionCardToneClasses = Object.freeze({
-  card: 'border-[var(--border)] bg-[var(--card)]',
-  badge: '',
-  dot: 'bg-[var(--primary)]',
-});
+function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(String(value).replaceAll(',', ''));
+  return Number.isFinite(number) ? number : null;
+}
+
+export function getStrategySalesPerformance(strategy) {
+  const match = strategy.resultSummary?.match(salesResultPattern);
+  const actual = toFiniteNumber(match?.[1]) ?? toFiniteNumber(strategy.performance?.actualSalesQuantity);
+  const target = toFiniteNumber(match?.[2]);
+  const providedRate = toFiniteNumber(match?.[3]);
+  const achievementRate = providedRate ?? (actual !== null && target > 0 ? (actual / target) * 100 : null);
+  const difference = actual !== null && target !== null ? actual - target : null;
+
+  return {
+    actual,
+    target,
+    achievementRate,
+    difference,
+    achieved: target > 0 && difference !== null && difference >= 0,
+  };
+}
+
+function StrategySalesPerformance({ strategy }) {
+  const performance = getStrategySalesPerformance(strategy);
+  const differenceQuantity = formatQuantity(Math.abs(performance.difference), { maximumFractionDigits: 1 });
+  const comparisonText =
+    performance.difference === null
+      ? '목표 데이터가 수집되면 비교할 수 있어요'
+      : performance.difference > 0
+        ? `목표보다 ${differenceQuantity} 더 판매했어요`
+        : performance.difference < 0
+          ? `목표보다 ${differenceQuantity} 덜 판매했어요`
+          : '목표 판매량을 정확히 달성했어요';
+  const hasTargetComparison = performance.difference !== null && performance.target > 0;
+
+  return (
+    <section
+      aria-label="판매 성과 요약"
+      className={`min-w-0 rounded-[var(--radius-card)] px-3 py-2.5 ${
+        performance.achieved ? 'bg-[color-mix(in_srgb,var(--good-soft)_42%,var(--card))]' : 'bg-[var(--surface-subtle)]'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <strong className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">판매 성과</strong>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <button
+                  type="button"
+                  aria-label="판매 성과 비교 설명"
+                  aria-description={comparisonText}
+                  className="grid size-5 place-items-center rounded-full text-[color:var(--text-muted)] hover:text-[color:var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                >
+                  <Icon icon={InfoCircle} size={13} aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent tone="light" side="top" className="max-w-[240px] leading-relaxed">
+                {comparisonText}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        {hasTargetComparison ? (
+          <Badge variant={performance.achieved ? 'good' : 'warning'} size="sm">
+            {performance.achieved ? '목표 달성' : '목표 미달'}
+          </Badge>
+        ) : null}
+      </div>
+
+      <dl className="mt-1 grid grid-cols-3">
+        <div className="min-w-0 pr-3">
+          <dt className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">실적</dt>
+          <dd className="mt-0.5 truncate text-[length:var(--font-size-subtitle2)] font-bold tabular-nums text-[color:var(--text-heading)]">
+            {formatQuantity(performance.actual, { fallback: '미수집', maximumFractionDigits: 1 })}
+          </dd>
+        </div>
+        <div className="min-w-0 border-l border-[color:color-mix(in_srgb,var(--border)_65%,transparent)] px-3">
+          <dt className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">목표</dt>
+          <dd className="mt-0.5 truncate text-[length:var(--font-size-body-sm)] font-medium tabular-nums text-[color:var(--text-heading)]">
+            {formatQuantity(performance.target, { fallback: '미수집', maximumFractionDigits: 1 })}
+          </dd>
+        </div>
+        <div className="min-w-0 border-l border-[color:color-mix(in_srgb,var(--border)_65%,transparent)] pl-3">
+          <dt className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">달성률</dt>
+          <dd
+            className={`mt-0.5 truncate text-[length:var(--font-size-subtitle2)] font-semibold tabular-nums ${
+              hasTargetComparison
+                ? performance.achieved
+                  ? 'text-[color:var(--good)]'
+                  : 'text-[color:var(--warning)]'
+                : 'text-[color:var(--text-heading)]'
+            }`}
+          >
+            {formatPercent(performance.achievementRate, { fallback: '미수집', maximumFractionDigits: 1 })}
+          </dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
 
 export function StrategyExecutionCard({ strategy }) {
+  const [expanded, setExpanded] = useState(false);
+  const progressId = useId();
   const blocked = getBlockedActionCount(strategy.actions);
-  const representativeKpis = getRepresentativeKpis(strategy.actions);
+  const actionTypes = [...new Set(strategy.actions.map((action) => action.type).filter(Boolean))];
+  const detailPath = `/execution/${strategy.id}`;
 
   return (
     <Card
       asChild
       padding="none"
-      className="overflow-hidden shadow-[var(--shadow-panel)] transition-shadow hover:shadow-[var(--shadow-panel)]"
+      className="overflow-hidden shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-panel)]"
     >
       <article aria-labelledby={`${strategy.id}-title`}>
-        <header className="bg-[linear-gradient(180deg,var(--surface-subtle),var(--card))] p-3 sm:px-4 sm:py-3">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start">
+        <header className="grid gap-3 px-3 pb-1 pt-2 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] lg:items-center">
+          <div className="flex min-w-0 items-center gap-3">
             <StrategyProductImage
               src={strategy.product.imageUrl}
               alt={`${strategy.product.name} 상품 이미지`}
               size="lg"
-              className="size-16 sm:size-20"
+              className="size-12 shrink-0 sm:size-14"
             />
-            <div className="min-w-0 flex-1 sm:pt-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <StrategyStatusBadge status={strategy.status} />
-                <span className="rounded-[var(--radius-control)] bg-[var(--surface-subtle)] px-2.5 py-1 text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-muted)]">
-                  {strategy.number}
-                </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <StrategyStatusBadge status={strategy.status} size="sm" />
+                {isDisplayableStrategyNumber(strategy.number) ? (
+                  <span
+                    className="max-w-full truncate rounded-[var(--radius-control)] bg-[var(--surface-subtle)] px-2 py-0.5 text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-body)]"
+                    title={strategy.number}
+                  >
+                    {strategy.number}
+                  </span>
+                ) : null}
                 {blocked ? (
                   <span className="inline-flex items-center gap-1 text-[length:var(--font-size-meta)] font-semibold text-[color:var(--danger)]">
-                    <Icon icon={AlertCircle} size={14} aria-hidden="true" />
+                    <Icon icon={AlertCircle} size={13} aria-hidden="true" />
                     차단 {blocked}건
                   </span>
                 ) : null}
               </div>
               <h2
                 id={`${strategy.id}-title`}
-                className="mt-1.5 max-w-3xl text-[length:var(--font-size-headline2)] font-bold leading-[var(--line-height-heading)] text-[color:var(--text-heading)]"
+                className="mt-1 truncate text-[length:var(--font-size-subtitle1)] font-bold text-[color:var(--text-heading)]"
+                title={strategy.product.name}
               >
                 {strategy.product.name}
               </h2>
-              <p className="mt-1 text-[length:var(--font-size-body-sm)] font-medium text-[color:var(--text-muted)]">
-                {strategy.product.sku}
-              </p>
+              <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+                <span className="truncate text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-body)]">
+                  {strategy.product.sku}
+                </span>
+                {actionTypes.map((type) => (
+                  <StrategyActionTypeBadge key={type} type={type} compact />
+                ))}
+                {!actionTypes.length ? (
+                  <span className="text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">액션 없음</span>
+                ) : null}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 sm:max-w-64 sm:justify-end">
-              {strategy.actions.map((action) => (
-                <StrategyActionTypeBadge key={action.id} type={action.type} compact />
-              ))}
-              {!strategy.actions.length ? (
-                <span className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">액션 없음</span>
-              ) : null}
-            </div>
+          </div>
+
+          <div className="min-w-0 lg:pl-1">
+            <StrategySalesPerformance strategy={strategy} />
           </div>
         </header>
 
-        <div className="grid gap-3 bg-[var(--card)] p-3 sm:p-4 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
-          <section aria-label="전략 진행 상황" className="flex h-full min-w-0 flex-col">
-            <h3 className="mb-1.5 text-[length:var(--font-size-body-sm)] font-bold text-[color:var(--text-heading)]">
-              전략 진행 상황
-            </h3>
-            <div className="grid min-h-24 flex-1 items-center rounded-[var(--radius-panel)] border border-[var(--border)] bg-[linear-gradient(135deg,var(--card),var(--surface-subtle))] p-3 shadow-[var(--shadow-soft)]">
-              <StrategyActionStepProgress actions={strategy.actions} />
-            </div>
+        {expanded ? (
+          <section
+            id={progressId}
+            aria-label={`${strategy.product.name} 실행 단계`}
+            className="border-t border-[var(--border)] bg-[var(--surface-subtle)] p-3"
+          >
+            <StrategyActionStepProgress actions={strategy.actions} detailHref={detailPath} />
           </section>
+        ) : null}
 
-          <section aria-label="주요 전략 지표" className="flex h-full min-w-0 flex-col">
-            <h3 className="mb-1.5 text-[length:var(--font-size-body-sm)] font-bold text-[color:var(--text-heading)]">
-              주요 전략 지표
-            </h3>
-            <div className="grid flex-1 grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2">
-              {representativeKpis.map(({ actionId, type, target, kpi }) => {
-                const tone = actionCardToneClasses[type] ?? defaultActionCardToneClasses;
-                return (
-                  <div
-                    key={actionId}
-                    data-action-type={type}
-                    className={cn(
-                      'group flex h-full min-h-24 min-w-0 flex-col rounded-[var(--radius-panel)] border p-3 shadow-[var(--shadow-soft)] transition-[border-color,transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[var(--shadow-panel)]',
-                      tone.card,
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <StrategyActionTypeBadge type={type} compact className={tone.badge} />
-                      <span className={cn('size-2 rounded-full opacity-80', tone.dot)} aria-hidden="true" />
-                    </div>
-                    <strong className="mt-auto text-[length:var(--font-size-headline2)] text-[color:var(--text-heading)]">
-                      {formatKpiValue(kpi)}
-                    </strong>
-                    <p
-                      className="mt-0.5 line-clamp-1 text-[length:var(--font-size-meta)] leading-[var(--line-height-body)] text-[color:var(--text-muted)]"
-                      title={target}
-                    >
-                      {kpi?.label ?? '성과 미수집'} · {target}
-                    </p>
-                  </div>
-                );
-              })}
-              {!representativeKpis.length ? (
-                <div className="grid min-h-24 place-items-center rounded-[var(--radius-panel)] border border-dashed border-[var(--border)] bg-[var(--surface-subtle)] p-3 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)] sm:col-span-2">
-                  표시할 액션 성과가 없습니다.
-                </div>
-              ) : null}
-            </div>
-          </section>
-        </div>
-
-        <footer className="flex flex-col gap-2 border-t border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <footer className="flex flex-col gap-2 border-t border-[var(--border)] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
           <StrategySyncStatus lastSyncedAt={strategy.lastSyncedAt} />
-          <Button asChild size="sm" className="w-full text-[color:var(--color-white)] sm:w-auto">
-            <Link to={`/execution/${strategy.id}`}>
-              상세 리포트 보기
-              <Icon icon={ArrowRight} size={15} aria-hidden="true" />
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <Button asChild size="md">
+              <Link to={detailPath}>
+                상세 리포트
+                <Icon icon={ArrowRight} size={16} aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              size="md"
+              variant="secondary"
+              aria-expanded={expanded}
+              aria-controls={progressId}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {expanded ? '실행 단계 닫기' : '실행 단계 보기'}
+              <Icon icon={expanded ? ChevronUp : ChevronDown} size={16} aria-hidden="true" />
+            </Button>
+          </div>
         </footer>
       </article>
     </Card>
