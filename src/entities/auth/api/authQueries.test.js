@@ -1,14 +1,22 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/shared/api';
 
-const { getCurrentUser } = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
+const { getCsrfToken, getCurrentUser } = vi.hoisted(() => ({
+  getCsrfToken: vi.fn(),
+  getCurrentUser: vi.fn(),
+}));
 
-vi.mock('./authApi.js', () => ({ getCurrentUser }));
+vi.mock('./authApi.js', () => ({ getCsrfToken, getCurrentUser }));
 
 import { authKeys, cacheAuthenticatedUser, isAuthenticationError, resolveCurrentUser } from './authQueries.js';
 
 describe('current user query rules', () => {
+  beforeEach(() => {
+    getCsrfToken.mockResolvedValue({ token: 'csrf-token', headerName: 'X-XSRF-TOKEN' });
+    getCurrentUser.mockReset();
+  });
+
   it('returns the authenticated user', async () => {
     const user = { userId: 1, userName: '김영만' };
     getCurrentUser.mockResolvedValueOnce(user);
