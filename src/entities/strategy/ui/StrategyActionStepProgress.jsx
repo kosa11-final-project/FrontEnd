@@ -56,8 +56,6 @@ const getProgress = (action) => {
   return null;
 };
 
-const desktopColumns = 'sm:grid-cols-[minmax(150px,1.15fr)_minmax(130px,1fr)_minmax(110px,0.7fr)_minmax(76px,auto)]';
-
 function ActionProgressInfo({ action, state, tone, progress, typeLabel, detailHref }) {
   if (state === 'complete') {
     return (
@@ -133,89 +131,115 @@ export function StrategyActionStepProgress({ actions = [], detailHref }) {
   }
 
   return (
-    <div className="w-full min-w-0">
-      <div
-        className={cn(
-          'hidden min-h-8 items-center gap-3 bg-[var(--surface-subtle)] px-3 text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-body)] sm:grid',
-          desktopColumns,
-        )}
-        aria-hidden="true"
-      >
-        <span>액션</span>
-        <span>실행 대상</span>
-        <span>진행 정보</span>
-        <span className="text-right">상태</span>
-      </div>
-
-      <ol className="divide-y divide-[var(--border)]" aria-label="전략 액션 진행 단계">
-        {actions.map((action, index) => {
-          const state = getRowState(action.status);
-          const tone = rowTone[state];
-          const typeLabel = actionTypeMeta[action.type]?.shortLabel ?? `${index + 1}단계`;
-          const statusLabel = actionStatusMeta[action.status]?.label ?? '상태 미수집';
-          const progress = getProgress(action);
-          const ActionIcon = actionTypeIcons[action.type] ?? Layers;
-          const rawTitle = action.title?.trim();
-          const actionTitle = !rawTitle || rawTitle === action.type || actionTypeMeta[rawTitle] ? null : rawTitle;
-
-          return (
-            <li
-              key={action.id ?? index}
-              className={cn(
-                'grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-3 py-2 transition-colors hover:bg-[color:color-mix(in_srgb,var(--surface-subtle)_65%,transparent)] sm:gap-3',
-                desktopColumns,
-              )}
-              data-step-state={state}
-              aria-label={`${typeLabel}: ${statusLabel}`}
+    <div className="w-full min-w-0 overflow-x-auto">
+      <table className="w-full min-w-[680px] table-fixed border-collapse" aria-label="전략 실행 단계">
+        <colgroup>
+          <col className="w-[30%]" />
+          <col className="w-[24%]" />
+          <col className="w-[30%]" />
+          <col className="w-[16%]" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              className="border-b border-[#CBD7D0] bg-[#E3EAE6] px-3 py-2 text-left text-[length:var(--font-size-meta)] font-semibold text-[#374151]"
             >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span
-                  className={cn('grid size-8 shrink-0 place-items-center rounded-full', tone.icon)}
-                  aria-hidden="true"
-                >
-                  <Icon icon={ActionIcon} size={17} />
-                </span>
-                <span className="min-w-0">
-                  <strong className="block truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
-                    {typeLabel}
-                  </strong>
-                  <span className="block truncate text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
-                    STEP {String(index + 1).padStart(2, '0')}
-                    {actionTitle ? ` · ${actionTitle}` : ''}
+              전략 상세
+            </th>
+            <th
+              scope="col"
+              className="border-b border-[#CBD7D0] bg-[#E3EAE6] px-3 py-2 text-left text-[length:var(--font-size-meta)] font-semibold text-[#374151]"
+            >
+              실행 대상
+            </th>
+            <th
+              scope="col"
+              className="border-b border-[#CBD7D0] bg-[#E3EAE6] px-3 py-2 text-left text-[length:var(--font-size-meta)] font-semibold text-[#374151]"
+            >
+              진행 정보
+            </th>
+            <th
+              scope="col"
+              className="border-b border-[#CBD7D0] bg-[#E3EAE6] px-3 py-2 text-right text-[length:var(--font-size-meta)] font-semibold text-[#374151]"
+            >
+              상태
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {actions.map((action, index) => {
+            const state = getRowState(action.status);
+            const tone = rowTone[state];
+            const typeLabel = actionTypeMeta[action.type]?.shortLabel ?? `${index + 1}단계`;
+            const statusLabel = actionStatusMeta[action.status]?.label ?? '상태 미수집';
+            const progress = getProgress(action);
+            const ActionIcon = actionTypeIcons[action.type] ?? Layers;
+            const rawTitle = action.title?.trim();
+            const actionTitle = !rawTitle || rawTitle === action.type || actionTypeMeta[rawTitle] ? null : rawTitle;
+
+            return (
+              <tr
+                key={action.id ?? index}
+                className="border-b border-[#DCE4DF] bg-white transition-colors last:border-b-0 hover:bg-[color:color-mix(in_srgb,var(--surface-subtle)_65%,white)]"
+                data-step-state={state}
+                aria-label={`${typeLabel}: ${statusLabel}`}
+              >
+                <td className="px-3 py-2 align-middle">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className={cn('grid size-8 shrink-0 place-items-center rounded-full', tone.icon)}
+                      aria-hidden="true"
+                    >
+                      <Icon icon={ActionIcon} size={17} />
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="block truncate text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
+                        {typeLabel}
+                      </strong>
+                      <span className="block truncate text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
+                        STEP {String(index + 1).padStart(2, '0')}
+                        {actionTitle ? ` · ${actionTitle}` : ''}
+                      </span>
+                    </span>
+                  </div>
+                </td>
+
+                <td className="px-3 py-2 align-middle">
+                  <p
+                    className="min-w-0 truncate text-[length:var(--font-size-meta)] text-[color:var(--text-body)]"
+                    title={action.target}
+                  >
+                    {action.target || '실행 대상 미수집'}
+                  </p>
+                </td>
+
+                <td className="px-3 py-2 align-middle">
+                  <ActionProgressInfo
+                    action={action}
+                    state={state}
+                    tone={tone}
+                    progress={progress}
+                    typeLabel={typeLabel}
+                    detailHref={detailHref}
+                  />
+                </td>
+
+                <td className="px-3 py-2 text-right align-middle">
+                  <span
+                    className={cn(
+                      'inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[length:var(--font-size-meta)] font-bold',
+                      tone.badge,
+                    )}
+                  >
+                    {statusLabel}
                   </span>
-                </span>
-              </div>
-
-              <p
-                className="col-span-2 min-w-0 truncate text-[length:var(--font-size-meta)] text-[color:var(--text-body)] sm:col-span-1"
-                title={action.target}
-              >
-                {action.target || '실행 대상 미수집'}
-              </p>
-
-              <div className="col-span-2 min-w-0 sm:col-span-1">
-                <ActionProgressInfo
-                  action={action}
-                  state={state}
-                  tone={tone}
-                  progress={progress}
-                  typeLabel={typeLabel}
-                  detailHref={detailHref}
-                />
-              </div>
-
-              <span
-                className={cn(
-                  'row-start-1 justify-self-end whitespace-nowrap rounded-full px-2 py-1 text-[length:var(--font-size-meta)] font-bold sm:row-auto',
-                  tone.badge,
-                )}
-              >
-                {statusLabel}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

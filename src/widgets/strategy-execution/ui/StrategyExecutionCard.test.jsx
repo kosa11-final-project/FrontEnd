@@ -36,32 +36,50 @@ describe('StrategyExecutionCard', () => {
 
     expect(screen.getAllByText('할인').length).toBeGreaterThan(0);
     const footer = screen.getByText('최근 동기화 이력 없음').closest('footer');
-    expect(within(footer).getByRole('link', { name: '상세 리포트' })).toHaveAttribute('href', '/execution/355');
-    expect(within(footer).getByRole('button', { name: '실행 단계 보기' })).toBeInTheDocument();
+    const summaryTrigger = screen.getByRole('button', { name: '정직한돈 김치 짜글이 실행 단계 보기' });
+    const detailLink = within(footer).getByRole('link', { name: '상세 리포트' });
+    expect(detailLink).toHaveAttribute('href', '/execution/355');
+    expect(summaryTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: '실행 단계 보기' })).not.toBeInTheDocument();
     const salesPerformance = screen.getByRole('region', { name: '판매 성과 요약' });
     expect(within(salesPerformance).getByText('120개')).toBeInTheDocument();
     expect(within(salesPerformance).getByText('100개')).toBeInTheDocument();
     expect(within(salesPerformance).getByText('120%')).toBeInTheDocument();
     expect(salesPerformance).toHaveTextContent('목표 달성');
     expect(salesPerformance).not.toHaveTextContent('목표보다 20개 더 판매했어요');
-    expect(screen.queryByRole('listitem', { name: '할인: 완료' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: '할인: 완료' })).not.toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: '판매 성과 비교 설명' })).toHaveAttribute(
       'aria-description',
       '목표보다 20개 더 판매했어요',
     );
+    await user.click(screen.getByRole('button', { name: '판매 성과 비교 설명' }));
+    expect(screen.queryByRole('row', { name: '할인: 완료' })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '실행 단계 보기' }));
+    await user.click(summaryTrigger);
 
-    expect(screen.getByRole('listitem', { name: '할인: 완료' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: '할인: 완료' })).toBeInTheDocument();
     const expandedSection = screen.getByRole('region', { name: '정직한돈 김치 짜글이 실행 단계' });
     expect(expandedSection).toHaveClass('border-t');
     expect(expandedSection).not.toHaveClass('p-3', 'bg-[var(--surface-subtle)]');
     expect(screen.getByText('모두의 맛집')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar', { name: '할인 진행률' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '실행 단계 닫기' })).toHaveAttribute('aria-expanded', 'true');
+    expect(summaryTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(summaryTrigger).toHaveAccessibleName('정직한돈 김치 짜글이 실행 단계 닫기');
+
+    await user.click(screen.getByRole('row', { name: '할인: 완료' }));
+    expect(screen.getByRole('row', { name: '할인: 완료' })).toBeInTheDocument();
+
+    await user.click(detailLink);
+    expect(screen.getByRole('row', { name: '할인: 완료' })).toBeInTheDocument();
+
+    summaryTrigger.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('row', { name: '할인: 완료' })).not.toBeInTheDocument();
+    await user.keyboard(' ');
+    expect(screen.getByRole('row', { name: '할인: 완료' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: '주요 전략 지표' })).not.toBeInTheDocument();
-    expect(screen.queryByText('액션 없음')).not.toBeInTheDocument();
+    expect(screen.queryByText('전략 옵션 없음')).not.toBeInTheDocument();
   });
 
   it('calculates an unmet target from the existing sales result and exposes its explanation as a tooltip', () => {

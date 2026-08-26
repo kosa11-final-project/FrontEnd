@@ -14,20 +14,27 @@ describe('StrategyActionStepProgress', () => {
       />,
     );
 
-    const list = screen.getByRole('list', { name: '전략 액션 진행 단계' });
-    expect(list).toBeInTheDocument();
-    expect(list.parentElement).toHaveClass('w-full');
-    expect(list.parentElement).not.toHaveClass(
+    const table = screen.getByRole('table', { name: '전략 실행 단계' });
+    expect(table).toBeInTheDocument();
+    expect(table.parentElement).toHaveClass('w-full');
+    expect(table.parentElement).not.toHaveClass(
       'rounded-[var(--radius-panel)]',
       'border',
       'shadow-[var(--shadow-soft)]',
     );
-    expect(screen.getByRole('listitem', { name: '재할당: 완료' })).toBeInTheDocument();
-    expect(screen.getByRole('listitem', { name: 'RT 이동: 진행 중' })).toBeInTheDocument();
-    expect(screen.getByRole('listitem', { name: '채널 확장: 시작 전' })).toBeInTheDocument();
-    expect(screen.getByText('액션')).toBeInTheDocument();
-    expect(screen.getByText('실행 대상')).toBeInTheDocument();
-    expect(screen.getByText('진행 정보')).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: '재할당: 완료' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: 'RT 이동: 진행 중' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: '채널 확장: 시작 전' })).toBeInTheDocument();
+    const headers = screen.getAllByRole('columnheader');
+    expect(headers).toHaveLength(4);
+    headers.forEach((header) => {
+      expect(header).toHaveClass('bg-[#E3EAE6]', 'border-b', 'border-[#CBD7D0]', 'text-[#374151]', 'font-semibold');
+      expect(header).not.toHaveClass('bg-[#EEF3F0]');
+    });
+    expect(screen.getByRole('row', { name: '재할당: 완료' })).toHaveClass('bg-white');
+    expect(screen.getByRole('columnheader', { name: '전략 상세' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '실행 대상' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '진행 정보' })).toBeInTheDocument();
     expect(screen.getByText('STEP 01')).toBeInTheDocument();
     expect(screen.getByText('STEP 02')).toBeInTheDocument();
     expect(screen.getByText('STEP 03')).toBeInTheDocument();
@@ -45,7 +52,7 @@ describe('StrategyActionStepProgress', () => {
       />,
     );
 
-    const step = screen.getByRole('listitem', { name: 'RT 이동: 완료' });
+    const step = screen.getByRole('row', { name: 'RT 이동: 완료' });
     expect(step).toHaveTextContent('RT 이동');
     expect(step).toHaveTextContent('완료');
     expect(step).toHaveTextContent('중부센터');
