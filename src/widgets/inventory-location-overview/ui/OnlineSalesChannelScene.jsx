@@ -257,7 +257,7 @@ function ChannelTerminal({ index, location, onActivate, onHoverChange, selected 
       <Html position={[0, 5.05, 0]} center style={{ pointerEvents: 'auto' }}>
         <button
           type="button"
-          aria-label={`${location.name}, 판매 가능 재고 ${formatQuantity(location.availableStock)}`}
+          aria-label={`${location.name}, 가용수량 ${formatQuantity(location.availableStock)}`}
           aria-pressed={selected}
           onClick={(event) => {
             event.stopPropagation();
