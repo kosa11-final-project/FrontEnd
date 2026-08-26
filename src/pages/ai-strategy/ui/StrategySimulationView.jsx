@@ -343,8 +343,9 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
           </ReadOnlyCondition>
           {action.actionType === 'RT_TRANSFER' && action.movementCost ? (
             <p className="rounded-lg bg-[var(--surface-subtle)] px-3 py-2 text-xs leading-5 text-[color:var(--text-muted)]">
-              총 {formatNumber(action.movementCost.weightKg)}kg · {formatNumber(action.movementCost.distanceKm)}km ·{' '}
-              {formatNumber(action.movementCost.costPerKgKm)}원/(kg·km)
+              총 {formatNumber(action.movementCost.weightKg, { maximumFractionDigits: 2 })}kg ·{' '}
+              {formatNumber(action.movementCost.distanceKm)}km · {formatNumber(action.movementCost.costPerKgKm)}
+              원/(kg·km)
               {resolveDistanceSourceLabel(action.movementCost.distanceSource)
                 ? ` · ${resolveDistanceSourceLabel(action.movementCost.distanceSource)}`
                 : ''}
@@ -654,6 +655,15 @@ function ActionTimeline({ option }) {
                       : `${action.sourceLocation ? `${action.sourceLocation.locationName} → ` : ''}${action.targetLocation?.locationName ?? ''}`}
                   </strong>
                 </div>
+                {locationPresentation?.supplementaryConditions?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[color:var(--text-muted)]">
+                    {locationPresentation.supplementaryConditions.map((condition) => (
+                      <span key={condition.label}>
+                        {condition.label}: {condition.value}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
                 <p className="mt-2 text-xs leading-5 text-[color:var(--text-muted)]">
                   {formatQuantity(action.actionQuantity)} · {formatDate(action.startDate)}~{formatDate(action.endDate)}{' '}
                   · 실행비 {formatCurrency(action.estimatedActionCost)}
