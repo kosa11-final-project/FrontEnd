@@ -18,7 +18,7 @@ const viewMeta = Object.freeze({
     icon: Building,
     description: '전국 오프라인 판매처에 할당된 재고 분포',
     totalLabel: '오프라인 판매처 재고 합계',
-    sceneLabel: '전국 판매처 관제',
+    sceneLabel: '전국 오프라인 판매처 관제 (백화점 + 직영점)',
   },
   centers: {
     label: '판매처 미할당',
@@ -26,9 +26,9 @@ const viewMeta = Object.freeze({
     shortLabel: '보관 물류센터',
     countUnit: '센터',
     icon: Database,
-    description: '판매처가 지정되지 않은 재고를 보관하는 물류 허브',
+    description: '판매처가 지정되지 않은 재고를 보관하는 물류센터',
     totalLabel: '판매처 미할당 재고 합계',
-    sceneLabel: '물류 허브 관제',
+    sceneLabel: '물류센터 관제',
   },
   online: {
     label: '온라인 판매처 할당',
@@ -38,7 +38,7 @@ const viewMeta = Object.freeze({
     icon: Store,
     description: '그리팅몰과 모두의맛집에 연결된 온라인 재고 흐름',
     totalLabel: '온라인 판매처 재고 합계',
-    sceneLabel: '온라인 재고 연결',
+    sceneLabel: '온라인 판매처 관제',
   },
 });
 
@@ -52,8 +52,8 @@ const detailToneClasses = Object.freeze({
 function getLocationDetailItems(location, viewMode) {
   return [
     { label: '현재고', value: formatQuantity(location.currentStock), tone: 'neutral' },
-    { label: '판매 가능', value: formatQuantity(location.availableStock), tone: 'good' },
-    { label: '임박', value: formatQuantity(location.nearExpiryStock), tone: 'warning' },
+    { label: '가용수량', value: formatQuantity(location.availableStock), tone: 'good' },
+    { label: '소비기한 임박', value: formatQuantity(location.nearExpiryStock), tone: 'warning' },
     viewMode === 'centers'
       ? { label: '출고 예정', value: formatQuantity(location.outboundStock), tone: 'neutral' }
       : { label: '예상 폐기', value: formatQuantity(location.expectedDisposal), tone: 'danger' },
@@ -160,13 +160,13 @@ function MobileLocationList({ activeLocationId, locations, onActivate, viewMode 
                     <Badge variant={tone}>{statusLabel}</Badge>
                   </span>
                   <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-                    {location.region} · 위험 SKU {formatQuantity(location.riskSkuCount)} · 임박{' '}
+                    {location.region} · 위험 SKU {formatQuantity(location.riskSkuCount)} · 소비기한 임박{' '}
                     <strong className="text-[color:var(--warning)]">{formatQuantity(location.nearExpiryStock)}</strong>
                   </span>
                 </span>
                 <span className="text-right">
                   <span className="block text-[length:var(--font-size-tiny)] text-[color:var(--text-muted)]">
-                    판매 가능
+                    가용수량
                   </span>
                   <strong className="mt-1 block tabular-nums text-[length:var(--font-size-body)] text-[color:var(--good)]">
                     {formatQuantity(location.availableStock)}
@@ -194,7 +194,7 @@ function SceneTotalSummary({ meta, totalAvailableStock, totalNearExpiryStock }) 
       className="pointer-events-none absolute right-3 top-3 z-[2000] hidden min-w-[292px] grid-cols-2 items-stretch overflow-hidden rounded-[var(--radius-panel)] border border-white/85 bg-white/95 shadow-[0_12px_28px_rgba(21,70,53,0.13)] backdrop-blur-md md:grid"
     >
       <div className="px-3 py-2.5">
-        <span className="block text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">전체 판매 가능</span>
+        <span className="block text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">전체 가용수량</span>
         <strong className="mt-0.5 block whitespace-nowrap tabular-nums text-[length:var(--font-size-body)] text-[color:var(--good)]">
           {formatQuantity(totalAvailableStock)}
         </strong>
@@ -210,8 +210,6 @@ function SceneTotalSummary({ meta, totalAvailableStock, totalNearExpiryStock }) 
 }
 
 function SceneDock({ location, meta, viewMode }) {
-  const tone = getInventoryLocationTone(location, viewMode);
-  const statusLabel = tone === 'danger' ? '위험' : tone === 'warning' ? '주의' : '정상';
   const displayName = viewMode === 'online' ? location.shortName || location.name : location.name;
   const description =
     viewMode === 'online'
@@ -219,21 +217,16 @@ function SceneDock({ location, meta, viewMode }) {
       : location.address || location.description || '주소 정보 없음';
 
   return (
-    <aside className="pointer-events-none absolute bottom-4 left-4 right-4 z-[2000] hidden grid-cols-[minmax(210px,0.9fr)_minmax(0,3.1fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/95 p-3 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid">
+    <aside className="pointer-events-none absolute bottom-4 left-4 right-4 z-[2000] hidden grid-cols-[minmax(230px,1fr)_minmax(0,3fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/95 p-3 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid">
       <div className="flex min-w-0 items-center gap-3 border-r border-[var(--border)] pr-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
           <Icon icon={meta.icon} size={18} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <span className="flex items-center gap-2">
-            <strong className="truncate text-[length:var(--font-size-body)] text-[color:var(--text-heading)]">
-              {displayName}
-            </strong>
-            <Badge variant={tone} size="lg">
-              {statusLabel}
-            </Badge>
-          </span>
-          <p className="mt-1 truncate text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
+          <strong className="block truncate text-[length:var(--font-size-body)] leading-tight text-[color:var(--text-heading)]">
+            {displayName}
+          </strong>
+          <p className="mt-0.5 line-clamp-2 break-keep text-[length:var(--font-size-meta)] leading-tight text-[color:var(--text-body)]">
             {location.region} · {description}
           </p>
         </div>
@@ -411,7 +404,7 @@ export function InventoryLocationOverview({
               {displayLocation ? <SceneDock location={displayLocation} meta={meta} viewMode={viewMode} /> : null}
 
               <p className="sr-only">
-                {meta.shortLabel} {locations.length}개의 판매 가능 재고와 위험도를 보여주는 3D 재고 관제 장면입니다.
+                {meta.shortLabel} {locations.length}개의 가용수량과 위험도를 보여주는 3D 재고 관제 장면입니다.
                 {viewMode === 'centers'
                   ? '시설 이름을 선택하면 해당 위치로 카메라가 이동합니다.'
                   : '판매처에 마우스를 올리거나 이름을 선택하면 하단 상세 수치가 변경됩니다.'}

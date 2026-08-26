@@ -880,7 +880,7 @@ export function WarehouseScenePrototype() {
         </div>
         {[
           ['현재고', selectedCenter.currentQty, '#25373a'],
-          ['판매 가능', selectedCenter.availableQty, '#1e9d0d'],
+          ['가용수량', selectedCenter.availableQty, '#1e9d0d'],
           ['소비기한 임박', selectedCenter.expiringQty, '#f08b24'],
           ['출고 예정', selectedCenter.outboundQty, '#4a554b'],
           ['위험 SKU', selectedCenter.riskSkuCount, '#e33b2f'],

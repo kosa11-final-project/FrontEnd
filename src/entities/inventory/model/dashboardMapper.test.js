@@ -27,7 +27,7 @@ describe('dashboard response mapper', () => {
     });
     expect(dashboard.offlineStores[0]).toMatchObject({
       id: 'DEPT_PANGYO',
-      shortName: '판교',
+      shortName: '판교점',
       expectedDisposal: 38,
     });
     expect(dashboard.riskSalesPointsTop10[0]).toMatchObject({ rank: 1, type: '온라인' });

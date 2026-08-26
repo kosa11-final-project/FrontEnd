@@ -39,20 +39,20 @@ const cityPalette = Object.freeze({
 
 const storeLayouts = Object.freeze({
   DEPT_THEHYUNDAI_SEOUL: { shortName: '더현대서울', model: 0, position: [-5.9, 0, -2.45], height: 2.28 },
-  DEPT_APGUJEONG: { shortName: '압구정', model: 1, position: [-3.55, 0, -2.45], height: 2.02 },
-  DEPT_TRADE_CENTER: { shortName: '무역', model: 0, position: [-1.18, 0, -2.45], height: 2.34 },
-  DEPT_CHEONHO: { shortName: '천호', model: 2, position: [1.18, 0, -2.45], height: 1.88 },
-  DEPT_SINCHON: { shortName: '신촌', model: 2, position: [3.5, 0, -2.45], height: 1.84 },
-  DEPT_MIA: { shortName: '미아', model: 1, position: [5.75, 0, -2.45], height: 1.96 },
-  DEPT_MOKDONG: { shortName: '목동', model: 1, position: [-4.75, 0, 0], height: 2 },
-  DEPT_JUNGDONG: { shortName: '중동', model: 2, position: [-2.35, 0, 0], height: 1.82 },
-  DEPT_KINTEX: { shortName: '킨텍스', model: 2, position: [0, 0, 0], height: 1.9 },
-  DEPT_PANGYO: { shortName: '판교', model: 0, position: [2.65, 0, 0], height: 2.38 },
+  DEPT_APGUJEONG: { shortName: '압구정점', model: 1, position: [-3.55, 0, -2.45], height: 2.02 },
+  DEPT_TRADE_CENTER: { shortName: '무역점', model: 0, position: [-1.18, 0, -2.45], height: 2.34 },
+  DEPT_CHEONHO: { shortName: '천호점', model: 2, position: [1.18, 0, -2.45], height: 1.88 },
+  DEPT_SINCHON: { shortName: '신촌점', model: 2, position: [3.5, 0, -2.45], height: 1.84 },
+  DEPT_MIA: { shortName: '미아점', model: 1, position: [5.75, 0, -2.45], height: 1.96 },
+  DEPT_MOKDONG: { shortName: '목동점', model: 1, position: [-4.75, 0, 0], height: 2 },
+  DEPT_JUNGDONG: { shortName: '중동점', model: 2, position: [-2.35, 0, 0], height: 1.82 },
+  DEPT_KINTEX: { shortName: '킨텍스점', model: 2, position: [0, 0, 0], height: 1.9 },
+  DEPT_PANGYO: { shortName: '판교점', model: 0, position: [2.65, 0, 0], height: 2.38 },
   HMART_ASAN_HOSPITAL: { shortName: 'Hmart 아산병원점', model: 2, position: [5.05, 0, 0], height: 1.78 },
-  DEPT_CHUNGCHEONG: { shortName: '충청', model: 1, position: [-4.05, 0, 2.55], height: 1.94 },
-  DEPT_DAEGU: { shortName: '대구', model: 0, position: [-1.35, 0, 2.55], height: 2.26 },
-  DEPT_ULSAN: { shortName: '울산', model: 2, position: [1.85, 0, 2.55], height: 1.86 },
-  DEPT_BUSAN: { shortName: '부산', model: 1, position: [4.65, 0, 2.55], height: 2 },
+  DEPT_CHUNGCHEONG: { shortName: '충청점', model: 1, position: [-4.05, 0, 2.55], height: 1.94 },
+  DEPT_DAEGU: { shortName: '대구점', model: 0, position: [-1.35, 0, 2.55], height: 2.26 },
+  DEPT_ULSAN: { shortName: '울산점', model: 2, position: [1.85, 0, 2.55], height: 1.86 },
+  DEPT_BUSAN: { shortName: '부산점', model: 1, position: [4.65, 0, 2.55], height: 2 },
 });
 
 const fallbackLayouts = Object.values(storeLayouts);
