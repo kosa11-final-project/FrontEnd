@@ -63,8 +63,13 @@ function mapAction(action, candidate, chartRange, index) {
     actionType: action.actionType,
     sourceLocation: action.sourceLocation ?? null,
     targetLocation: action.targetLocation ?? null,
+    physicalSourceLocation: action.physicalSourceLocation ?? null,
+    physicalDestinationLocation: action.physicalDestinationLocation ?? null,
+    allocationSourceSalesPoint: action.allocationSourceSalesPoint ?? null,
+    allocationTargetSalesPoint: action.allocationTargetSalesPoint ?? null,
     actionQuantity: action.actionQuantity,
     estimatedActionCost: action.estimatedActionCost,
+    movementCost: action.movementCost ?? null,
     strategyPrice: action.strategyPrice,
     discountRate: action.discountRate,
     startDate: candidate.startDate ?? chartRange?.startDate ?? null,
@@ -82,7 +87,14 @@ function replaceLocationCodesWithNames(value, actions) {
   const replacements = [
     ...new Map(
       actions
-        .flatMap((action) => [action.sourceLocation, action.targetLocation])
+        .flatMap((action) => [
+          action.sourceLocation,
+          action.targetLocation,
+          action.physicalSourceLocation,
+          action.physicalDestinationLocation,
+          action.allocationSourceSalesPoint,
+          action.allocationTargetSalesPoint,
+        ])
         .filter(Boolean)
         .flatMap((location) => {
           const idAlias =
@@ -208,14 +220,25 @@ export function applyAdjustedSimulationResult(option, response) {
   }
 
   const conditions = data.adjustedConditions;
-  const actions = option.actions.map((action) => ({
-    ...action,
-    actionQuantity: conditions.actionQuantity,
-    discountRate: action.actionType === 'PRICE_DISCOUNT' ? conditions.discountRate : action.discountRate,
-    strategyPrice: action.actionType === 'PRICE_DISCOUNT' ? conditions.strategyPrice : action.strategyPrice,
-    startDate: conditions.startDate,
-    endDate: conditions.endDate,
-  }));
+  const adjustedActions = new Map((data.actions ?? []).map((action) => [action.actionOrder, action]));
+  const actions = option.actions.map((action) => {
+    const adjustedAction = adjustedActions.get(action.actionOrder);
+    return {
+      ...action,
+      actionQuantity: adjustedAction?.actionQuantity ?? conditions.actionQuantity,
+      estimatedActionCost: adjustedAction?.estimatedActionCost ?? action.estimatedActionCost,
+      movementCost: adjustedAction?.movementCost
+        ? {
+            ...action.movementCost,
+            ...adjustedAction.movementCost,
+          }
+        : action.movementCost,
+      discountRate: action.actionType === 'PRICE_DISCOUNT' ? conditions.discountRate : action.discountRate,
+      strategyPrice: action.actionType === 'PRICE_DISCOUNT' ? conditions.strategyPrice : action.strategyPrice,
+      startDate: conditions.startDate,
+      endDate: conditions.endDate,
+    };
+  });
 
   return {
     ...option,

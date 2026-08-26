@@ -60,6 +60,13 @@ function formatRate(rate) {
   return `${formatNumber((rate ?? 0) * 100, { maximumFractionDigits: 1 })}%`;
 }
 
+function resolveDistanceSourceLabel(source) {
+  if (!source) return null;
+  if (source === 'DUMMY') return '개발용 추정 거리';
+  if (source === 'MANUAL') return '수동 등록 거리';
+  return `${source} 경로 기준`;
+}
+
 function formatMetricValue(kind, value) {
   if (value === null || value === undefined) return kind === 'days' ? '기간 내 미소진' : '-';
   if (kind === 'currency') return formatCurrency(value);
@@ -232,6 +239,10 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
     ...action,
     sourceLocation: values.sourceLocation,
     targetLocation: values.targetLocation,
+    physicalSourceLocation: values.physicalSourceLocation,
+    physicalDestinationLocation: values.physicalDestinationLocation,
+    allocationSourceSalesPoint: values.allocationSourceSalesPoint,
+    allocationTargetSalesPoint: values.allocationTargetSalesPoint,
   });
   const isLocationAction = action.actionType === 'REALLOCATION' || action.actionType === 'RT_TRANSFER';
   const isChannelAction = action.actionType === 'CHANNEL_EXPANSION' || action.actionType === 'CHANNEL_CONCENTRATION';
@@ -275,6 +286,11 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
           <ReadOnlyCondition label={locationPresentation.targetLabel}>
             {locationPresentation.targetValue}
           </ReadOnlyCondition>
+          {locationPresentation.supplementaryConditions?.map((condition) => (
+            <ReadOnlyCondition key={condition.label} label={condition.label}>
+              {condition.value}
+            </ReadOnlyCondition>
+          ))}
           <p className="rounded-lg bg-[var(--surface-subtle)] px-3 py-2 text-xs leading-5 text-[color:var(--text-muted)]">
             {locationPresentation.description}
           </p>
@@ -313,17 +329,29 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
       />
 
       {!isDiscountAction && (
-        <ReadOnlyCondition
-          label={
-            isChannelAction
-              ? '채널 운영 비용'
-              : action.actionType === 'REALLOCATION'
-                ? '재할당 실행 비용'
-                : '이동·실행 비용'
-          }
-        >
-          {formatCurrency(values.actionCost)}
-        </ReadOnlyCondition>
+        <div className="grid gap-2">
+          <ReadOnlyCondition
+            label={
+              isChannelAction
+                ? '채널 운영 비용'
+                : action.actionType === 'REALLOCATION'
+                  ? '재할당 실행 비용'
+                  : '예상 이동비'
+            }
+          >
+            {formatCurrency(values.actionCost)}
+          </ReadOnlyCondition>
+          {action.actionType === 'RT_TRANSFER' && action.movementCost ? (
+            <p className="rounded-lg bg-[var(--surface-subtle)] px-3 py-2 text-xs leading-5 text-[color:var(--text-muted)]">
+              총 {formatNumber(action.movementCost.weightKg, { maximumFractionDigits: 2 })}kg ·{' '}
+              {formatNumber(action.movementCost.distanceKm)}km · {formatNumber(action.movementCost.costPerKgKm)}
+              원/(kg·km)
+              {resolveDistanceSourceLabel(action.movementCost.distanceSource)
+                ? ` · ${resolveDistanceSourceLabel(action.movementCost.distanceSource)}`
+                : ''}
+            </p>
+          ) : null}
+        </div>
       )}
 
       {action.lotAllocations?.length ? (
@@ -612,6 +640,7 @@ function ActionTimeline({ option }) {
       <ol className="mt-5 grid gap-3">
         {option.actions.map((action) => {
           const meta = resolveStrategyActionType(action.actionType);
+          const locationPresentation = resolveStrategyLocationPresentation(action);
           return (
             <li key={action.actionOrder} className="grid grid-cols-[32px_1fr] gap-3">
               <span className="grid size-8 place-items-center rounded-full bg-[var(--primary)] text-xs font-bold text-white">
@@ -621,10 +650,20 @@ function ActionTimeline({ option }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={meta.variant}>{meta.label}</Badge>
                   <strong className="text-sm text-[color:var(--text-heading)]">
-                    {action.sourceLocation ? `${action.sourceLocation.locationName} → ` : ''}
-                    {action.targetLocation?.locationName}
+                    {locationPresentation
+                      ? `${locationPresentation.sourceValue} → ${locationPresentation.targetValue}`
+                      : `${action.sourceLocation ? `${action.sourceLocation.locationName} → ` : ''}${action.targetLocation?.locationName ?? ''}`}
                   </strong>
                 </div>
+                {locationPresentation?.supplementaryConditions?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[color:var(--text-muted)]">
+                    {locationPresentation.supplementaryConditions.map((condition) => (
+                      <span key={condition.label}>
+                        {condition.label}: {condition.value}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
                 <p className="mt-2 text-xs leading-5 text-[color:var(--text-muted)]">
                   {formatQuantity(action.actionQuantity)} · {formatDate(action.startDate)}~{formatDate(action.endDate)}{' '}
                   · 실행비 {formatCurrency(action.estimatedActionCost)}

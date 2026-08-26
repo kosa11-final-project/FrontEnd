@@ -54,13 +54,21 @@ describe('strategy detail model', () => {
         actionType: 'RT_TRANSFER',
         sourceLocation: { locationName: '경인센터', locationType: 'WAREHOUSE' },
         targetLocation: { locationName: '무역센터점', locationType: 'SALES_POINT' },
+        physicalSourceLocation: { locationName: '경인센터', locationType: 'WAREHOUSE', locationId: 501 },
+        physicalDestinationLocation: { locationName: '수지센터', locationType: 'WAREHOUSE', locationId: 502 },
+        allocationSourceSalesPoint: { locationName: '압구정본점', locationType: 'SALES_POINT', locationId: 10 },
+        allocationTargetSalesPoint: { locationName: '무역센터점', locationType: 'SALES_POINT', locationId: 20 },
       }),
     ).toMatchObject({
       sourceLabel: '출발 물류센터',
-      targetLabel: '도착 판매처',
+      targetLabel: '도착 물류센터',
       badge: '실물 재고 이동',
       sourceValue: '경인센터 (물류센터)',
-      targetValue: '무역센터점 (판매처)',
+      targetValue: '수지센터 (물류센터)',
+      supplementaryConditions: [
+        { label: '기존 할당 판매처', value: '압구정본점' },
+        { label: '대상 판매처', value: '무역센터점' },
+      ],
     });
   });
 
@@ -78,6 +86,15 @@ describe('strategy detail model', () => {
       sourceValue: '서버 자동 선택',
       targetValue: '서버 자동 선택',
     });
+    expect(
+      resolveStrategyLocationPresentation({
+        actionType: 'RT_TRANSFER',
+        physicalSourceLocation: { locationName: '압구정본점', locationType: 'SALES_POINT', locationId: 10 },
+        physicalDestinationLocation: { locationName: '무역센터점', locationType: 'SALES_POINT', locationId: 20 },
+        allocationSourceSalesPoint: { locationName: '압구정본점', locationType: 'SALES_POINT', locationId: 10 },
+        allocationTargetSalesPoint: { locationName: '무역센터점', locationType: 'SALES_POINT', locationId: 20 },
+      }),
+    ).toMatchObject({ supplementaryConditions: [] });
   });
 
   it('기준 시계열과 옵션 시계열을 같은 날짜 행으로 합친다', () => {
