@@ -128,6 +128,27 @@ export async function mockAuthenticatedSession(page) {
       body: jsonBody({ data: authenticatedUser, timestamp: '2026-08-14T00:00:00Z' }),
     }),
   );
+  await page.route('**/api/v1/ai-strategies/events', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'text/event-stream',
+      body: 'event: connected\ndata: {}\n\n',
+    }),
+  );
+  await page.route('**/api/v1/notifications/unread-count', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: jsonBody({ data: { unreadCount: 0 }, timestamp: '2026-08-26T00:00:00Z' }),
+    }),
+  );
+  await page.route('**/api/v1/notifications', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: jsonBody({ data: [], timestamp: '2026-08-26T00:00:00Z' }),
+    }),
+  );
   await mockInventoryReadSlice(page);
 }
 
