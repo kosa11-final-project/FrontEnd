@@ -56,7 +56,7 @@
 - Pretendard 타이포그래피
 - Mesh Forecast 스타일의 제한적인 표면 효과
 - shadcn/ui 방식의 소스 소유 공통 컴포넌트
-- React Router, Axios, TanStack Query, Zustand, TanStack Table, Storybook, Vitest, Playwright, Sentry 기반
+- React Router, Axios, TanStack Query, Zustand, TanStack Table, Storybook, Vitest, Playwright 기반
 - 실제 Spring Boot API와 업무 동작은 계약이 확정된 뒤 수직 slice로 구현
 
 현재 초기 화면은 앱 셸과 라우팅을 확인하기 위한 준비 화면입니다. 기능이 비어 있다는 것은 구조가 누락됐다는 뜻이 아니라, 백엔드 계약 전에는 임의의 데이터를 확정하지 않기 위한 의도적인 상태입니다.
@@ -228,7 +228,7 @@ src/features/inventory-filter/model/filterState.js
 
 | 계층 | 질문 | 넣는 것 | 넣지 않는 것 |
 | --- | --- | --- | --- |
-| app | 앱 전체를 어떻게 조립하는가? | Provider, Router, Layout, Error Boundary | 특정 재고 카드의 업무 규칙 |
+| app | 앱 전체를 어떻게 조립하는가? | Provider, Router, Layout | 특정 재고 카드의 업무 규칙 |
 | pages | URL에서 어떤 화면을 보여주는가? | page 조합, route-level layout | 범용 Button 구현 및 API 세부 구현 |
 | widgets | 여러 조각을 묶은 업무 블록은 무엇인가? | 앱 셸, 재고 표 영역, 상세 Drawer 영역 | 단순 범용 Input |
 | features | 사용자가 수행하는 한 가지 행동은 무엇인가? | 필터, 동기화, 상세 열기, 전략 실행 | 단순 상품 데이터 모델 |
@@ -289,7 +289,6 @@ src/
 │  ├─ config/                 # 환경변수 정규화
 │  ├─ hooks/                  # 범용 React hook
 │  ├─ lib/                    # 순수 함수와 formatter
-│  ├─ monitoring/             # Sentry
 │  └─ ui/                     # 공통 UI와 Storybook
 ├─ _template/                 # 새 slice 예시
 ├─ styles.css                 # 전역 디자인 토큰
@@ -309,7 +308,6 @@ src/
 | providers | 앱 전체 Context와 외부 Provider | AppProviders.jsx |
 | layouts | 전역 widget과 Router Outlet 배치 | AppLayout.jsx |
 | router | route, redirect, lazy route | router.jsx |
-| monitoring | Sentry 초기화와 scrubber | sentry.js |
 | stories | Storybook 독립 상태 문서 | Button.stories.jsx |
 
 lib은 React lifecycle이 없는 순수 코드, hooks는 React state와 effect를 사용하는 코드입니다. api는 통신, model은 통신 결과를 프론트 도메인으로 해석하는 역할입니다.
@@ -783,17 +781,6 @@ import { Icon } from '@/shared/ui';
 
 하나의 테스트로 모든 것을 검증하려 하지 않습니다. 순수 규칙은 Vitest, 사용자 흐름은 Playwright, 시각 상태는 Storybook에 둡니다.
 
-### 8.14 Sentry
-
-Sentry는 화면을 만드는 라이브러리가 아니라 운영 중 오류를 관찰하는 경계입니다.
-
-- DSN이 없으면 로컬에서 비활성화됩니다.
-- Error Boundary를 통해 렌더 오류를 수집합니다.
-- session, token, cookie, authorization, SKU, LOT 등 민감정보 scrubber를 통과합니다.
-- 401·403을 무조건 예외로 보내지 않도록 운영 정책을 백엔드 계약과 정합니다.
-
----
-
 ## 9. Axios와 TanStack Query를 함께 쓰는 표준 흐름
 
 ### 9.1 전체 데이터 흐름
@@ -1091,7 +1078,7 @@ error
 - query key와 URL parser
 - 위험등급 매핑
 - Zustand store action
-- CSRF token helper와 Sentry scrubber
+- CSRF token helper
 
 ### 14.2 Playwright를 쓰는 곳
 

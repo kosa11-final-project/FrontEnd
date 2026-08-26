@@ -25,11 +25,11 @@ describe('inventoryQueries', () => {
   it('provides query options with correct query keys and enablement rules', () => {
     const listOptions = inventoryListQueryOptions({ q: '만두' });
     expect(listOptions.queryKey).toEqual(['inventory', 'list', { q: '만두' }]);
-    expect(listOptions.staleTime).toBe(30_000);
+    expect(listOptions.staleTime).toBe(0);
 
     const summaryOptions = inventorySummaryQueryOptions({});
     expect(summaryOptions.queryKey).toEqual(['inventory', 'summary', {}]);
-    expect(summaryOptions.staleTime).toBe(30_000);
+    expect(summaryOptions.staleTime).toBe(0);
 
     const detailEnabled = inventoryDetailQueryOptions('SKU_01', 'STORE_01');
     expect(detailEnabled.enabled).toBe(true);

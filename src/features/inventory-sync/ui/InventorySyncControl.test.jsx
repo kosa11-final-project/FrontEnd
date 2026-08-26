@@ -10,10 +10,7 @@ const apiMock = vi.hoisted(() => ({
 }));
 const toastMock = vi.hoisted(() => ({ toast: vi.fn() }));
 vi.mock('../api/inventorySyncApi.js', () => apiMock);
-vi.mock('@/shared/ui', async () => ({
-  ...(await vi.importActual('@/shared/ui')),
-  toast: toastMock.toast,
-}));
+vi.mock('@/shared/ui/use-toast.js', () => ({ toast: toastMock.toast }));
 
 import {
   INVENTORY_REFRESH_JITTER_MS,

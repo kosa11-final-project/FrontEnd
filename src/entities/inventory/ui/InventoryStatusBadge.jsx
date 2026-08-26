@@ -1,5 +1,5 @@
 import { Danger, InfoCircle, TickCircle, Warning } from 'reicon-react';
-import { Badge } from '@/shared/ui';
+import { Badge } from '@/shared/ui/Badge.jsx';
 import { Icon } from '@/shared/ui/Icon.jsx';
 import { cn } from '@/shared/lib/cn';
 
@@ -14,35 +14,35 @@ export const inventoryStatusMeta = Object.freeze({
   good: {
     label: '양호',
     variant: 'good',
-    dotColor: 'bg-[#27B06E]',
+    dotColor: 'bg-[var(--primary)]',
     icon: TickCircle,
     description: '재고 흐름이 기준 범위 안에 있습니다.',
   },
   SAFE: {
     label: '양호',
     variant: 'good',
-    dotColor: 'bg-[#27B06E]',
+    dotColor: 'bg-[var(--primary)]',
     icon: TickCircle,
     description: '재고 흐름이 기준 범위 안에 있습니다.',
   },
   GOOD: {
     label: '양호',
     variant: 'good',
-    dotColor: 'bg-[#27B06E]',
+    dotColor: 'bg-[var(--primary)]',
     icon: TickCircle,
     description: '재고 흐름이 기준 범위 안에 있습니다.',
   },
   normal: {
     label: '보통',
     variant: 'info',
-    dotColor: 'bg-[#00B0D7]',
+    dotColor: 'bg-[#00627F]',
     icon: InfoCircle,
     description: '추가 확인이 필요하지 않은 일반 상태입니다.',
   },
   NORMAL: {
     label: '보통',
     variant: 'info',
-    dotColor: 'bg-[#00B0D7]',
+    dotColor: 'bg-[#00627F]',
     icon: InfoCircle,
     description: '추가 확인이 필요하지 않은 일반 상태입니다.',
   },

@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { CloseCircle, TickCircle, ChevronDown, ChevronRight, Filter } from 'reicon-react';
-import { STORAGE_NAMES } from '@/entities/inventory';
-import { getRiskGradeLabel, normalizeRiskGrade } from '@/entities/risk';
+import { STORAGE_NAMES } from '@/entities/inventory/model/inventory.js';
+import { getRiskGradeLabel, normalizeRiskGrade } from '@/entities/risk/model/risk.js';
 
 const STORAGE_BADGE_COLORS = {
   FROZEN: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
@@ -133,7 +133,7 @@ function FilterMultiSelect({
         aria-expanded={isOpen}
         disabled={isFilterOptionsLoading}
         onClick={() => onOpenChange(isOpen ? null : label)}
-        className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 text-left text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-white focus:border-[#27B06E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#27B06E]/20 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 text-left text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-white focus:border-[var(--primary)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={`min-w-0 truncate ${selectedOptions.length ? 'text-gray-800' : 'text-gray-500'}`}>
           {triggerLabel}
@@ -178,7 +178,7 @@ function FilterMultiSelect({
                 <span
                   aria-hidden="true"
                   className={`grid size-4 shrink-0 place-items-center rounded border ${
-                    isSelected ? 'border-[#27B06E] bg-[#27B06E] text-white' : 'border-gray-300 bg-white'
+                    isSelected ? 'border-[var(--primary)] bg-[var(--primary)] text-white' : 'border-gray-300 bg-white'
                   }`}
                 >
                   {isSelected && <TickCircle size={12} />}
@@ -694,9 +694,9 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                       >
                         <span className="truncate">{cat.name}</span>
                         {isChecked ? (
-                          <TickCircle size={14} className="text-[#27B06E]" />
+                          <TickCircle size={14} className="text-[var(--primary)]" />
                         ) : (
-                          <ChevronRight size={12} className={isSelected ? 'text-[#27B06E]' : 'text-gray-300'} />
+                          <ChevronRight size={12} className={isSelected ? 'text-[var(--primary)]' : 'text-gray-300'} />
                         )}
                       </button>
                     );
@@ -732,9 +732,12 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                         >
                           <span className="truncate">{cat.name}</span>
                           {isChecked ? (
-                            <TickCircle size={14} className="text-[#27B06E]" />
+                            <TickCircle size={14} className="text-[var(--primary)]" />
                           ) : (
-                            <ChevronRight size={12} className={isSelected ? 'text-[#27B06E]' : 'text-gray-300'} />
+                            <ChevronRight
+                              size={12}
+                              className={isSelected ? 'text-[var(--primary)]' : 'text-gray-300'}
+                            />
                           )}
                         </button>
                       );
@@ -771,7 +774,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                           }`}
                         >
                           <span className="truncate">{cat.name}</span>
-                          {isSelected && <TickCircle size={14} className="text-[#27B06E]" />}
+                          {isSelected && <TickCircle size={14} className="text-[var(--primary)]" />}
                         </button>
                       );
                     })
@@ -867,7 +870,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                   aria-label="안전재고 미달 상품 포함여부"
                   checked={draftShortageYn === 'Y'}
                   onChange={(event) => setDraftShortageYn(event.target.checked ? 'Y' : '')}
-                  className="size-3.5 rounded border-gray-300 text-[#27B06E] focus:ring-[#27B06E]"
+                  className="size-5 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)]"
                 />
                 <span className="whitespace-nowrap text-[11px] font-semibold text-gray-700">
                   안전재고 미달 상품 포함여부
@@ -940,7 +943,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
             <button
               type="button"
               onClick={handleApply}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#27B06E] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#20945C] focus:outline-none focus:ring-2 focus:ring-[#27B06E]/40 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 transition-colors"
             >
               <span>필터 적용하기</span>
               {activeCount > 0 && (

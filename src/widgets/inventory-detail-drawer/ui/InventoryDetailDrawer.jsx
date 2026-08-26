@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Danger, Refresh } from 'reicon-react';
-import { inventoryDetailQueryOptions, inventoryLotsQueryOptions } from '@/entities/inventory';
-import {
-  demandForecastQueryOptions,
-  DemandForecastChart,
-  DemandForecastStateView,
-  DemandForecastTable,
-} from '@/entities/forecast';
-import { inventoryRiskQueryOptions, RiskExplanationPanel } from '@/entities/risk';
+import { inventoryDetailQueryOptions, inventoryLotsQueryOptions } from '@/entities/inventory/api/inventoryQueries.js';
+import { demandForecastQueryOptions } from '@/entities/forecast/api/forecastQueries.js';
+import { DemandForecastStateView } from '@/entities/forecast/ui/DemandForecastStateView.jsx';
+import { DemandForecastTable } from '@/entities/forecast/ui/DemandForecastTable.jsx';
+
+const DemandForecastChart = lazy(() =>
+  import('@/entities/forecast/ui/DemandForecastChart.jsx').then((m) => ({ default: m.DemandForecastChart })),
+);
+import { inventoryRiskQueryOptions } from '@/entities/risk/api/riskQueries.js';
+import { RiskExplanationPanel } from '@/entities/risk/ui/RiskExplanationPanel.jsx';
 import { formatQuantity } from '@/shared/lib/format';
-import { Button, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
+import { Button } from '@/shared/ui/Button.jsx';
+import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/Tabs.jsx';
 import { InventoryDetailHeader } from './InventoryDetailHeader.jsx';
 import { InventoryOverviewSkeleton } from './InventoryOverviewSkeleton.jsx';
 import { InventorySalesPointsSection } from './InventorySalesPointsSection.jsx';
@@ -501,7 +504,15 @@ export function InventoryDetailDrawer({
                         수요예측은 표시되지만 안전재고 데이터가 없어 기준선과 대비 상태는 표시되지 않습니다.
                       </div>
                     )}
-                    <DemandForecastChart data={forecastQuery.data} height={280} />
+                    <Suspense
+                      fallback={
+                        <div className="flex h-[280px] items-center justify-center text-xs text-slate-400 animate-pulse">
+                          차트를 불러오는 중입니다...
+                        </div>
+                      }
+                    >
+                      <DemandForecastChart data={forecastQuery.data} height={280} />
+                    </Suspense>
                     {forecastQuery.data && !['NO_DATA', 'ERROR'].includes(forecastQuery.data.status) && (
                       <DemandForecastTable data={forecastQuery.data} />
                     )}

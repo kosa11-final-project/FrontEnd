@@ -38,7 +38,7 @@ function AuthenticatedStory({ children }) {
 }
 
 const meta = {
-  title: 'App Shell/Navigation',
+  title: 'Widgets/App Shell/Navigation',
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',

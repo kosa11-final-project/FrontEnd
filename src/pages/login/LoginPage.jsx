@@ -21,13 +21,64 @@ export default function LoginPage() {
 
   if (currentUserQuery.isPending) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[var(--background)] px-6">
-        <StateView
-          state="loading"
-          title="로그인 상태를 확인하고 있습니다."
-          description="잠시만 기다려 주세요."
-          className="w-full max-w-md"
-        />
+      <main className="login-page">
+        <div className="login-page__frame">
+          <section className="login-page__visual" aria-labelledby="stockfit-visual-title">
+            <picture>
+              <source srcSet="/assets/brand/stockfit-login-hero.webp" type="image/webp" />
+              <img
+                className="login-page__visual-image"
+                src="/assets/brand/stockfit-login-hero.jpg"
+                alt="식품 매장과 재고 흐름을 추상화한 파스텔 페이퍼 콜라주"
+                width={800}
+                height={600}
+                decoding="async"
+              />
+            </picture>
+            <div className="login-page__visual-wash" aria-hidden="true" />
+            <div className="login-page__visual-copy">
+              <picture>
+                <source srcSet="/assets/brand/stockfit-sidebar-logo.webp" type="image/webp" />
+                <img
+                  className="login-page__visual-logo"
+                  src="/assets/brand/stockfit-sidebar-logo.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={44}
+                  height={44}
+                  decoding="async"
+                />
+              </picture>
+              <div>
+                <h1 id="stockfit-visual-title">StockFit</h1>
+                <p>HYUNDAI GREEN FOOD 통합 재고 관리 플랫폼</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="login-page__form" aria-labelledby="login-title">
+            <div className="login-page__form-inner">
+              <div className="login-page__form-heading">
+                <h2 id="login-title">로그인</h2>
+                <p>업무 계정으로 StockFit에 접속해 주세요.</p>
+              </div>
+
+              <div className="flex flex-col gap-4 py-4" aria-busy="true" aria-label="로그인 폼 준비 중">
+                <div className="flex flex-col gap-1.5">
+                  <div className="h-4 w-16 rounded bg-[#E5E7EB] motion-safe:animate-pulse" />
+                  <div className="h-11 w-full rounded-lg bg-[#F3F4F6] motion-safe:animate-pulse" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="h-4 w-16 rounded bg-[#E5E7EB] motion-safe:animate-pulse" />
+                  <div className="h-11 w-full rounded-lg bg-[#F3F4F6] motion-safe:animate-pulse" />
+                </div>
+                <div className="mt-2 h-11 w-full rounded-lg bg-[var(--primary)]/20 motion-safe:animate-pulse" />
+              </div>
+
+              <p className="login-page__support-copy">계정 접근에 문제가 있다면 시스템 관리자에게 문의해 주세요.</p>
+            </div>
+          </section>
+        </div>
       </main>
     );
   }
@@ -58,19 +109,31 @@ export default function LoginPage() {
     <main className="login-page">
       <div className="login-page__frame">
         <section className="login-page__visual" aria-labelledby="stockfit-visual-title">
-          <img
-            className="login-page__visual-image"
-            src="/assets/brand/stockfit-login-hero.jpg"
-            alt="식품 매장과 재고 흐름을 추상화한 파스텔 페이퍼 콜라주"
-          />
+          <picture>
+            <source srcSet="/assets/brand/stockfit-login-hero.webp" type="image/webp" />
+            <img
+              className="login-page__visual-image"
+              src="/assets/brand/stockfit-login-hero.jpg"
+              alt="식품 매장과 재고 흐름을 추상화한 파스텔 페이퍼 콜라주"
+              width={800}
+              height={600}
+              decoding="async"
+            />
+          </picture>
           <div className="login-page__visual-wash" aria-hidden="true" />
           <div className="login-page__visual-copy">
-            <img
-              className="login-page__visual-logo"
-              src="/assets/brand/stockfit-sidebar-logo.png"
-              alt=""
-              aria-hidden="true"
-            />
+            <picture>
+              <source srcSet="/assets/brand/stockfit-sidebar-logo.webp" type="image/webp" />
+              <img
+                className="login-page__visual-logo"
+                src="/assets/brand/stockfit-sidebar-logo.png"
+                alt=""
+                aria-hidden="true"
+                width={44}
+                height={44}
+                decoding="async"
+              />
+            </picture>
             <div>
               <h1 id="stockfit-visual-title">StockFit</h1>
               <p>HYUNDAI GREEN FOOD 통합 재고 관리 플랫폼</p>

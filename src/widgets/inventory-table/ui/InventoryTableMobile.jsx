@@ -1,7 +1,9 @@
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
-import { InventoryStatusBadge } from '@/entities/inventory';
-import { getAssessmentStatusLabel } from '@/entities/risk';
+import { InventoryStatusBadge } from '@/entities/inventory/ui/InventoryStatusBadge.jsx';
+import { getAssessmentStatusLabel } from '@/entities/risk/model/risk.js';
 import { STORAGE_BADGE_STYLES } from './constants.js';
+import { InventoryTableMobileBodySkeleton } from './InventoryTableSkeleton.jsx';
+import { LazyThumbnailImage } from './LazyThumbnailImage.jsx';
 
 export function InventoryTableMobile({
   items = [],
@@ -11,9 +13,15 @@ export function InventoryTableMobile({
   maxSelection = 5,
   onRowClick,
   onImageClick,
+  isFetching = false,
+  showBodySkeleton = false,
 }) {
+  if (showBodySkeleton) {
+    return <InventoryTableMobileBodySkeleton rowCount={Math.max(items.length, 1)} />;
+  }
+
   return (
-    <div className="lg:hidden divide-y divide-gray-100 bg-white">
+    <div className="lg:hidden divide-y divide-gray-100 bg-white" aria-busy={isFetching || undefined}>
       {items.map((item) => {
         const isSelected = selectedItem?.rowId === item.rowId;
         const isSelectedSku = selectedSkuCodes.includes(item.skuCode);
@@ -53,8 +61,8 @@ export function InventoryTableMobile({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
-                <div
-                  className="pt-1 shrink-0"
+                <label
+                  className="flex size-12 items-center justify-center -ml-3 -mt-2 shrink-0 cursor-pointer rounded-xl hover:bg-gray-100/80 active:bg-gray-200/60"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
@@ -69,27 +77,18 @@ export function InventoryTableMobile({
                         ? `최대 ${maxSelection}개까지 선택 가능합니다`
                         : `${skuLabel} 선택 (${selectedSkuCodes.length}/${maxSelection})`
                     }
-                    className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    className="size-5 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   />
-                </div>
-                {item.imageUrl ? (
-                  <button
-                    type="button"
-                    aria-label={`${skuLabel} 이미지 크게 보기`}
-                    className="group/image size-14 shrink-0 cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-                    onClick={(event) => onImageClick?.(event, item, skuLabel)}
-                  >
-                    <img
-                      src={item.imageUrl}
-                      alt={skuLabel}
-                      className="size-full rounded-xl border border-gray-200 object-cover shadow-2xs transition-transform duration-[var(--motion-standard)] group-hover/image:scale-105"
-                    />
-                  </button>
-                ) : (
-                  <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-[10px] font-bold text-gray-400">
-                    No Img
-                  </div>
-                )}
+                </label>
+                <LazyThumbnailImage
+                  src={item.imageUrl}
+                  alt={skuLabel}
+                  width={56}
+                  height={56}
+                  className="size-14 rounded-xl"
+                  item={item}
+                  onImageClick={onImageClick}
+                />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="rounded bg-gray-100 px-1.5 py-0.2 text-[10px] font-mono font-bold text-gray-600">
@@ -126,7 +125,7 @@ export function InventoryTableMobile({
                   </span>
                 )}
                 {item.nearestExpiryDays != null && (
-                  <span className="rounded px-1.5 py-0.2 text-[10px] font-bold bg-amber-50 text-amber-700">
+                  <span className="rounded-md border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-950">
                     {formatDaysRemaining(item.nearestExpiryDays)}
                   </span>
                 )}

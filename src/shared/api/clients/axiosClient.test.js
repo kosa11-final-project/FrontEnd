@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearCsrfCredentials, rememberCsrfCredentials } from '../csrf.js';
 import { subscribeSessionExpiration } from '../sessionExpiration.js';
 import { axiosClient } from './axiosClient.js';
 
@@ -15,6 +16,28 @@ function rejectingAdapter(status, code) {
 }
 
 describe('axios session-expiration handling', () => {
+  afterEach(() => {
+    clearCsrfCredentials();
+  });
+
+  it('uses the CSRF token returned by the API when the cookie is not readable', async () => {
+    rememberCsrfCredentials({ token: 'csrf-from-response', headerName: 'X-XSRF-TOKEN' });
+    const adapter = vi.fn((config) =>
+      Promise.resolve({
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+        data: { ok: true },
+      }),
+    );
+
+    await axiosClient.post('v1/auth/login', {}, { adapter });
+
+    expect(adapter).toHaveBeenCalledTimes(1);
+    expect(adapter.mock.calls[0][0].headers.get('X-XSRF-TOKEN')).toBe('csrf-from-response');
+  });
+
   it('notifies subscribers for a business API 401 AUTH-001 and keeps the normalized rejection', async () => {
     const listener = vi.fn();
     const unsubscribe = subscribeSessionExpiration(listener);

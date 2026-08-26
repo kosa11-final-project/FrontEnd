@@ -16,7 +16,7 @@ const scatterChannelResults = [
 ];
 
 const meta = {
-  title: 'Entities/Strategy Execution',
+  title: 'Entities/Strategy/Execution',
   component: StrategyActionCard,
   tags: ['autodocs'],
   args: { action: strategyExecutionFixtures[0].actions[0], index: 0 },

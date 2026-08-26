@@ -54,7 +54,7 @@ Mesh Forecast는 수요 예측과 재고 흐름을 시각적으로 강조하기 
 1. `src/styles.css`의 원시 팔레트와 semantic token을 이 기준으로 유지한다.
 2. 사이드바 기준 기본 라우트와 앱 셸을 팀 공통 구조로 유지한다.
 3. 세션 쿠키·CSRF·401·403 처리의 프론트엔드 경계를 문서화한다.
-4. Sentry 초기화와 환경변수 구조를 유지한다.
+4. 환경변수 구조는 외부 오류 수집 서비스에 의존하지 않도록 유지한다.
 5. 실제 기능이 시작될 때 `entities/inventory`와 `features/inventory-filter`를 첫 FSD slice로 만든다.
 
 ## 비교용 스킨

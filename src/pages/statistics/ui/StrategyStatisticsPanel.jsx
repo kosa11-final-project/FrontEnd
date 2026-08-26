@@ -72,19 +72,6 @@ function StrategySummary({ current, isPreview = false }) {
       tone: 'info',
     },
     {
-      id: 'average-achievement-rate',
-      label: (
-        <MetricLabel
-          label="평균 목표 달성률"
-          calculation="종료 전략마다 실제 성과를 목표값으로 나눈 달성률을 계산한 뒤, 모든 종료 전략의 달성률을 평균합니다. 실제 성과가 목표값 이상이면 목표 달성 전략으로 집계합니다."
-        />
-      ),
-      value: formatPercent(current.averageAchievementRate),
-      helper: `목표 달성 전략 ${formatQuantity(current.goalAchievedCount, { unit: '건' })}/${formatQuantity(current.completedCount, { unit: '건' })} · ${formatPercent(current.goalAchievedStrategyRate)}`,
-      icon: Activity,
-      tone: 'good',
-    },
-    {
       id: 'risk-stock-reduction',
       label: (
         <MetricLabel
@@ -95,6 +82,19 @@ function StrategySummary({ current, isPreview = false }) {
       value: formatQuantity(current.riskStockReductionQty),
       helper: `전략 시작 시점 위험재고의 ${formatPercent(current.riskStockReductionRate)} 감소`,
       icon: Package,
+      tone: 'good',
+    },
+    {
+      id: 'average-achievement-rate',
+      label: (
+        <MetricLabel
+          label="평균 목표 달성률"
+          calculation="종료 전략마다 실제 성과를 목표값으로 나눈 달성률을 계산한 뒤, 모든 종료 전략의 달성률을 평균합니다. 실제 성과가 목표값 이상이면 목표 달성 전략으로 집계합니다."
+        />
+      ),
+      value: formatPercent(current.averageAchievementRate),
+      helper: `목표 달성 전략 ${formatQuantity(current.goalAchievedCount, { unit: '건' })}/${formatQuantity(current.completedCount, { unit: '건' })} · ${formatPercent(current.goalAchievedStrategyRate)}`,
+      icon: Activity,
       tone: 'good',
     },
     {
@@ -126,24 +126,12 @@ function StrategySummary({ current, isPreview = false }) {
   ];
 
   return (
-    <section aria-labelledby="strategy-summary-title">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2
-            id="strategy-summary-title"
-            className="m-0 text-[length:var(--font-size-section-title)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]"
-          >
-            AI 전략 핵심 성과
-          </h2>
-          <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-            조회 기간에 실행이 종료된 전략만 집계하며, 진행 중 전략은 실행 관제에서 확인합니다.
-          </p>
+    <section aria-label="AI 전략 핵심 성과">
+      {isPreview ? (
+        <div className="mb-3 flex justify-end">
+          <Badge variant="warning">API 연결 전 화면 검토용</Badge>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="good">종료 전략 기준</Badge>
-          {isPreview ? <Badge variant="warning">API 연결 전 화면 검토용</Badge> : null}
-        </div>
-      </div>
+      ) : null}
       <div className="grid grid-cols-1 gap-[var(--spacing-card-gap)] sm:grid-cols-2 lg:grid-cols-5">
         {metrics.map((metric) => (
           <MetricCard key={metric.id} {...metric} className="h-full" />
@@ -154,19 +142,19 @@ function StrategySummary({ current, isPreview = false }) {
 }
 
 const TREND_METRICS = Object.freeze({
-  achievementRate: {
-    label: '목표 달성률',
-    color: 'var(--good)',
-    format: formatPercent,
-    chartLabel: '목표 달성률 목표선 비교 차트',
-    description: '종료 전략의 일별 평균 달성률과 목표 기준 85%를 비교합니다.',
-  },
   riskStockReductionQty: {
     label: '위험재고 감소',
     color: 'var(--primary)',
     format: formatQuantity,
     chartLabel: '위험재고 감소 일별 막대 차트',
     description: '실행이 끝난 전략이 줄인 위험재고 수량을 일자별로 비교합니다.',
+  },
+  achievementRate: {
+    label: '목표 달성률',
+    color: 'var(--good)',
+    format: formatPercent,
+    chartLabel: '목표 달성률 목표선 비교 차트',
+    description: '종료 전략의 일별 평균 달성률과 목표 기준 85%를 비교합니다.',
   },
   avoidedDisposalQty: {
     label: '폐기위험 감소',

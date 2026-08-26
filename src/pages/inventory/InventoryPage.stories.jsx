@@ -297,3 +297,20 @@ export const InventoryEmpty = {
     </StorybookProductFrame>
   ),
 };
+
+export const InventoryLoading = {
+  render: () => (
+    <StorybookProductFrame path="/inventory" minHeight="980px">
+      <div className="grid gap-6">
+        <InventorySummaryBar isLoading={true} summary={summary} />
+        <InventoryFilterBar
+          filters={DEFAULT_INVENTORY_FILTERS}
+          filterOptions={filterOptions}
+          onFilterChange={fn()}
+          onReset={fn()}
+        />
+        <InventoryTable items={[]} totalCount={0} isLoading={true} onRetry={fn()} />
+      </div>
+    </StorybookProductFrame>
+  ),
+};

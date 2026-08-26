@@ -2,20 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Calendar, CloseCircle, DocumentText, InfoCircle, Layers, Store } from 'reicon-react';
-import { inventoryLotsQueryOptions } from '@/entities/inventory';
+import { inventoryLotsQueryOptions } from '@/entities/inventory/api/inventoryQueries.js';
 import {
   STRATEGY_REQUEST_TYPES,
-  StrategyProductImage,
   buildStrategyRequestPayload,
-  createAiStrategyCase,
   createStrategyRequestDraft,
   getStrategyRequestMaximumDate,
   hasStrategyRequestPreference,
   hasStrategyRequestSource,
   validateStrategyRequestDraft,
-} from '@/entities/strategy';
+} from '@/entities/strategy/model/strategyRequest.js';
+import { createAiStrategyCase } from '@/entities/strategy/api/strategyApi.js';
+import { StrategyProductImage } from '@/entities/strategy/ui/StrategyProductImage.jsx';
 import { formatNumber } from '@/shared/lib/format';
-import { Alert, Badge, Button, Card, Checkbox, Icon, IconButton, Input, Select } from '@/shared/ui';
+import { Alert } from '@/shared/ui/Alert.jsx';
+import { Badge } from '@/shared/ui/Badge.jsx';
+import { Button } from '@/shared/ui/Button.jsx';
+import { Card } from '@/shared/ui/Card.jsx';
+import { Checkbox } from '@/shared/ui/Checkbox.jsx';
+import { Icon } from '@/shared/ui/Icon.jsx';
+import { IconButton } from '@/shared/ui/IconButton.jsx';
+import { Input } from '@/shared/ui/Input.jsx';
+import { Select } from '@/shared/ui/Select.jsx';
 
 function getSeoulToday() {
   return new Intl.DateTimeFormat('en-CA', {

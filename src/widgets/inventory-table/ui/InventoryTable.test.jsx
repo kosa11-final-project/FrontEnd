@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { InventoryTable } from './InventoryTable.jsx';
 
 const item = {
@@ -37,6 +37,196 @@ const imageItem = {
 };
 
 describe('InventoryTable pagination', () => {
+  describe('loading feedback', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
+    });
+
+    it('shows the full table skeleton immediately only when there is no initial data', () => {
+      render(<InventoryTable items={[]} isLoading />);
+
+      expect(screen.getByRole('status', { name: '재고 목록 불러오는 중' })).toBeInTheDocument();
+      expect(screen.queryByText('조회 중')).not.toBeInTheDocument();
+    });
+
+    it('keeps existing rows for fast refetches and progressively reveals delayed feedback', () => {
+      const { rerender } = render(<InventoryTable items={[item]} totalCount={1} page={1} size={20} totalPages={1} />);
+      const initialTable = screen.getByRole('table');
+
+      rerender(<InventoryTable items={[item]} totalCount={1} page={1} size={20} totalPages={1} isFetching />);
+
+      expect(screen.getAllByText('규격')).toHaveLength(2);
+      expect(screen.queryByText('조회 중')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('inventory-table-desktop-body-skeleton')).not.toBeInTheDocument();
+      expect(screen.getByRole('table')).toHaveAttribute('aria-busy', 'true');
+      expect(screen.getByRole('table')).toBe(initialTable);
+
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
+      expect(screen.queryByText('조회 중')).not.toBeInTheDocument();
+      expect(screen.getAllByText('규격')).toHaveLength(2);
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.getByText('조회 중')).toBeInTheDocument();
+      expect(screen.getAllByText('규격')).toHaveLength(2);
+
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(screen.getByRole('columnheader', { name: 'SKU 및 상품 정보' })).toBeInTheDocument();
+      const desktopBodySkeleton = screen.getByTestId('inventory-table-desktop-body-skeleton');
+      const mobileBodySkeleton = screen.getByTestId('inventory-table-mobile-body-skeleton');
+      expect(desktopBodySkeleton).toBeInTheDocument();
+      expect(mobileBodySkeleton).toBeInTheDocument();
+      expect(desktopBodySkeleton.querySelectorAll('tr')).toHaveLength(1);
+      expect(mobileBodySkeleton.children).toHaveLength(1);
+      expect(screen.queryByText('규격')).not.toBeInTheDocument();
+
+      rerender(<InventoryTable items={[item]} totalCount={1} page={1} size={20} totalPages={1} />);
+
+      expect(screen.queryByText('조회 중')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('inventory-table-desktop-body-skeleton')).not.toBeInTheDocument();
+      expect(screen.getAllByText('규격')).toHaveLength(2);
+      expect(screen.getByRole('table')).not.toHaveAttribute('aria-busy');
+      expect(screen.getByRole('table')).toBe(initialTable);
+    });
+
+    it('cancels delayed feedback when a refetch finishes before the hint threshold', () => {
+      const { rerender } = render(
+        <InventoryTable items={[item]} totalCount={1} page={1} size={20} totalPages={1} fetchKey="default" />,
+      );
+
+      rerender(
+        <InventoryTable
+          items={[item]}
+          totalCount={1}
+          page={1}
+          size={20}
+          totalPages={1}
+          fetchKey="search-a"
+          isFetching
+        />,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
+
+      rerender(<InventoryTable items={[item]} totalCount={1} page={1} size={20} totalPages={1} fetchKey="search-a" />);
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(screen.queryByText('조회 중')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('inventory-table-desktop-body-skeleton')).not.toBeInTheDocument();
+      expect(screen.getAllByText('규격')).toHaveLength(2);
+    });
+
+    it('restarts progressive feedback when a new request begins before the previous one finishes', () => {
+      const { rerender } = render(
+        <InventoryTable items={[item]} totalCount={1} page={1} size={20} totalPages={1} fetchKey="default" />,
+      );
+
+      rerender(
+        <InventoryTable
+          items={[item]}
+          totalCount={1}
+          page={1}
+          size={20}
+          totalPages={1}
+          fetchKey="search-a"
+          isFetching
+        />,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByTestId('inventory-table-desktop-body-skeleton')).toBeInTheDocument();
+
+      rerender(
+        <InventoryTable
+          items={[item]}
+          totalCount={1}
+          page={1}
+          size={20}
+          totalPages={1}
+          fetchKey="search-b"
+          isFetching
+        />,
+      );
+
+      expect(screen.queryByText('조회 중')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('inventory-table-desktop-body-skeleton')).not.toBeInTheDocument();
+      expect(screen.getAllByText('규격')).toHaveLength(2);
+
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(screen.getByText('조회 중')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(screen.getByTestId('inventory-table-desktop-body-skeleton')).toBeInTheDocument();
+    });
+
+    it('disables select-all while stale rows are replaced by a body skeleton', () => {
+      const onSelectAllSkus = vi.fn();
+      render(
+        <InventoryTable
+          items={[item]}
+          totalCount={1}
+          page={1}
+          size={20}
+          totalPages={1}
+          isFetching
+          onSelectAllSkus={onSelectAllSkus}
+        />,
+      );
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      const selectAllCheckbox = screen.getByRole('checkbox', { name: '현재 페이지 항목 최대 5개 선택 토글' });
+      expect(selectAllCheckbox).toBeDisabled();
+      fireEvent.click(selectAllCheckbox);
+      expect(onSelectAllSkus).not.toHaveBeenCalled();
+    });
+
+    it('does not leave a stale empty message indefinitely during a slow refetch', () => {
+      render(
+        <InventoryTable items={[]} totalCount={0} resultState="FILTER_EMPTY" isFetching onResetFilters={vi.fn()} />,
+      );
+
+      const emptyStateContainer = screen.getByTestId('inventory-table-empty-state');
+      expect(screen.getByText('일치하는 재고가 없습니다')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(screen.getByText('조회 중')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(screen.queryByText('일치하는 재고가 없습니다')).not.toBeInTheDocument();
+      expect(screen.getByTestId('inventory-table-empty-refetch-skeleton')).toBeInTheDocument();
+      expect(screen.getByTestId('inventory-table-empty-state')).toBe(emptyStateContainer);
+      expect(screen.queryByRole('status', { name: '재고 목록 불러오는 중' })).not.toBeInTheDocument();
+    });
+  });
+
   it('opens a product image in a motion lightbox and closes it with Escape', async () => {
     render(<InventoryTable items={[imageItem]} totalCount={1} page={1} size={20} totalPages={1} />);
 
@@ -94,7 +284,7 @@ describe('InventoryTable pagination', () => {
 
     expect(table.querySelector('th')).toHaveClass('text-left', 'pl-3');
     expect(table.querySelector('tbody td')).toHaveClass('text-left', 'pl-3');
-    expect(columnWidths).toEqual(['w-[4%]', 'w-[28%]', 'w-[20%]', 'w-[8%]', 'w-[11%]', 'w-[12%]', 'w-[9%]', 'w-[8%]']);
+    expect(columnWidths).toEqual(['w-[4%]', 'w-[34%]', 'w-[18%]', 'w-[6%]', 'w-[8%]', 'w-[9%]', 'w-[13%]', 'w-[8%]']);
   });
 
   it('renders a compact sort caret and announces the next sort direction', () => {

@@ -5,7 +5,7 @@ import { mockRawInventoryItems } from '@/entities/inventory/testing/fixtures.js'
 import { StrategyRequestModal } from './StrategyRequestModal.jsx';
 
 const meta = {
-  title: 'Widgets/Strategy/RequestModal',
+  title: 'Widgets/Strategy/Request Modal',
   component: StrategyRequestModal,
   parameters: { layout: 'fullscreen' },
   tags: ['autodocs'],

@@ -3,6 +3,7 @@ import { fn, userEvent, within } from 'storybook/test';
 import { StateView } from '@/shared/ui';
 import { StorybookProductFrame } from '@/storybook/StorybookProductFrame.jsx';
 import { StatisticsPageContent, StatisticsPageShell } from './StatisticsPage.jsx';
+import { StatisticsSkeleton } from './ui/StatisticsSkeleton.jsx';
 import { inventoryStatisticsFixture } from './model/statisticsFixtures.js';
 
 const meta = {
@@ -98,11 +99,7 @@ export const Loading = {
   render: () => (
     <StoryFrame>
       <StatisticsPageShell>
-        <StateView
-          state="loading"
-          title="재고 통계를 불러오고 있습니다."
-          description="선택한 기간의 정상 집계 결과를 확인하는 중입니다."
-        />
+        <StatisticsSkeleton />
       </StatisticsPageShell>
     </StoryFrame>
   ),

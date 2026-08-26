@@ -1,11 +1,111 @@
-import { useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DocumentText } from 'reicon-react';
 import { formatNumber } from '@/shared/lib/format';
-import { RESULT_STATE } from '@/entities/inventory';
-import { Button, Icon, ImageLightbox, StateView, toRect } from '@/shared/ui';
+import { toRect } from '@/shared/lib/geometry.js';
+import { RESULT_STATE } from '@/entities/inventory/model/inventory.js';
+import { Button } from '@/shared/ui/Button.jsx';
+import { Icon } from '@/shared/ui/Icon.jsx';
+import { StateView } from '@/shared/ui/StateView.jsx';
 import { InventoryTableDesktop } from './InventoryTableDesktop.jsx';
 import { InventoryTableMobile } from './InventoryTableMobile.jsx';
 import { InventoryPagination } from './InventoryPagination.jsx';
+import { InventoryTableEmptyRefetchSkeleton, InventoryTableSkeleton } from './InventoryTableSkeleton.jsx';
+
+const FETCHING_HINT_DELAY_MS = 400;
+const BODY_SKELETON_DELAY_MS = 1000;
+
+const LazyImageLightbox = lazy(() =>
+  import('@/shared/ui/ImageLightbox.jsx').then((module) => ({ default: module.ImageLightbox })),
+);
+
+function ImageLightboxFallback({ image, onClose }) {
+  useEffect(() => {
+    if (!image) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [image, onClose]);
+
+  if (!image || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${image.alt} 크게 보기`}
+      className="fixed inset-0 z-[110] grid place-items-center bg-black/55 p-4 backdrop-blur-[2px]"
+    >
+      <button
+        type="button"
+        aria-label="이미지 크게 보기 닫기"
+        className="absolute inset-0 size-full cursor-zoom-out"
+        onClick={onClose}
+      />
+      <img
+        src={image.src}
+        alt={image.alt}
+        className="pointer-events-auto relative max-h-[80vh] max-w-[86vw] rounded-2xl border border-white/70 bg-white object-contain shadow-2xl"
+      />
+      <button
+        type="button"
+        aria-label="이미지 크게 보기 닫기"
+        className="absolute right-5 top-5 z-10 inline-grid size-10 place-items-center rounded-full border border-white/50 bg-black/45 text-2xl leading-none text-white shadow-lg transition-colors hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        onClick={onClose}
+      >
+        ×
+      </button>
+    </div>,
+    document.body,
+  );
+}
+
+function useProgressiveFetching(isFetching, fetchKey) {
+  const [fetchState, setFetchState] = useState(() => ({ fetchKey, isFetching, stage: 'idle' }));
+
+  if (fetchState.isFetching !== isFetching || fetchState.fetchKey !== fetchKey) {
+    setFetchState({ fetchKey, isFetching, stage: 'idle' });
+  }
+
+  useEffect(() => {
+    if (!isFetching) return undefined;
+
+    const hintTimerId = window.setTimeout(() => {
+      setFetchState((current) =>
+        current.isFetching && current.fetchKey === fetchKey ? { ...current, stage: 'hint' } : current,
+      );
+    }, FETCHING_HINT_DELAY_MS);
+    const skeletonTimerId = window.setTimeout(() => {
+      setFetchState((current) =>
+        current.isFetching && current.fetchKey === fetchKey ? { ...current, stage: 'skeleton' } : current,
+      );
+    }, BODY_SKELETON_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(hintTimerId);
+      window.clearTimeout(skeletonTimerId);
+    };
+  }, [fetchKey, isFetching]);
+
+  const isCurrentRequest = fetchState.isFetching === isFetching && fetchState.fetchKey === fetchKey;
+  const stage = isCurrentRequest ? fetchState.stage : 'idle';
+  return {
+    showFetchingHint: isFetching && (stage === 'hint' || stage === 'skeleton'),
+    showBodySkeleton: isFetching && stage === 'skeleton',
+  };
+}
+
+function FetchingHint() {
+  return (
+    <span role="status" className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500">
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-[var(--primary)] motion-safe:animate-pulse" />
+      조회 중
+    </span>
+  );
+}
 
 export function InventoryTable({
   items = [],
@@ -22,7 +122,9 @@ export function InventoryTable({
   onGenerateStrategy,
   maxSelection = 5,
   resultState = RESULT_STATE.HAS_DATA,
+  fetchKey,
   isLoading = false,
+  isFetching = false,
   isError = false,
   error,
   onRetry,
@@ -33,6 +135,7 @@ export function InventoryTable({
   onRowClick,
 }) {
   const [lightboxImage, setLightboxImage] = useState(null);
+  const { showFetchingHint, showBodySkeleton } = useProgressiveFetching(isFetching, fetchKey);
 
   const handleImageClick = useCallback((event, item, alt) => {
     event.stopPropagation();
@@ -52,15 +155,7 @@ export function InventoryTable({
   const handleImageClose = useCallback(() => setLightboxImage(null), []);
 
   if (isLoading) {
-    return (
-      <div className="rounded-xl border border-[var(--border)] bg-white p-6 shadow-xs">
-        <div className="flex flex-col gap-3.5">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-16 w-full animate-pulse rounded-lg bg-[#F3F4F6]" />
-          ))}
-        </div>
-      </div>
-    );
+    return <InventoryTableSkeleton rowCount={Math.min(Math.max(size, 1), 100)} />;
   }
 
   if (isError) {
@@ -83,18 +178,31 @@ export function InventoryTable({
 
   if (resultState === RESULT_STATE.FILTER_EMPTY || items.length === 0) {
     return (
-      <div className="rounded-xl border border-[var(--border)] bg-white p-12 shadow-xs">
-        <StateView
-          state="empty"
-          title={resultState === RESULT_STATE.FILTER_EMPTY ? '일치하는 재고가 없습니다' : '등록된 재고가 없습니다'}
-          description={
-            resultState === RESULT_STATE.FILTER_EMPTY
-              ? '설정하신 검색어나 필터 조건에 맞는 재고가 없습니다. 조건을 변경해 보세요.'
-              : '현재 시스템에 등록된 통합 재고 데이터가 존재하지 않습니다.'
-          }
-          actionLabel={resultState === RESULT_STATE.FILTER_EMPTY ? '필터 초기화' : undefined}
-          onAction={resultState === RESULT_STATE.FILTER_EMPTY ? onResetFilters : undefined}
-        />
+      <div
+        data-testid="inventory-table-empty-state"
+        className="relative rounded-xl border border-[var(--border)] bg-white p-12 shadow-xs"
+        aria-busy={isFetching || undefined}
+      >
+        {showFetchingHint && (
+          <div className="absolute right-5 top-4">
+            <FetchingHint />
+          </div>
+        )}
+        {showBodySkeleton ? (
+          <InventoryTableEmptyRefetchSkeleton />
+        ) : (
+          <StateView
+            state="empty"
+            title={resultState === RESULT_STATE.FILTER_EMPTY ? '일치하는 재고가 없습니다' : '등록된 재고가 없습니다'}
+            description={
+              resultState === RESULT_STATE.FILTER_EMPTY
+                ? '설정하신 검색어나 필터 조건에 맞는 재고가 없습니다. 조건을 변경해 보세요.'
+                : '현재 시스템에 등록된 통합 재고 데이터가 존재하지 않습니다.'
+            }
+            actionLabel={resultState === RESULT_STATE.FILTER_EMPTY ? '필터 초기화' : undefined}
+            onAction={resultState === RESULT_STATE.FILTER_EMPTY ? onResetFilters : undefined}
+          />
+        )}
       </div>
     );
   }
@@ -103,7 +211,10 @@ export function InventoryTable({
   const endIdx = Math.min(page * size, totalCount);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-xs">
+    <div
+      className="flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-xs"
+      aria-busy={isFetching || undefined}
+    >
       {/* 표 상단 메타 바 */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-white px-6 py-3.5">
         <div className="flex items-center gap-2.5 flex-wrap">
@@ -114,6 +225,7 @@ export function InventoryTable({
           <span className="text-xs text-gray-500 tabular-nums">
             {startIdx} - {endIdx}건 표시 중
           </span>
+          {showFetchingHint && <FetchingHint />}
           {selectedSkuCodes.length > 0 && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--primary)]/30 bg-[#F4FAF6] px-2.5 py-0.5 text-xs font-bold text-[color:var(--primary-strong)]">
               <span>
@@ -160,6 +272,8 @@ export function InventoryTable({
         onSortChange={onSortChange}
         onRowClick={onRowClick}
         onImageClick={handleImageClick}
+        isFetching={isFetching}
+        showBodySkeleton={showBodySkeleton}
       />
 
       {/* 2. 모바일/태블릿 반응형 카드 뷰 (lg 미만) */}
@@ -171,6 +285,8 @@ export function InventoryTable({
         maxSelection={maxSelection}
         onRowClick={onRowClick}
         onImageClick={handleImageClick}
+        isFetching={isFetching}
+        showBodySkeleton={showBodySkeleton}
       />
 
       {/* 3. 하단 페이지네이션 및 단위 선택 */}
@@ -182,7 +298,11 @@ export function InventoryTable({
         onPageChange={onPageChange}
         onSizeChange={onSizeChange}
       />
-      <ImageLightbox image={lightboxImage} onClose={handleImageClose} />
+      {lightboxImage ? (
+        <Suspense fallback={<ImageLightboxFallback image={lightboxImage} onClose={handleImageClose} />}>
+          <LazyImageLightbox image={lightboxImage} onClose={handleImageClose} />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

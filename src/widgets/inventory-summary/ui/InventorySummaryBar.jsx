@@ -32,19 +32,6 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-32 animate-pulse rounded-2xl border border-gray-200/80 bg-white/70 p-5 shadow-2xs"
-          />
-        ))}
-      </div>
-    );
-  }
-
   const {
     totalCurrentQuantity = 0,
     totalAvailableQuantity = 0,
@@ -64,7 +51,7 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {/* 1. 총 현재고 */}
-      <div className="group relative flex flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200">
+      <div className="group relative flex h-[156px] flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">총 현재고</span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-[#1E8251] ring-1 ring-emerald-100/80 transition-transform duration-200 group-hover:scale-110">
@@ -72,18 +59,26 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
           </div>
         </div>
         <div className="mt-3.5">
-          <div className="text-2xl font-extrabold tracking-tight text-gray-900 tabular-nums">
-            {formatQuantity(totalCurrentQuantity)}
-          </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100">
+          {isLoading ? (
+            <div className="h-8 w-32 animate-pulse rounded-lg bg-[#E5E7EB]" />
+          ) : (
+            <div className="text-2xl font-extrabold tracking-tight text-gray-900 tabular-nums">
+              {formatQuantity(totalCurrentQuantity)}
+            </div>
+          )}
+          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100 min-h-[26px]">
             <span>출고예정 / 예약</span>
-            <span className="font-bold text-gray-700 tabular-nums">{formatQuantity(totalReservedQuantity)}</span>
+            {isLoading ? (
+              <div className="h-4 w-16 animate-pulse rounded bg-[#F3F4F6]" />
+            ) : (
+              <span className="font-bold text-gray-700 tabular-nums">{formatQuantity(totalReservedQuantity)}</span>
+            )}
           </div>
         </div>
       </div>
 
       {/* 2. 총 가용수량 */}
-      <div className="group relative flex flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-teal-200">
+      <div className="group relative flex h-[156px] flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-teal-200">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">총 가용수량</span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 ring-1 ring-teal-100/80 transition-transform duration-200 group-hover:scale-110">
@@ -91,28 +86,36 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
           </div>
         </div>
         <div className="mt-3.5">
-          <div className="text-2xl font-extrabold tracking-tight text-[#27B06E] tabular-nums">
-            {formatQuantity(totalAvailableQuantity)}
-          </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100">
-            <span>실 가용률</span>
-            <div className="flex items-center gap-1.5">
-              <div className="h-1.5 w-12 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[#27B06E] transition-all duration-500"
-                  style={{ width: `${availableRate == null ? 0 : availableRate}%` }}
-                />
-              </div>
-              <span className="font-bold text-[#1E8251] tabular-nums">
-                {availableRate == null ? '-' : `${availableRate}%`}
-              </span>
+          {isLoading ? (
+            <div className="h-8 w-32 animate-pulse rounded-lg bg-[#E5E7EB]" />
+          ) : (
+            <div className="text-2xl font-extrabold tracking-tight text-[color:var(--primary)] tabular-nums">
+              {formatQuantity(totalAvailableQuantity)}
             </div>
+          )}
+          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100 min-h-[26px]">
+            <span>실 가용률</span>
+            {isLoading ? (
+              <div className="h-4 w-20 animate-pulse rounded bg-[#F3F4F6]" />
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <div className="h-1.5 w-12 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--primary)] transition-all duration-500"
+                    style={{ width: `${availableRate == null ? 0 : availableRate}%` }}
+                  />
+                </div>
+                <span className="font-bold text-[#065F46] tabular-nums">
+                  {availableRate == null ? '-' : `${availableRate}%`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* 3. 안전재고 미달 SKU */}
-      <div className="group relative flex flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-amber-200">
+      <div className="group relative flex h-[156px] flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-amber-200">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">안전재고 미달 SKU</span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-100/80 transition-transform duration-200 group-hover:scale-110">
@@ -120,19 +123,27 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
           </div>
         </div>
         <div className="mt-3.5">
-          <div className="flex items-baseline gap-1 text-2xl font-extrabold tracking-tight text-amber-600 tabular-nums">
-            <span>{formatNumber(underSafetyCount)}</span>
-            <span className="text-sm font-semibold text-gray-500">개</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100">
+          {isLoading ? (
+            <div className="h-8 w-20 animate-pulse rounded-lg bg-[#E5E7EB]" />
+          ) : (
+            <div className="flex items-baseline gap-1 text-2xl font-extrabold tracking-tight text-amber-600 tabular-nums">
+              <span>{formatNumber(underSafetyCount)}</span>
+              <span className="text-sm font-semibold text-gray-500">개</span>
+            </div>
+          )}
+          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100 min-h-[26px]">
             <span>재고 보충 필요</span>
-            <span className="font-bold text-amber-700">{underSafetyCount > 0 ? '긴급 점검 권고' : '정상 유지'}</span>
+            {isLoading ? (
+              <div className="h-4 w-20 animate-pulse rounded bg-[#F3F4F6]" />
+            ) : (
+              <span className="font-bold text-amber-900">{underSafetyCount > 0 ? '긴급 점검 권고' : '정상 유지'}</span>
+            )}
           </div>
         </div>
       </div>
 
       {/* 4. 위험, 주의 SKU 관제 */}
-      <div className="group relative flex flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-rose-200">
+      <div className="group relative flex h-[156px] flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-rose-200">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">위험, 주의 SKU 관제</span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100/80 transition-transform duration-200 group-hover:scale-110">
@@ -140,17 +151,30 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
           </div>
         </div>
         <div className="mt-3.5">
-          <div className="flex items-baseline gap-1 text-2xl font-extrabold tracking-tight text-rose-600 tabular-nums">
-            <span>{formatNumber(dangerRiskCount + cautionRiskCount)}</span>
-            <span className="text-sm font-semibold text-gray-500">건</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between text-xs pt-1.5 border-t border-gray-100">
-            <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 font-bold text-rose-700 border border-rose-200/80 tabular-nums">
-              위험 {dangerRiskCount}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 font-bold text-amber-700 border border-amber-200/80 tabular-nums">
-              주의 {cautionRiskCount}
-            </span>
+          {isLoading ? (
+            <div className="h-8 w-20 animate-pulse rounded-lg bg-[#E5E7EB]" />
+          ) : (
+            <div className="flex items-baseline gap-1 text-2xl font-extrabold tracking-tight text-rose-600 tabular-nums">
+              <span>{formatNumber(dangerRiskCount + cautionRiskCount)}</span>
+              <span className="text-sm font-semibold text-gray-500">건</span>
+            </div>
+          )}
+          <div className="mt-2 flex items-center justify-between text-xs pt-1.5 border-t border-gray-100 min-h-[26px]">
+            {isLoading ? (
+              <div className="flex gap-2">
+                <div className="h-5 w-14 animate-pulse rounded-full bg-[#E5E7EB]" />
+                <div className="h-5 w-14 animate-pulse rounded-full bg-[#E5E7EB]" />
+              </div>
+            ) : (
+              <>
+                <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 font-bold text-rose-800 border border-rose-200/80 tabular-nums">
+                  위험 {dangerRiskCount}
+                </span>
+                <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 font-bold text-amber-900 border border-amber-200/80 tabular-nums">
+                  주의 {cautionRiskCount}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
