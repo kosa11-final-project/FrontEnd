@@ -229,6 +229,7 @@ export function StrategyGenerationList() {
   const query = searchParams.get('q') ?? '';
   const from = searchParams.get('from') ?? '';
   const to = searchParams.get('to') ?? '';
+  const drawerStrategyId = Number.parseInt(searchParams.get('drawer') ?? '', 10);
   const parsedPage = Number.parseInt(searchParams.get('page') ?? '1', 10);
   const requestedPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const apiParams = useMemo(
@@ -287,9 +288,26 @@ export function StrategyGenerationList() {
     updateFilter('page', safePage, { resetPage: false });
   }, [listQuery.data, listQuery.isPlaceholderData, requestedPage, updateFilter]);
 
+  useEffect(() => {
+    if (!Number.isInteger(drawerStrategyId) || drawerStrategyId <= 0) return;
+    const strategy = strategies.find((item) => item.id === drawerStrategyId);
+    if (!strategy || strategy.caseStatus === 'GENERATED') return;
+
+    drawerTriggerStrategyIdRef.current = strategy.id;
+    setSelectedStrategy((current) => (current?.id === strategy.id ? current : strategy));
+  }, [drawerStrategyId, strategies]);
+
   function closeDrawer() {
     const triggerStrategyId = drawerTriggerStrategyIdRef.current;
     setSelectedStrategy(null);
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('drawer');
+        return next;
+      },
+      { replace: true },
+    );
     window.requestAnimationFrame(() => actionButtonRefs.current.get(triggerStrategyId)?.focus());
   }
 
@@ -302,8 +320,16 @@ export function StrategyGenerationList() {
       }
       drawerTriggerStrategyIdRef.current = strategy.id;
       setSelectedStrategy(strategy);
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set('drawer', String(strategy.id));
+          return next;
+        },
+        { replace: true },
+      );
     },
-    [listPath, navigate],
+    [listPath, navigate, setSearchParams],
   );
 
   const columns = useMemo(
