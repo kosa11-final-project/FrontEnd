@@ -47,6 +47,13 @@ pnpm run test:e2e
 pnpm run build-storybook
 ```
 
+## 운영 프론트엔드 배포
+
+운영 프론트엔드는 Jenkins가 `main` 변경을 Poll SCM으로 확인한 뒤 `dist/`를
+Amazon S3에 동기화하고 CloudFront 캐시를 무효화합니다. Jenkins Job, EC2 IAM Role,
+S3 및 CloudFront 값 설정은 [프론트엔드 Jenkins 배포 가이드](./docs/frontend-jenkins-deployment.md)를
+참고합니다.
+
 `pnpm run audit:prod`는 high 이상 운영 의존성 취약점을 확인합니다. `pnpm run check`는 ESLint, Prettier 검사, Vitest, production build를 순서대로 실행합니다. GitHub에서도 PR마다 같은 검사와 Storybook build, Playwright를 실행합니다.
 
 환경변수는 [`.env.example`](./.env.example)을 기준으로 `.env.local`에 작성합니다. `VITE_`가 붙은 값은 브라우저 번들에 노출되므로 비밀번호, 세션 값, AWS 키와 같은 secret을 넣지 않습니다.
