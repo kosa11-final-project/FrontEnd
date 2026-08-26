@@ -371,7 +371,7 @@ function MotionPreview() {
 }
 
 const meta = {
-  title: 'Foundations/Design tokens',
+  title: 'Foundations/Design Tokens',
   tags: ['autodocs'],
   parameters: {
     docs: {

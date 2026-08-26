@@ -4,7 +4,7 @@
 > 목표: 개발 서버를 실행하고, 코드를 수정하고, 검증 후 PR을 올릴 수 있는 상태 만들기
 > 기준일: 2026-08-08
 
-이 문서의 순서대로 한 번만 진행하면 됩니다. Sentry 콘솔 조회, Codex 플러그인, 개인용 IDE 확장처럼 없어도 개발 가능한 항목은 포함하지 않았습니다. 구조와 라이브러리 사용법을 팀원에게 설명할 때는 [`team-frontend-handbook.md`](./team-frontend-handbook.md)를 함께 읽습니다.
+이 문서의 순서대로 한 번만 진행하면 됩니다. Codex 플러그인, 개인용 IDE 확장처럼 없어도 개발 가능한 항목은 포함하지 않았습니다. 구조와 라이브러리 사용법을 팀원에게 설명할 때는 [`team-frontend-handbook.md`](./team-frontend-handbook.md)를 함께 읽습니다.
 
 ## 1. 반드시 설치할 것
 
@@ -97,10 +97,8 @@ Storybook 주소는 `http://localhost:6006`입니다.
 ## 4. 환경변수와 비밀정보 규칙
 
 - 로컬 값은 `.env.local`에만 작성합니다.
-- `.env`, `.env.development`, `.env.production`, `.env.sentry-build-plugin`은 Git에 올리지 않습니다.
+- `.env`, `.env.development`, `.env.production`은 Git에 올리지 않습니다.
 - 브라우저에 전달되는 `VITE_*` 변수에는 비밀번호, 세션 ID, DB 비밀번호, AWS 키, 인증 토큰을 넣지 않습니다.
-- `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`는 일반 팀원의 프론트엔드 실행에 필요하지 않습니다.
-- Sentry의 `VITE_SENTRY_DSN`은 로컬 오류 전송이 필요한 경우에만 프로젝트 담당자가 공유한 값을 사용합니다.
 - 토큰을 실수로 commit했다면 파일만 삭제하지 말고 즉시 담당자에게 알린 뒤 토큰을 폐기·재발급합니다.
 
 `.env.example`에는 변수 이름과 공개 가능한 기본값만 작성합니다. 실제 계정값은 넣지 않습니다.

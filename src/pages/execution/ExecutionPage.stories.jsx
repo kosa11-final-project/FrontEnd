@@ -5,9 +5,10 @@ import { defaultStrategyExecutionFilters, STRATEGY_EXECUTION_PAGE_SIZE } from '@
 import { StorybookProductFrame } from '@/storybook/StorybookProductFrame.jsx';
 import { StrategyExecutionDetailContent } from './ExecutionDetailPage.jsx';
 import { StrategyExecutionListContent } from './ExecutionListPage.jsx';
+import { ExecutionListSkeleton } from './ui/ExecutionListSkeleton.jsx';
 
 const meta = {
-  title: 'Pages/Strategy Execution',
+  title: 'Pages/Execution',
   component: StrategyExecutionListContent,
   tags: ['autodocs'],
   parameters: { layout: 'fullscreen' },
@@ -89,6 +90,14 @@ export const ProductFrameDetail = {
   render: () => (
     <StorybookProductFrame path="/execution/102" minHeight="1360px">
       <StrategyExecutionDetailContent strategy={strategyExecutionFixtures[1]} />
+    </StorybookProductFrame>
+  ),
+};
+
+export const Loading = {
+  render: () => (
+    <StorybookProductFrame path="/execution" minHeight="980px">
+      <ExecutionListSkeleton />
     </StorybookProductFrame>
   ),
 };
