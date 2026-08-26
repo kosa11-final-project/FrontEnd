@@ -1,1 +1,1 @@
-export { InventorySummary } from './ui/InventorySummary.jsx';
+export { InventorySummaryBar } from './ui/InventorySummaryBar.jsx';

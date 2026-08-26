@@ -3,7 +3,7 @@ dist/
 coverage/
 .DS_Store
 
-# 로컬 환경변수와 Sentry build plugin 설정은 절대 commit하지 않습니다.
+# 로컬 환경변수는 절대 commit하지 않습니다.
 .env
 .env.*
 !.env.example

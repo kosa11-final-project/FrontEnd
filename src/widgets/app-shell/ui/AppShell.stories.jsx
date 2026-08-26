@@ -1,82 +1,94 @@
+import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { ArrowRight, ChartBar, Database, Refresh } from 'reicon-react';
-import { Button, Icon } from '@/shared/ui';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { authKeys } from '@/entities/auth';
+import { StateView } from '@/shared/ui';
 import { AppHeader } from './AppHeader.jsx';
 import AppSidebar from './AppSidebar.jsx';
 
+const storyUser = {
+  userId: 1,
+  loginId: 'greenfood-admin',
+  userName: '김영만',
+  email: 'admin@example.com',
+  organizationId: 10,
+  organizationName: '그린푸드',
+  roleCode: 'GREENFOOD_ADMIN',
+  roleName: '그린푸드 총괄',
+};
+
+function AuthenticatedStory({ children }) {
+  const [queryClient] = useState(() => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          staleTime: Infinity,
+          refetchOnMount: false,
+          refetchOnReconnect: false,
+          refetchOnWindowFocus: false,
+        },
+      },
+    });
+    client.setQueryData(authKeys.currentUser(), storyUser);
+    return client;
+  });
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
 const meta = {
-  title: 'App Shell/Foundations',
+  title: 'Widgets/App Shell/Navigation',
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
-        component:
-          '실제 AppSidebar·AppHeader와 src/styles.css의 app-shell, Mesh Forecast, page 레이아웃을 함께 확인합니다.',
+        component: '현재 AppSidebar·AppHeader와 업무 페이지가 배치되는 전역 애플리케이션 프레임을 확인합니다.',
       },
     },
   },
+  decorators: [
+    (Story) => (
+      <AuthenticatedStory>
+        <Story />
+      </AuthenticatedStory>
+    ),
+  ],
 };
 
 export default meta;
 
-export const MeshForecastShell = {
+export const ApplicationChrome = {
   render: () => (
     <MemoryRouter initialEntries={['/inventory']}>
-      <div className="app-shell min-h-[760px]">
+      <div className="app-shell mesh-forecast min-h-[760px]">
         <AppSidebar />
         <main className="main-content">
           <AppHeader />
           <div className="content-wrap">
             <section className="page-shell">
-              <div className="page-heading">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h1>통합 재고 조회</h1>
-                  <p>판매처별 재고 흐름과 위험 품목을 한 화면에서 비교합니다.</p>
+                  <div className="flex items-center gap-2.5">
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">통합 재고 관제</h1>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#B7ECCF] bg-[#DAF7E9] px-2.5 py-0.5 text-xs font-semibold text-[#1E8251]">
+                      <span className="size-1.5 rounded-full bg-[#27B06E]" />
+                      현재 DB 기준
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs font-medium text-gray-500">
+                    전역 탐색과 헤더가 실제 업무 콘텐츠를 감싸는 현재 레이아웃입니다.
+                  </p>
                 </div>
-                <Button variant="secondary">
-                  <Icon icon={Refresh} size={16} />
-                  데이터 동기화
-                </Button>
               </div>
-
-              <section className="mesh-hero" aria-label="요약 표면">
-                <div>
-                  <h2>현대그린푸드 재고 네트워크</h2>
-                  <p>요약 정보와 다음 작업을 연결하는 표면으로 사용하고, 실제 데이터 영역은 불투명하게 유지합니다.</p>
-                </div>
-                <div className="mesh-hero-mark" aria-hidden="true">
-                  <Icon icon={Database} size={32} />
-                </div>
-              </section>
-
-              <div className="setup-grid">
-                <article className="setup-card">
-                  <div className="setup-card-icon">
-                    <Icon icon={Database} size={18} />
-                  </div>
-                  <div>
-                    <h2>현재고·가용수량 비교</h2>
-                    <p>현재고와 판매 가능 수량을 분리해 위험 재고를 먼저 확인합니다.</p>
-                  </div>
-                  <span className="setup-card-meta">284개</span>
-                  <Button className="ui-button" variant="ghost" size="sm">
-                    재고 표 열기 <Icon icon={ArrowRight} size={14} />
-                  </Button>
-                </article>
-                <article className="setup-card">
-                  <div className="setup-card-icon">
-                    <Icon icon={ChartBar} size={18} />
-                  </div>
-                  <div>
-                    <h2>위험등급 흐름</h2>
-                    <p>양호·보통·주의·위험 상태를 텍스트와 의미 색상으로 함께 표현합니다.</p>
-                  </div>
-                  <span className="setup-card-meta">12 SKU</span>
-                  <Button className="ui-button" variant="ghost" size="sm">
-                    분석 보기 <Icon icon={ArrowRight} size={14} />
-                  </Button>
-                </article>
+              <div className="mt-6 rounded-xl border border-[var(--border)] bg-white p-8 shadow-xs">
+                <StateView
+                  state="loading"
+                  compact
+                  title="업무 콘텐츠 영역"
+                  description="각 페이지 스토리에서 대시보드, 재고, 실행 관제, 통계 콘텐츠를 확인할 수 있습니다."
+                />
               </div>
             </section>
           </div>
@@ -88,13 +100,12 @@ export const MeshForecastShell = {
     docs: {
       source: {
         code: `<MemoryRouter initialEntries={['/inventory']}>
-  <div className="app-shell">
+  <div className="app-shell mesh-forecast">
     <AppSidebar />
     <main className="main-content">
       <AppHeader />
       <div className="content-wrap">
-        <section className="mesh-hero">요약 표면</section>
-        <div className="setup-grid">업무 카드</div>
+        <section className="page-shell">현재 업무 페이지</section>
       </div>
     </main>
   </div>
@@ -142,7 +153,7 @@ export const AppSidebarOnly = {
     layout: 'fullscreen',
     docs: {
       description: {
-        story: '현대그린푸드 업무 메뉴와 사용자 계정 영역을 포함한 사이드바 단독 상태입니다.',
+        story: '현대그린푸드 브랜드와 업무 메뉴를 포함한 사이드바 단독 상태입니다.',
       },
       source: {
         code: `<MemoryRouter initialEntries={['/inventory']}>

@@ -42,7 +42,6 @@ segment api, model, ui처럼 slice 내부의 기술 역할
 | `providers` | 앱 전체 Context 연결 | QueryClientProvider, TooltipProvider | 페이지별 상태와 화면 JSX |
 | `layouts` | 전역 배치 | AppShell widget, Router Outlet 배치 | Sidebar·Header 세부 구현 |
 | `router` | URL 구조 | route, redirect, lazy route boundary | navigation 버튼의 세부 스타일 |
-| `monitoring` | 오류·성능 관측 | Sentry 초기화, 민감정보 제거 | 사용자 알림 UI, 업무 로그 |
 | `stories` | 독립 UI 문서 | 기본·variant·disabled·긴 텍스트·오류 상태 | 실제 서버 호출, 업무 데이터 저장 |
 | `assets` | 코드와 함께 배포하는 정적 리소스 | 이미지, 로컬 SVG, 애니메이션 | API 응답이나 사용자가 업로드한 파일 |
 
@@ -128,7 +127,7 @@ Page / Widget
 - 같은 GET 요청을 `useEffect`로 다시 구현하지 않습니다.
 - API response는 mapper를 통과한 뒤 UI에 전달합니다.
 
-Spring Security 계약이 정해지기 전에는 `/me` bootstrap, route guard, 401 redirect를 구현하지 않습니다. 현재 `withCredentials`와 CSRF header 골격은 백엔드 계약에 맞춰 수정할 준비 상태입니다.
+Spring Security 세션 계약에 따라 `/me` bootstrap과 보호 route를 사용합니다. `/me`의 `401 AUTH-001`만 비로그인 상태로 해석하며, 네트워크 오류나 5xx를 로그인 redirect로 숨기지 않습니다. 업무 API의 `401 AUTH-001`은 공통 Axios 응답 경계에서 감지하고, 진행 중인 Query와 전체 서버 캐시를 정리한 뒤 현재 URL을 보존해 `/login`으로 이동합니다. 로그인과 `/me`의 `401`은 각 인증 화면이 직접 처리하며, `403`은 세션을 제거하지 않고 적용되는 page의 forbidden 상태로 표시합니다.
 
 ## 8. 페이지 상태 규칙
 

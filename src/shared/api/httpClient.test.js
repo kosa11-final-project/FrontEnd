@@ -52,6 +52,34 @@ describe('shared HTTP client helpers', () => {
     await expect(deleteJson({ path: 'v1/inventories/inventory-1' })).resolves.toBeUndefined();
   });
 
+  it('forwards the session-expiration handling opt-out only when requested', async () => {
+    await getJson({ path: 'v1/auth/me', skipSessionExpirationHandling: true });
+
+    expect(request).toHaveBeenCalledWith({
+      method: 'get',
+      url: 'v1/auth/me',
+      params: undefined,
+      data: undefined,
+      headers: undefined,
+      signal: undefined,
+      skipSessionExpirationHandling: true,
+    });
+  });
+
+  it('forwards a request-specific timeout only when requested', async () => {
+    await getJson({ path: 'v1/inventories', timeout: 30_000 });
+
+    expect(request).toHaveBeenCalledWith({
+      method: 'get',
+      url: 'v1/inventories',
+      params: undefined,
+      data: undefined,
+      headers: undefined,
+      signal: undefined,
+      timeout: 30_000,
+    });
+  });
+
   it('rejects unsupported HTTP methods before making a request', async () => {
     await expect(requestJson({ method: 'connect', path: 'v1/inventories' })).rejects.toThrow(
       '지원하지 않는 HTTP 메서드입니다: connect',

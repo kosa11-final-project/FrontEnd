@@ -1,17 +1,26 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout.jsx';
-import AiStrategyPage from '@/pages/ai-strategy/AiStrategyPage.jsx';
-import DashboardPage from '@/pages/dashboard/DashboardPage.jsx';
-import ExecutionPage from '@/pages/execution/ExecutionPage.jsx';
-import InventoryPage from '@/pages/inventory/InventoryPage.jsx';
-import StatisticsPage from '@/pages/statistics/StatisticsPage.jsx';
-import { StateView } from '@/shared/ui';
+import AuthGuard from './AuthGuard.jsx';
+import { StateView } from '@/shared/ui/StateView.jsx';
+import { DashboardSkeleton } from '@/pages/dashboard/ui/DashboardSkeleton.jsx';
+import { InventoryPageSkeleton } from '@/pages/inventory/ui/InventoryPageSkeleton.jsx';
+import { ExecutionListSkeleton } from '@/pages/execution/ui/ExecutionListSkeleton.jsx';
+import { StatisticsSkeleton } from '@/pages/statistics/ui/StatisticsSkeleton.jsx';
 
+const LoginPage = lazy(() => import('@/pages/login/LoginPage.jsx'));
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage.jsx'));
+const InventoryPage = lazy(() => import('@/pages/inventory/InventoryPage.jsx'));
+const AiStrategyPage = lazy(() => import('@/pages/ai-strategy/AiStrategyPage.jsx'));
+const AiStrategyDetailPage = lazy(() => import('@/pages/ai-strategy/AiStrategyDetailPage.jsx'));
+const AiStrategySimulationPage = lazy(() => import('@/pages/ai-strategy/AiStrategySimulationPage.jsx'));
+const ExecutionListPage = lazy(() => import('@/pages/execution/ExecutionListPage.jsx'));
+const ExecutionDetailPage = lazy(() => import('@/pages/execution/ExecutionDetailPage.jsx'));
+const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage.jsx'));
 const HeendiLoaderPage = lazy(() => import('@/pages/heendi-loader/HeendiLoaderPage.jsx'));
 
-function LazyRoute({ children }) {
-  return <Suspense fallback={<StateView state="loading" />}>{children}</Suspense>;
+function LazyRoute({ children, fallback = <StateView state="loading" /> }) {
+  return <Suspense fallback={fallback}>{children}</Suspense>;
 }
 
 function NotFoundPage() {
@@ -29,6 +38,15 @@ function NotFoundPage() {
 }
 
 export const router = createBrowserRouter([
+  // 로그인 준비 API는 백엔드에서도 permitAll이므로 로그인 화면은 보호 라우트 밖에 둠
+  {
+    path: 'login',
+    element: (
+      <LazyRoute>
+        <LoginPage />
+      </LazyRoute>
+    ),
+  },
   {
     path: 'heendi-loader',
     element: (
@@ -38,14 +56,79 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    element: <AppLayout />,
+    // AuthGuard 아래의 업무 화면은 유효한 서버 세션이 있어야 렌더링됨
+    element: <AuthGuard />,
     children: [
-      { index: true, element: <Navigate replace to="/inventory" /> },
-      { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'inventory', element: <InventoryPage /> },
-      { path: 'ai-strategy', element: <AiStrategyPage /> },
-      { path: 'execution', element: <ExecutionPage /> },
-      { path: 'statistics', element: <StatisticsPage /> },
+      {
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <Navigate replace to="/dashboard" /> },
+          {
+            path: 'dashboard',
+            element: (
+              <LazyRoute fallback={<DashboardSkeleton />}>
+                <DashboardPage />
+              </LazyRoute>
+            ),
+          },
+          {
+            path: 'inventory',
+            element: (
+              <LazyRoute fallback={<InventoryPageSkeleton />}>
+                <InventoryPage />
+              </LazyRoute>
+            ),
+          },
+          {
+            path: 'ai-strategy',
+            element: (
+              <LazyRoute>
+                <AiStrategyPage />
+              </LazyRoute>
+            ),
+          },
+          {
+            path: 'ai-strategy/:strategyCaseId',
+            element: (
+              <LazyRoute>
+                <AiStrategyDetailPage />
+              </LazyRoute>
+            ),
+          },
+          {
+            path: 'ai-strategy/:strategyCaseId/simulation',
+            element: (
+              <LazyRoute>
+                <AiStrategySimulationPage />
+              </LazyRoute>
+            ),
+          },
+          {
+            path: 'execution',
+            element: (
+              <LazyRoute fallback={<ExecutionListSkeleton />}>
+                <ExecutionListPage />
+              </LazyRoute>
+            ),
+          },
+          {
+            path: 'execution/:strategyId',
+            element: (
+              <LazyRoute>
+                <ExecutionDetailPage />
+              </LazyRoute>
+            ),
+          },
+          {
+            path: 'statistics',
+            element: (
+              <LazyRoute fallback={<StatisticsSkeleton activeTab="strategy" />}>
+                <StatisticsPage />
+              </LazyRoute>
+            ),
+          },
+        ],
+      },
     ],
   },
   { path: '*', element: <NotFoundPage /> },

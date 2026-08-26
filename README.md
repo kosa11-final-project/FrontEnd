@@ -2,9 +2,16 @@
 
 현대그린푸드의 다중 판매채널 재고를 통합 조회하고 위험 재고와 AI 실행 전략을 관리하기 위한 B2B 운영 플랫폼의 프론트엔드 기반입니다.
 
-현재 저장소는 **실제 업무 기능 개발 전 공통 초기 세팅을 마친 상태**입니다. 팀원이 같은 구조와 디자인 규칙으로 기능을 개발할 수 있도록 앱 셸, 라우터, FSD-lite 폴더 구조, HTTP 통신 경계, 디자인 토큰, 재사용 UI, Storybook, 테스트와 CI 기반을 구성했습니다.
+## 최근 통계 작업
 
-> 실제 Spring Boot API 계약, 로그인·권한 정책, 재고 조회·페이지네이션과 배포 환경은 기능 또는 운영 단계에서 확정합니다. 공통 개발 환경, lint·format, 테스트와 PR 자동 검증은 이 저장소에 포함되어 있습니다.
+- AI 전략 성과와 위험재고 추이를 실제 통계 API에 연결했습니다.
+- 기간·재고 위치 필터와 성과 지표·추이 차트를 제공합니다.
+
+통합 재고 조회의 로컬 feature 범위는 구현되어 있습니다. 앱 셸, 라우터, FSD-lite 폴더 구조, HTTP 통신 경계, 디자인 토큰, 재사용 UI, Storybook, 테스트와 CI 기반이 구성되어 있으며, 실제 source sync·Oracle 반영은 별도 후속 범위입니다.
+
+통합 재고의 물리 스키마는 BackEnd Flyway V1~V16이 우선합니다. 화면에서는 `on_hand_qty` 집계를 가용재고, `reserved_qty` 집계를 예약재고, 두 값의 합인 `total_qty`를 총재고로 표시하며 FrontEnd가 예약수량을 다시 차감하지 않습니다. 세부 정합성 작업은 workspace의 `../docs/integrated-inventory/SCHEMA-FLYWAY-WORKLIST.md`를 기준으로 합니다.
+
+> Spring Security 세션 로그인과 현재 사용자 조회 계약을 연결했으며, 세부 권한 정책, 재고 조회·페이지네이션과 배포 환경은 기능 또는 운영 단계에서 확정합니다. 공통 개발 환경, lint·format, 테스트와 PR 자동 검증은 이 저장소에 포함되어 있습니다.
 
 처음 참여하는 팀원은 먼저 [`docs/team-onboarding.md`](./docs/team-onboarding.md)를 순서대로 진행합니다. 팀원이 이해하기 쉽게 설명할 때는 [`docs/team-frontend-handbook.md`](./docs/team-frontend-handbook.md)를 사용하고, 토큰·컴포넌트·API의 상세 기준은 [`docs/frontend-foundation-team-guide.md`](./docs/frontend-foundation-team-guide.md)에서 확인합니다.
 
@@ -42,20 +49,21 @@ pnpm run build-storybook
 
 `pnpm run audit:prod`는 high 이상 운영 의존성 취약점을 확인합니다. `pnpm run check`는 ESLint, Prettier 검사, Vitest, production build를 순서대로 실행합니다. GitHub에서도 PR마다 같은 검사와 Storybook build, Playwright를 실행합니다.
 
-환경변수는 [`.env.example`](./.env.example)을 기준으로 `.env.local`에 작성합니다. `VITE_`가 붙은 값은 브라우저 번들에 노출되므로 비밀번호, 세션 값, AWS 키와 같은 secret을 넣지 않습니다. 팀원은 `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`를 로컬 프론트엔드에 설정하지 않습니다.
+환경변수는 [`.env.example`](./.env.example)을 기준으로 `.env.local`에 작성합니다. `VITE_`가 붙은 값은 브라우저 번들에 노출되므로 비밀번호, 세션 값, AWS 키와 같은 secret을 넣지 않습니다.
 
 ## 기본 화면과 라우터
 
 | 경로 | 화면 | 현재 범위 |
 | --- | --- | --- |
+| `/login` | 로그인 | CSRF 발급, 세션 로그인, 오류 상태 연결 |
 | `/dashboard` | 대시보드 | 기본 페이지와 앱 셸 연결 |
-| `/inventory` | 통합 재고 조회 | 초기 화면 구조와 예시 컴포넌트 |
+| `/inventory` | 통합 재고 조회 | 목록·필터·상세·LOT·수요예측·위험·가격·미할당 재고 구현, source sync는 준비 중 |
 | `/ai-strategy` | AI 전략 및 시뮬레이션 | 기본 페이지 연결 |
 | `/execution` | AI 전략 기록 & 성과 | 기본 페이지 연결 |
 | `/statistics` | 통계 | 기본 페이지 연결 |
 | `/heendi-loader` | 로딩 모션 확인 | MP4 레퍼런스와 Lottie 스피너 비교 |
 
-루트(`/`)는 `/inventory`로 이동합니다. 라우트 정의는 [`src/app/router/router.jsx`](./src/app/router/router.jsx), 메뉴의 단일 출처는 [`src/widgets/app-shell/model/navigation.js`](./src/widgets/app-shell/model/navigation.js)입니다.
+로그인하지 않은 사용자가 루트(`/`) 또는 업무 경로에 접근하면 `/login`으로 이동합니다. 로그인 후 루트는 `/dashboard`로 이동하며, 사용자가 먼저 접근한 업무 경로가 있으면 해당 경로로 돌아갑니다. 라우트 정의는 [`src/app/router/router.jsx`](./src/app/router/router.jsx), 메뉴의 단일 출처는 [`src/widgets/app-shell/model/navigation.js`](./src/widgets/app-shell/model/navigation.js)입니다.
 
 ## 기술 스택과 역할
 
@@ -68,9 +76,9 @@ pnpm run build-storybook
 | 서버 상태 | TanStack Query v5 | 서버 데이터 캐시, 로딩·오류, 재조회, 무효화 | Provider와 query options 예시 완료 |
 | HTTP | Axios | base URL, timeout, 쿠키 전송, CSRF header, 오류 정규화 | 공통 client 완료 |
 | 클라이언트 상태 | Zustand | 여러 화면이 공유하는 UI 상태만 관리 | 설치 완료, 필요할 때 store 생성 |
-| 폼 | React Hook Form, Zod | 입력 상태, 검증, 제출 처리 | 설치 완료, 실제 폼에서 적용 |
+| 폼 | React Hook Form, Zod | 입력 상태, 검증, 제출 처리 | 로그인 폼 적용 완료 |
 | 테이블 | TanStack Table v8 | 컬럼·행 모델과 정렬, 재사용 테이블 껍데기 | `DataTable` 완료 |
-| 차트 | Recharts | 수요예측, 위험분석, 전략 성과 시각화 | 설치 완료, 기능 단계에서 적용 |
+| 차트 | Recharts | 수요예측 및 전략 성과 시각화 | 수요예측 탭 적용 완료 |
 | 스타일 | Tailwind CSS v4 | layout과 token 기반 스타일링 | 완료 |
 | UI 소스 | shadcn/ui 방식 | 코드를 프로젝트가 소유하고 디자인 토큰에 맞춰 수정 | 완료 |
 | 클래스 조합 | `cn`, `clsx`, `tailwind-merge` | 조건부 class와 Tailwind 충돌 정리 | 완료 |
@@ -78,7 +86,6 @@ pnpm run build-storybook
 | 접근성 primitive | Radix Slot, Tooltip | `asChild`, tooltip, 키보드·포커스 기반 | 완료 |
 | 아이콘 | `reicon-react` | 앱에서 사용하는 유일한 아이콘 라이브러리 | 완료 |
 | 모션 | `lottie-web` | 공통 Lottie 로딩 스피너를 동적 import로 재생 | 완료 |
-| 모니터링 | Sentry | Error Boundary, 환경별 DSN, 민감정보 제거 | 기반 완료, 운영 정책은 추후 확정 |
 | UI 문서 | Storybook | 디자인 토큰과 공통 컴포넌트 상태 확인 | 완료 |
 | 단위 테스트 | Vitest | formatter, mapper, query key, 상태 규칙 검증 | 기반 완료 |
 | E2E | Playwright | 라우팅과 실제 사용자 흐름 검증 | 기반 완료 |
@@ -106,7 +113,7 @@ app → pages → widgets → features → entities → shared
 
 | 계층 | 역할 | 이 프로젝트의 예시 |
 | --- | --- | --- |
-| `app` | 앱 전체 생명주기와 조립 | Provider, Router, Error Boundary, AppLayout |
+| `app` | 앱 전체 생명주기와 조립 | Provider, Router, AppLayout |
 | `pages` | URL에 대응하는 최종 화면 조합 | InventoryPage, DashboardPage |
 | `widgets` | 여러 feature·entity를 묶은 독립 업무 블록 | AppShell, InventoryTable, InventorySummary |
 | `features` | 사용자의 한 가지 행동과 그 상태 | inventory-filter, inventory-sync, inventory-detail |
@@ -128,7 +135,7 @@ FSD를 억지로 적용하지 않는 기준:
 ```text
 src/
 ├─ app/
-│  ├─ providers/                 # TanStack Query, Tooltip, Sentry 경계
+│  ├─ providers/                 # TanStack Query, Tooltip
 │  ├─ router/                    # 전체 route 정의
 │  └─ layouts/                   # 전역 widget과 Outlet 배치
 ├─ pages/
@@ -160,7 +167,6 @@ src/
 │  ├─ config/                    # 환경변수 정규화
 │  ├─ hooks/                     # useMediaQuery 등 범용 React hook
 │  ├─ lib/                       # cn과 숫자·날짜 formatter
-│  ├─ monitoring/                # Sentry 초기화와 scrubber
 │  └─ ui/                        # shadcn 기반 공통 UI와 Storybook
 ├─ _template/                    # FSD 사용 예시 문서
 ├─ styles.css                    # 전역 디자인 토큰과 소유권별 CSS
@@ -187,7 +193,6 @@ FSD 계층 안에서는 다음 segment 이름을 같은 의미로 사용합니�
 | `providers` | 앱 전체 Context와 외부 Provider 연결 | `AppProviders.jsx` |
 | `layouts` | 전역 widget과 Router Outlet 배치 | `AppLayout.jsx` |
 | `router` | route, redirect, lazy route 경계 | `router.jsx` |
-| `monitoring` | Sentry 초기화와 민감정보 제거 | `sentry.js` |
 | `stories` | 공통 UI의 독립 상태 문서 | `Button.stories.jsx` |
 
 `lib`은 React 없이 입력을 결과로 바꾸는 순수 코드, `hooks`는 React lifecycle과 state를 사용하는 코드입니다. `api`는 통신, `model`은 통신 결과를 프론트 도메인으로 해석하는 역할입니다.
@@ -255,7 +260,16 @@ export function syncInventory(body, signal) {
 }
 ```
 
-세션 인증의 백엔드 계약은 아직 확정하지 않았습니다. 프론트에는 `withCredentials: true`와 CSRF cookie/header 골격만 준비했으며, `/me` bootstrap, 로그인 redirect, 401·403 정책은 Spring Security 계약이 정해진 뒤 연결합니다. 세션 ID는 localStorage나 Zustand에 저장하지 않습니다.
+세션 로그인은 다음 Spring Security 계약을 사용합니다.
+
+```text
+GET  /api/v1/auth/csrf   -> CSRF cookie와 header 정보 발급
+POST /api/v1/auth/login  -> loginId, password로 세션 로그인
+GET  /api/v1/auth/me     -> 현재 세션 사용자 조회
+POST /api/v1/auth/logout -> 서버 세션과 인증 cookie 제거
+```
+
+앱은 `/me`의 `401 AUTH-001`을 비로그인 상태로 해석하고 보호된 업무 경로를 `/login`으로 전환합니다. 네트워크 오류나 서버 오류는 로그인 화면으로 숨기지 않고 다시 시도할 수 있는 오류 상태로 표시합니다. 세션 ID는 localStorage, sessionStorage 또는 Zustand에 저장하지 않으며 브라우저의 HttpOnly cookie가 관리합니다. 로그아웃 성공 시 사용자별 서버 캐시를 제거하고 `/login`으로 이동합니다. 업무 API의 `401 AUTH-001`은 전역 세션 만료로 처리하여 전체 서버 캐시를 제거하고 현재 URL을 보존한 뒤 로그인 화면으로 이동합니다. 세부 `403` 권한 정책은 후속 기능에서 연결합니다.
 
 ## 재사용 UI 규칙
 
@@ -380,9 +394,11 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 - Dashboard Filter Foundations 디자인 토큰과 Pretendard
 - shadcn 기반 재사용 UI와 Storybook
 - Axios·CSRF·ApiError 공통 통신 경계
+- 세션 로그인, `/me` 인증 복원과 보호 라우터
+- 업무 API의 전역 세션 만료 감지, 캐시 정리와 원래 경로 복귀
+- React Hook Form·Zod 기반 로그인 화면
 - TanStack Query Provider, inventory query key/options 예시
 - TanStack Table 기반 재사용 DataTable
-- Sentry Error Boundary와 민감정보 scrubber
 - MP4 레퍼런스와 Lottie 공통 로더
 - Vitest와 Playwright 기본 검증
 - 공통 데이터 formatter와 단위 테스트
@@ -397,11 +413,10 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 기능 또는 운영 단계에서 진행:
 
 - 실제 Spring Boot API와 응답 mapper 연결
-- Spring Security 로그인·로그아웃·세션·권한 계약
+- Spring Security 세부 역할·권한 정책
 - 실제 재고 조회, 서버 페이지네이션, URL 필터와 정렬
 - 재고 상세와 AI 전략 업무 기능
 - Zustand, React Hook Form, Zod, Recharts의 실제 도메인 적용
-- 운영 Sentry sampling과 개인정보 정책
 - 배포 아키텍처와 환경별 설정
 
 ## 참고 문서
