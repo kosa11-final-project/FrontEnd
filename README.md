@@ -49,7 +49,7 @@ pnpm run build-storybook
 
 `pnpm run audit:prod`는 high 이상 운영 의존성 취약점을 확인합니다. `pnpm run check`는 ESLint, Prettier 검사, Vitest, production build를 순서대로 실행합니다. GitHub에서도 PR마다 같은 검사와 Storybook build, Playwright를 실행합니다.
 
-환경변수는 [`.env.example`](./.env.example)을 기준으로 `.env.local`에 작성합니다. `VITE_`가 붙은 값은 브라우저 번들에 노출되므로 비밀번호, 세션 값, AWS 키와 같은 secret을 넣지 않습니다. 팀원은 `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`를 로컬 프론트엔드에 설정하지 않습니다.
+환경변수는 [`.env.example`](./.env.example)을 기준으로 `.env.local`에 작성합니다. `VITE_`가 붙은 값은 브라우저 번들에 노출되므로 비밀번호, 세션 값, AWS 키와 같은 secret을 넣지 않습니다.
 
 ## 기본 화면과 라우터
 
@@ -86,7 +86,6 @@ pnpm run build-storybook
 | 접근성 primitive | Radix Slot, Tooltip | `asChild`, tooltip, 키보드·포커스 기반 | 완료 |
 | 아이콘 | `reicon-react` | 앱에서 사용하는 유일한 아이콘 라이브러리 | 완료 |
 | 모션 | `lottie-web` | 공통 Lottie 로딩 스피너를 동적 import로 재생 | 완료 |
-| 모니터링 | Sentry | Error Boundary, 환경별 DSN, 민감정보 제거 | 기반 완료, 운영 정책은 추후 확정 |
 | UI 문서 | Storybook | 디자인 토큰과 공통 컴포넌트 상태 확인 | 완료 |
 | 단위 테스트 | Vitest | formatter, mapper, query key, 상태 규칙 검증 | 기반 완료 |
 | E2E | Playwright | 라우팅과 실제 사용자 흐름 검증 | 기반 완료 |
@@ -114,7 +113,7 @@ app → pages → widgets → features → entities → shared
 
 | 계층 | 역할 | 이 프로젝트의 예시 |
 | --- | --- | --- |
-| `app` | 앱 전체 생명주기와 조립 | Provider, Router, Error Boundary, AppLayout |
+| `app` | 앱 전체 생명주기와 조립 | Provider, Router, AppLayout |
 | `pages` | URL에 대응하는 최종 화면 조합 | InventoryPage, DashboardPage |
 | `widgets` | 여러 feature·entity를 묶은 독립 업무 블록 | AppShell, InventoryTable, InventorySummary |
 | `features` | 사용자의 한 가지 행동과 그 상태 | inventory-filter, inventory-sync, inventory-detail |
@@ -136,7 +135,7 @@ FSD를 억지로 적용하지 않는 기준:
 ```text
 src/
 ├─ app/
-│  ├─ providers/                 # TanStack Query, Tooltip, Sentry 경계
+│  ├─ providers/                 # TanStack Query, Tooltip
 │  ├─ router/                    # 전체 route 정의
 │  └─ layouts/                   # 전역 widget과 Outlet 배치
 ├─ pages/
@@ -168,7 +167,6 @@ src/
 │  ├─ config/                    # 환경변수 정규화
 │  ├─ hooks/                     # useMediaQuery 등 범용 React hook
 │  ├─ lib/                       # cn과 숫자·날짜 formatter
-│  ├─ monitoring/                # Sentry 초기화와 scrubber
 │  └─ ui/                        # shadcn 기반 공통 UI와 Storybook
 ├─ _template/                    # FSD 사용 예시 문서
 ├─ styles.css                    # 전역 디자인 토큰과 소유권별 CSS
@@ -195,7 +193,6 @@ FSD 계층 안에서는 다음 segment 이름을 같은 의미로 사용합니�
 | `providers` | 앱 전체 Context와 외부 Provider 연결 | `AppProviders.jsx` |
 | `layouts` | 전역 widget과 Router Outlet 배치 | `AppLayout.jsx` |
 | `router` | route, redirect, lazy route 경계 | `router.jsx` |
-| `monitoring` | Sentry 초기화와 민감정보 제거 | `sentry.js` |
 | `stories` | 공통 UI의 독립 상태 문서 | `Button.stories.jsx` |
 
 `lib`은 React 없이 입력을 결과로 바꾸는 순수 코드, `hooks`는 React lifecycle과 state를 사용하는 코드입니다. `api`는 통신, `model`은 통신 결과를 프론트 도메인으로 해석하는 역할입니다.
@@ -402,7 +399,6 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 - React Hook Form·Zod 기반 로그인 화면
 - TanStack Query Provider, inventory query key/options 예시
 - TanStack Table 기반 재사용 DataTable
-- Sentry Error Boundary와 민감정보 scrubber
 - MP4 레퍼런스와 Lottie 공통 로더
 - Vitest와 Playwright 기본 검증
 - 공통 데이터 formatter와 단위 테스트
@@ -421,7 +417,6 @@ Pretendard 가변 폰트 하나만 사용하며 파일은 [`public/fonts/Pretend
 - 실제 재고 조회, 서버 페이지네이션, URL 필터와 정렬
 - 재고 상세와 AI 전략 업무 기능
 - Zustand, React Hook Form, Zod, Recharts의 실제 도메인 적용
-- 운영 Sentry sampling과 개인정보 정책
 - 배포 아키텍처와 환경별 설정
 
 ## 참고 문서
