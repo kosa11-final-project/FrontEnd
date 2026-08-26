@@ -41,12 +41,13 @@ In **Manage Jenkins -> System -> AWS**, enable **Retrieve credentials from
 node**. The `Jenkinsfile` also uses `withAWS(useNode: true)` so credentials are
 resolved on the node running the pipeline.
 
-Create these Jenkins credentials as **Secret text** values:
+The deployment target identifiers are not secrets and are defined directly in
+the `Jenkinsfile`:
 
-| Credential ID | Value |
+| Environment variable | Value |
 | --- | --- |
-| `stockfit-frontend-s3-bucket` | Existing frontend S3 bucket name |
-| `stockfit-cloudfront-distribution-id` | Existing `stockfit.win` CloudFront distribution ID |
+| `FRONTEND_BUCKET` | `stockfit-frontend-prod-7` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | `E226SCR3XTL2OH` |
 
 The bucket must be dedicated to the frontend. The pipeline uploads the current
 `dist/` contents but does not delete older hashed assets. The current
@@ -77,7 +78,7 @@ policy with the real bucket, account, and distribution values:
         "s3:ListBucket",
         "s3:GetBucketLocation"
       ],
-      "Resource": "arn:aws:s3:::FRONTEND_BUCKET"
+      "Resource": "arn:aws:s3:::stockfit-frontend-prod-7"
     },
     {
       "Sid": "FrontendObjectDeployment",
@@ -86,7 +87,7 @@ policy with the real bucket, account, and distribution values:
         "s3:GetObject",
         "s3:PutObject"
       ],
-      "Resource": "arn:aws:s3:::FRONTEND_BUCKET/*"
+      "Resource": "arn:aws:s3:::stockfit-frontend-prod-7/*"
     },
     {
       "Sid": "CloudFrontInvalidation",
@@ -95,7 +96,7 @@ policy with the real bucket, account, and distribution values:
         "cloudfront:CreateInvalidation",
         "cloudfront:GetInvalidation"
       ],
-      "Resource": "arn:aws:cloudfront::AWS_ACCOUNT_ID:distribution/DISTRIBUTION_ID"
+      "Resource": "arn:aws:cloudfront::143924590050:distribution/E226SCR3XTL2OH"
     }
   ]
 }
