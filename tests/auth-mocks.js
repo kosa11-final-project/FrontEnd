@@ -71,6 +71,20 @@ const emptyInventorySyncLatestBody = JSON.stringify({
   timestamp: '2026-08-14T00:00:00Z',
 });
 
+const emptyAiStrategyListBody = JSON.stringify({
+  data: {
+    content: [],
+    statusCounts: { all: 0, generating: 0, generated: 0, generationFailed: 0 },
+    page: 0,
+    size: 10,
+    totalElements: 0,
+    totalPages: 0,
+    first: true,
+    last: true,
+  },
+  timestamp: '2026-08-24T00:00:00Z',
+});
+
 // 실제 백엔드 ApiResponse<T>와 같은 data/timestamp 봉투를 사용해 계약 차이를 테스트에서 드러냄
 function jsonBody(data) {
   return JSON.stringify(data);
@@ -100,6 +114,9 @@ export async function mockInventoryReadSlice(page) {
   );
   await page.route('**/api/v1/inventory-sync-runs/latest', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: emptyInventorySyncLatestBody }),
+  );
+  await page.route('**/api/v1/ai-strategies?*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: emptyAiStrategyListBody }),
   );
 }
 

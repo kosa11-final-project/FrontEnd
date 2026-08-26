@@ -11,7 +11,7 @@ export function AllStates() {
     <div className="grid max-w-xl gap-6 bg-[var(--card)] p-6">
       <div className="grid gap-2">
         <StrategyGenerationStatus status="GENERATING" />
-        <StrategyGenerationProgress status="GENERATING" currentStage="AI_STRATEGY_GENERATING" />
+        <StrategyGenerationProgress status="GENERATING" currentStage="STRATEGY_GENERATING" />
       </div>
       <div className="grid gap-2">
         <StrategyGenerationStatus status="GENERATED" />

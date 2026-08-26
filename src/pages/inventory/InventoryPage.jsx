@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   inventoryFilterOptionsQueryOptions,
@@ -40,6 +40,7 @@ const hasPersistedFilterQuery = (searchParams) =>
   FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY.some((key) => searchParams.has(key));
 
 export default function InventoryPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [shouldResetFilterQueryOnEntry] = useState(() => hasPersistedFilterQuery(searchParams));
   const [selectedSkuItems, setSelectedSkuItems] = useState([]);
@@ -237,6 +238,12 @@ export default function InventoryPage() {
     setIsStrategyModalOpen(true);
   }, [selectedSkuItems.length]);
 
+  const handleStrategyCreated = useCallback(() => {
+    setIsStrategyModalOpen(false);
+    setSelectedSkuItems([]);
+    navigate('/ai-strategy');
+  }, [navigate]);
+
   return (
     <div className="inventory-page flex flex-col gap-4">
       <InventorySyncControl />
@@ -302,7 +309,11 @@ export default function InventoryPage() {
       />
 
       {isStrategyModalOpen ? (
-        <StrategyRequestModal selectedItems={selectedSkuItems} onClose={() => setIsStrategyModalOpen(false)} />
+        <StrategyRequestModal
+          selectedItems={selectedSkuItems}
+          onClose={() => setIsStrategyModalOpen(false)}
+          onCreated={handleStrategyCreated}
+        />
       ) : null}
 
       {/* 4. 우측 상세 관제 드로어 */}

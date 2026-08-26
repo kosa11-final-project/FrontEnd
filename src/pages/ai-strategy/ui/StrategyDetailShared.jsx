@@ -1,7 +1,11 @@
-import { ArrowLeft, Package } from 'reicon-react';
+import { ArrowLeft } from 'reicon-react';
 import { Link } from 'react-router-dom';
+import {
+  StrategyProductImage,
+  resolveStrategyGenerationStatus,
+  strategyGenerationStatusMeta,
+} from '@/entities/strategy';
 import { formatDateTime } from '@/shared/lib/format';
-import { resolveStrategyGenerationStatus, strategyGenerationStatusMeta } from '@/entities/strategy';
 import { Badge, Button, Card, Icon } from '@/shared/ui';
 
 export function StrategyDetailHeader({ strategyCase, backTo, backState, backLabel = '목록으로', actions }) {
@@ -39,13 +43,12 @@ export function StrategyCaseSummary({ strategyCase }) {
   return (
     <Card padding="lg" className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)]">
       <div className="flex min-w-0 items-center gap-4">
-        <span className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface-subtle)]">
-          {product.imageUrl ? (
-            <img src={product.imageUrl} alt="" className="size-full object-cover" />
-          ) : (
-            <Icon icon={Package} size={26} className="text-[color:var(--text-muted)]" />
-          )}
-        </span>
+        <StrategyProductImage
+          src={product.imageUrl}
+          alt={`${product.skuName} 상품 이미지`}
+          loading="eager"
+          className="size-20 rounded-[var(--radius-panel)]"
+        />
         <div className="min-w-0">
           <Badge variant="neutral">{product.category?.categoryName ?? '미분류'}</Badge>
           <h2 className="mt-2 truncate text-lg font-bold text-[color:var(--text-heading)]">{product.skuName}</h2>
@@ -55,7 +58,9 @@ export function StrategyCaseSummary({ strategyCase }) {
       <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
         <div>
           <dt className="text-[color:var(--text-muted)]">요청자</dt>
-          <dd className="mt-1 font-semibold text-[color:var(--text-heading)]">{strategyCase.requestedBy.userName}</dd>
+          <dd className="mt-1 font-semibold text-[color:var(--text-heading)]">
+            {strategyCase.requestedBy?.userName ?? '요청자 정보 없음'}
+          </dd>
         </div>
         <div>
           <dt className="text-[color:var(--text-muted)]">생성 요청</dt>

@@ -1,7 +1,7 @@
 // AI 전략 생성 목록의 상태는 실행·성과 상태와 분리해서 관리합니다.
 export const strategyGenerationStatuses = Object.freeze(['GENERATING', 'GENERATED', 'GENERATION_FAILED']);
 
-export const strategyGenerationStages = Object.freeze(['FORECASTING', 'AI_STRATEGY_GENERATING', 'COMPARISON_READY']);
+export const strategyGenerationStages = Object.freeze(['FORECASTING', 'STRATEGY_GENERATING', 'COMPARISON_READY']);
 
 export const strategyGenerationStatusMeta = Object.freeze({
   GENERATING: { label: '생성중', variant: 'warning' },
@@ -12,7 +12,7 @@ export const strategyGenerationStatusMeta = Object.freeze({
 
 export const strategyGenerationStageMeta = Object.freeze({
   FORECASTING: { label: '수요예측' },
-  AI_STRATEGY_GENERATING: { label: 'AI 전략 생성' },
+  STRATEGY_GENERATING: { label: 'AI 전략 생성' },
   COMPARISON_READY: { label: '비교 준비' },
 });
 

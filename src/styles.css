@@ -220,6 +220,7 @@ a:focus-visible {
 /* APP SHELL: fixed navigation frame and global application background. */
 .app-shell {
   --sidebar-width: 248px;
+  --app-sidebar-width: 248px;
   display: flex;
   min-height: 100vh;
   background:
@@ -250,6 +251,7 @@ a:focus-visible {
 
 .sidebar-collapsed {
   --sidebar-width: 76px;
+  --app-sidebar-width: 76px;
 }
 
 .sidebar-collapsed .sidebar {
@@ -1003,6 +1005,7 @@ code {
 @media (max-width: 900px) {
   .app-shell {
     --sidebar-width: 76px;
+    --app-sidebar-width: 76px;
   }
 
   .sidebar {

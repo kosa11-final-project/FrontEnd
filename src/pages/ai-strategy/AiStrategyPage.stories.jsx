@@ -63,7 +63,7 @@ export const StrategySimulationFinancialView = {
   render: () => <StrategyProductPreview path="/ai-strategy/32/simulation?option=opt-channel-expansion" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const financeTab = canvas.queryByRole('tab', { name: '매출·이익' });
+    const financeTab = canvas.queryByRole('tab', { name: '공헌이익' });
     if (financeTab) await userEvent.click(financeTab);
   },
 };

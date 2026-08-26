@@ -19,11 +19,6 @@ export const STRATEGY_REQUEST_TYPES = Object.freeze([
     label: '채널 확대',
     description: '다른 온라인몰·오프라인 판매처로 노출을 확대합니다.',
   },
-  {
-    value: 'CHANNEL_CONCENTRATION',
-    label: '채널 집중',
-    description: '판매속도가 빠른 채널에 재고와 노출을 집중합니다.',
-  },
 ]);
 
 const DAY_MS = 86_400_000;
@@ -39,6 +34,10 @@ function addDays(value, days) {
   const date = parseIsoDate(value);
   if (!date) return '';
   return new Date(date.getTime() + days * DAY_MS).toISOString().slice(0, 10);
+}
+
+export function getStrategyRequestMaximumDate(today) {
+  return addDays(today, 90);
 }
 
 export function createStrategyRequestDraft(item = {}) {
@@ -60,7 +59,6 @@ export function createStrategyRequestDraft(item = {}) {
 
 export function hasStrategyRequestPreference(draft = {}) {
   return Boolean(
-    draft.sourceSalesPointCode ||
     draft.lotIds?.length ||
     draft.candidateSalesPointCodes?.length ||
     draft.strategyTypes?.length ||
@@ -70,14 +68,36 @@ export function hasStrategyRequestPreference(draft = {}) {
   );
 }
 
+export function hasStrategyRequestSource(draft = {}) {
+  if (!draft.sourceSalesPointCode) return false;
+  if (draft.sourceSalesPointCode === 'UNASSIGNED') return draft.sourceSalesPointId == null;
+  return Number.isInteger(draft.sourceSalesPointId) && draft.sourceSalesPointId > 0;
+}
+
 export function validateStrategyRequestDraft(draft, today) {
   const errors = {};
   const caseName = draft?.caseName?.trim() ?? '';
   const startDate = draft?.preferredStartDate ?? '';
   const endDate = draft?.preferredEndDate ?? '';
+  const maximumDate = getStrategyRequestMaximumDate(today);
+
+  if (!Number.isInteger(draft?.skuId) || draft.skuId <= 0) {
+    errors.skuId = '상품 식별자를 확인할 수 없습니다. 재고 목록을 새로고침한 뒤 다시 선택해 주세요.';
+  }
+
+  if (!draft?.sourceSalesPointCode) {
+    errors.sourceSalesPointCode = '현재·출발 판매처를 선택해 주세요.';
+  } else if (!hasStrategyRequestSource(draft)) {
+    errors.sourceSalesPointId = '선택한 출발 판매처의 식별자를 확인할 수 없습니다.';
+  }
+
+  if ((draft?.candidateSalesPointCodes?.length ?? 0) !== (draft?.candidateSalesPointIds?.length ?? 0)) {
+    errors.candidateSalesPointIds = '선택한 후보 판매처 중 식별자를 확인할 수 없는 판매처가 있습니다.';
+  }
 
   if (!hasStrategyRequestPreference(draft)) {
-    errors.requestPreference = '조건을 하나 이상 입력하거나 조건 전체를 AI에게 추천받기를 선택해 주세요.';
+    errors.requestPreference =
+      '출발 판매처 외 조건을 하나 이상 입력하거나 나머지 조건 전체를 AI에게 추천받기를 선택해 주세요.';
   }
 
   if (caseName.length > 200) {
@@ -86,18 +106,16 @@ export function validateStrategyRequestDraft(draft, today) {
 
   if (startDate && startDate < today) {
     errors.preferredStartDate = '시작일은 오늘보다 빠를 수 없습니다.';
-  } else if (startDate && startDate > addDays(today, 90)) {
+  } else if (startDate && startDate > maximumDate) {
     errors.preferredStartDate = '시작일은 오늘부터 90일 이내여야 합니다.';
   }
 
   if (startDate && endDate && endDate < startDate) {
     errors.preferredEndDate = '종료일은 시작일보다 빠를 수 없습니다.';
-  } else if (startDate && endDate && endDate > addDays(startDate, 89)) {
-    errors.preferredEndDate = '시작일과 종료일을 포함해 최대 90일까지 선택할 수 있습니다.';
   } else if (!startDate && endDate && endDate < today) {
     errors.preferredEndDate = '종료일은 오늘보다 빠를 수 없습니다.';
-  } else if (!startDate && endDate && endDate > addDays(today, 179)) {
-    errors.preferredEndDate = '종료일만 지정할 때는 오늘부터 179일 이내여야 합니다.';
+  } else if (endDate && endDate > maximumDate) {
+    errors.preferredEndDate = '종료일은 오늘부터 90일 이내여야 합니다.';
   }
 
   return errors;
@@ -107,7 +125,7 @@ export function buildStrategyRequestPayload(draft) {
   return {
     caseName: draft.caseName.trim() || null,
     skuId: draft.skuId,
-    sourceSalesPointId: draft.sourceSalesPointId,
+    sourceSalesPointId: draft.sourceSalesPointCode === 'UNASSIGNED' ? null : draft.sourceSalesPointId,
     lotIds: draft.lotIds.length ? draft.lotIds : null,
     candidateSalesPointIds: draft.candidateSalesPointIds.length ? draft.candidateSalesPointIds : null,
     strategyTypes: draft.strategyTypes.length ? draft.strategyTypes : null,

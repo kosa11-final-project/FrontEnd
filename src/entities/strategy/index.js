@@ -1,17 +1,43 @@
 export * from './model/strategy.js';
 export * from './model/strategyRequest.js';
+export {
+  adjustAiStrategySimulation,
+  createAiStrategyCase,
+  getAiStrategyCase,
+  getAiStrategyCases,
+  getAiStrategyReviewers,
+  sendAiStrategyTeamsRequest,
+  serializeAiStrategyListParams,
+  validateAiStrategySelection,
+} from './api/strategyApi.js';
+export {
+  aiStrategyDetailQueryOptions,
+  aiStrategyKeys,
+  aiStrategyListQueryOptions,
+  aiStrategyReviewerQueryOptions,
+} from './api/strategyQueries.js';
 export { StrategyGenerationProgress } from './ui/StrategyGenerationProgress.jsx';
 export { StrategyGenerationStatus } from './ui/StrategyGenerationStatus.jsx';
 export {
-  buildAdjustedStrategyOption,
+  buildStrategyAdjustmentPayload,
+  buildStrategySelectionPayload,
   buildStrategyChartData,
+  getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
   getSimulationComparisonRows,
   resolveStrategyActionType,
+  resolveStrategyLocationPresentation,
   resolveStrategyOption,
   sortStrategyOptions,
   strategyActionTypeMeta,
 } from './model/strategyDetail.js';
+export { applyAdjustedSimulationResult, mapAiStrategyDetailResponse } from './model/strategyDetailMapper.js';
+export {
+  AI_STRATEGY_SELECTION_CONFLICT_CODE,
+  DEFAULT_SELECTION_CONFLICT_MESSAGE,
+  isAiStrategySelectionConflict,
+  resolveAiStrategySelectionConflict,
+} from './model/strategySelectionConflict.js';
 export { strategyExecutionFixtures } from './testing/fixtures.js';
 export {
   getStrategyExecution,

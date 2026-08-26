@@ -183,7 +183,7 @@ export function StrategyComparisonView({ strategyCase, listPath }) {
         <StrategyCaseSummary strategyCase={strategyCase} />
         <RequestConditions conditions={strategyCase.requestConditions} />
         <Alert variant="info" title={`AI가 실행 가능한 전략 ${options.length}개를 생성했습니다.`}>
-          모든 대안을 비교한 뒤 시뮬레이션 상세에서 최종안 하나를 선택할 수 있습니다.
+          요약을 비교한 뒤 원하는 대안의 시뮬레이션에서 조건을 확인하고 최종안을 선택할 수 있습니다.
         </Alert>
       </div>
 
