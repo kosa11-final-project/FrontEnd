@@ -104,8 +104,39 @@ function detailResponse() {
                     locationCode: 'DEPT_PANGYO',
                     locationName: '판교점',
                   },
+                  physicalSourceLocation: {
+                    locationType: 'WAREHOUSE',
+                    locationId: 501,
+                    locationCode: 'WH_GYEONGIN',
+                    locationName: '경인센터',
+                  },
+                  physicalDestinationLocation: {
+                    locationType: 'WAREHOUSE',
+                    locationId: 502,
+                    locationCode: 'WH_SUJI',
+                    locationName: '수지센터',
+                  },
+                  allocationSourceSalesPoint: {
+                    locationType: 'SALES_POINT',
+                    locationId: 1,
+                    locationCode: 'DEPT_MOKDONG',
+                    locationName: '목동점',
+                  },
+                  allocationTargetSalesPoint: {
+                    locationType: 'SALES_POINT',
+                    locationId: 11,
+                    locationCode: 'DEPT_PANGYO',
+                    locationName: '판교점',
+                  },
                   actionQuantity: 10,
                   estimatedActionCost: 10000,
+                  movementCost: {
+                    weightKg: 5,
+                    distanceKm: 25,
+                    costPerKgKm: 80,
+                    estimatedCost: 10000,
+                    distanceSource: 'DUMMY',
+                  },
                   strategyPrice: null,
                   discountRate: null,
                   lotAllocations: [{ inventoryBalanceId: 31, lotId: 11, lotCode: 'LOT-11', quantity: 10 }],
@@ -161,6 +192,13 @@ describe('AI strategy detail mapper', () => {
       lotCode: 'LOT-11',
       allocatedQuantity: 10,
     });
+    expect(result.options[0].actions[0]).toMatchObject({
+      physicalSourceLocation: { locationName: '경인센터' },
+      physicalDestinationLocation: { locationName: '수지센터' },
+      allocationSourceSalesPoint: { locationName: '목동점' },
+      allocationTargetSalesPoint: { locationName: '판교점' },
+      movementCost: { distanceSource: 'DUMMY', estimatedCost: 10000 },
+    });
     expect(result.options[0]).toMatchObject({
       optionName: '재배치 전략 (목동점 → 판교점, 수량 10개)',
       recommendationReason: '목동점보다 판교점의 예상 수요가 높습니다.',
@@ -195,6 +233,20 @@ describe('AI strategy detail mapper', () => {
         salesPointGroup: null,
         maximumDiscountRate: null,
       },
+      actions: [
+        {
+          actionOrder: 1,
+          actionType: 'RT_TRANSFER',
+          actionQuantity: 7,
+          estimatedActionCost: 7000,
+          movementCost: {
+            weightKg: 3.5,
+            distanceKm: 25,
+            costPerKgKm: 80,
+            estimatedCost: 7000,
+          },
+        },
+      ],
       adjustmentConstraints: {
         minimumStartDate: '2026-08-25',
         latestSelectableEndDate: '2026-08-30',
@@ -205,7 +257,13 @@ describe('AI strategy detail mapper', () => {
       simulation: { ...simulation, summary: { ...simulation.summary, expectedSalesQty: 8 } },
     });
 
-    expect(adjusted.actions[0]).toMatchObject({ actionQuantity: 7, startDate: '2026-08-25', endDate: '2026-08-30' });
+    expect(adjusted.actions[0]).toMatchObject({
+      actionQuantity: 7,
+      estimatedActionCost: 7000,
+      movementCost: { weightKg: 3.5, estimatedCost: 7000, distanceSource: 'DUMMY' },
+      startDate: '2026-08-25',
+      endDate: '2026-08-30',
+    });
     expect(adjusted.maxExecutableQty).toBe(8);
     expect(adjusted.adjustmentConstraints.latestSelectableEndDate).toBe('2026-08-30');
     expect(adjusted.chartRange).toEqual({ startDate: '2026-08-25', endDate: '2026-08-30' });
