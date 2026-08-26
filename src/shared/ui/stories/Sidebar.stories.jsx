@@ -24,10 +24,9 @@ export const ActiveMenu = {
     <div className="min-h-[520px]">
       <Sidebar className="min-h-screen">
         <SidebarHeader className="brand-lockup">
-          <div className="brand-mark">H</div>
-          <div>
-            <strong>현대그린푸드</strong>
-            <span>재고 운영 플랫폼</span>
+          <img className="brand-logo" src="/assets/brand/stockfit-sidebar-logo.png" alt="StockFit 로고" />
+          <div className="brand-copy">
+            <strong>StockFit</strong>
           </div>
         </SidebarHeader>
         <SidebarContent>

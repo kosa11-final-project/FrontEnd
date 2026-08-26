@@ -1,7 +1,7 @@
 import { Package, CheckCircle, Warning, Danger, Refresh } from 'reicon-react';
 import { formatNumber, formatQuantity } from '@/shared/lib/format';
 
-export function InventorySummaryBar({ summary, isLoading, isError, onRetry }) {
+export function InventorySummaryBar({ summary, isLoading, isError, error, onRetry }) {
   if (isError) {
     return (
       <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4.5 text-xs text-rose-800 shadow-2xs">
@@ -11,7 +11,11 @@ export function InventorySummaryBar({ summary, isLoading, isError, onRetry }) {
           </div>
           <div>
             <p className="font-bold text-rose-900">재고 요약 KPI 지표를 불러오지 못했습니다.</p>
-            <p className="text-[11px] text-rose-700">네트워크 상태를 확인하고 다시 시도해 주세요.</p>
+            <p className="text-[11px] text-rose-700">
+              {error?.code === 'REQUEST_TIMEOUT'
+                ? '요약 조회 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.'
+                : '네트워크 상태를 확인하고 다시 시도해 주세요.'}
+            </p>
           </div>
         </div>
         {onRetry && (
@@ -107,10 +111,10 @@ export function InventorySummaryBar({ summary, isLoading, isError, onRetry }) {
         </div>
       </div>
 
-      {/* 3. 안전재고 미달 품목 */}
+      {/* 3. 안전재고 미달 SKU */}
       <div className="group relative flex flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-amber-200">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">안전재고 미달</span>
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">안전재고 미달 SKU</span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-100/80 transition-transform duration-200 group-hover:scale-110">
             <Warning size={19} />
           </div>
@@ -118,10 +122,10 @@ export function InventorySummaryBar({ summary, isLoading, isError, onRetry }) {
         <div className="mt-3.5">
           <div className="flex items-baseline gap-1 text-2xl font-extrabold tracking-tight text-amber-600 tabular-nums">
             <span>{formatNumber(underSafetyCount)}</span>
-            <span className="text-sm font-semibold text-gray-500">개 SKU</span>
+            <span className="text-sm font-semibold text-gray-500">개</span>
           </div>
           <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100">
-            <span>보충 발주 필요</span>
+            <span>재고 보충 필요</span>
             <span className="font-bold text-amber-700">{underSafetyCount > 0 ? '긴급 점검 권고' : '정상 유지'}</span>
           </div>
         </div>

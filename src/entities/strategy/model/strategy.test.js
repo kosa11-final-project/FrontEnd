@@ -60,6 +60,9 @@ describe('strategy execution model', () => {
     expect(formatKpiValue({ value: 0, unit: '개' })).toBe('0개');
     expect(formatKpiValue({ value: null })).toBe('미수집');
   });
+  it('localizes the EA quantity unit for KPI display', () => {
+    expect(formatKpiValue({ value: 9, unit: 'EA' })).toBe('9개');
+  });
   it('rounds numeric and embedded achievement rates to one decimal place', () => {
     expect(formatKpiValue({ label: '목표 달성률', value: 103.092784, unit: '%' })).toBe('103.1%');
     expect(formatKpiValue({ value: '실제 판매 63 / 목표 61.11 (달성률 103.092784%)' })).toBe(

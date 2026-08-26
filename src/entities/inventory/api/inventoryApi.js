@@ -1,4 +1,5 @@
 import { requestJson } from '@/shared/api';
+import { env } from '@/shared/config/env.js';
 import {
   mapInventoryFilterOptionsResponse,
   mapInventoryItem,
@@ -14,11 +15,11 @@ function extractInventoryQueryParams(filters = {}, { includePagination = true } 
   if (filters.channelType?.length) params.channelType = filters.channelType;
   if (filters.salesPointCode?.length) params.salesPointCode = filters.salesPointCode;
   if (filters.warehouseCode?.length) params.warehouseCode = filters.warehouseCode;
-  if (filters.regionCode?.length) params.regionCode = filters.regionCode;
-  if (filters.categoryId) params.categoryId = filters.categoryId;
+  if (filters.categoryIds?.length > 1) params.categoryIds = filters.categoryIds;
+  else if (filters.categoryId) params.categoryId = filters.categoryId;
   if (filters.storageType?.length) params.storageType = filters.storageType;
   if (filters.riskGrade?.length) params.riskGrade = filters.riskGrade;
-  if (filters.assessmentStatus?.length) params.assessmentStatus = filters.assessmentStatus;
+  if (filters.shortageYn) params.shortageYn = filters.shortageYn;
   if (includePagination) {
     if (filters.page) params.page = filters.page;
     if (filters.size) params.size = filters.size;
@@ -39,6 +40,7 @@ export async function getInventories(params = {}, signal) {
     // 목록만 페이지네이션을 사용합니다.
     params: extractInventoryQueryParams(params),
     signal,
+    timeout: env.inventoryRequestTimeoutMs,
   });
 
   return mapInventoryListResponse(response);
@@ -56,6 +58,7 @@ export async function getInventorySummary(params, signal) {
     // 요약 KPI는 동일한 필터의 전체 집계이므로 목록 페이지 파라미터를 전달하지 않습니다.
     params: extractInventoryQueryParams(params, { includePagination: false }),
     signal,
+    timeout: env.inventoryRequestTimeoutMs,
   });
 
   return mapInventorySummaryResponse(response);

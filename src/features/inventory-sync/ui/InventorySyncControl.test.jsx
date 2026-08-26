@@ -8,7 +8,12 @@ const apiMock = vi.hoisted(() => ({
   retryAfterSeconds: vi.fn((error) => Number(error?.headers?.['retry-after']) || 10),
   startInventorySync: vi.fn(),
 }));
+const toastMock = vi.hoisted(() => ({ toast: vi.fn() }));
 vi.mock('../api/inventorySyncApi.js', () => apiMock);
+vi.mock('@/shared/ui', async () => ({
+  ...(await vi.importActual('@/shared/ui')),
+  toast: toastMock.toast,
+}));
 
 import {
   INVENTORY_REFRESH_JITTER_MS,
@@ -33,6 +38,66 @@ describe('InventorySyncControl', () => {
     apiMock.getInventorySync.mockResolvedValue({ syncRunId: 42, status: 'RUNNING' });
   });
 
+  it('shows the date and time of the latest successful sync', async () => {
+    const succeededRun = {
+      syncRunId: 42,
+      status: 'SUCCEEDED',
+      completedAt: '2026-08-21T22:48:05+09:00',
+      sourceStates: [],
+    };
+    apiMock.getInventorySyncLatest.mockResolvedValue(succeededRun);
+    apiMock.getInventorySync.mockResolvedValue(succeededRun);
+
+    renderControl();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('inventory-last-sync')).toHaveTextContent('최근 동기화 2026.08.21 22:48');
+    });
+    expect(screen.getByTestId('inventory-last-sync').parentElement).toContainElement(
+      screen.getByRole('button', { name: '재고 동기화' }),
+    );
+  });
+
+  it('keeps only the inventory sync button and reports a completed run with a toast', async () => {
+    apiMock.startInventorySync.mockResolvedValue({ syncRunId: 42, status: 'QUEUED' });
+    apiMock.getInventorySync.mockResolvedValue({ syncRunId: 42, status: 'SUCCEEDED' });
+
+    renderControl();
+    fireEvent.click(await screen.findByRole('button', { name: '재고 동기화' }));
+
+    await waitFor(() => {
+      expect(toastMock.toast).toHaveBeenCalledWith(expect.objectContaining({ title: '재고 동기화가 완료되었습니다.' }));
+    });
+    expect(screen.getByRole('button', { name: '재고 동기화' })).toBeInTheDocument();
+    expect(screen.queryByText('동기화 상세 정보')).not.toBeInTheDocument();
+    expect(screen.queryByText(/동기화 완료/)).not.toBeInTheDocument();
+  });
+
+  it('reports a failed run with an error toast', async () => {
+    apiMock.startInventorySync.mockResolvedValue({ syncRunId: 42, status: 'QUEUED' });
+    apiMock.getInventorySync.mockResolvedValue({ syncRunId: 42, status: 'FAILED' });
+
+    renderControl();
+    fireEvent.click(await screen.findByRole('button', { name: '재고 동기화' }));
+
+    await waitFor(() => {
+      expect(toastMock.toast).toHaveBeenCalledWith(expect.objectContaining({ title: '재고 동기화가 실패했습니다.' }));
+    });
+    expect(screen.queryByText('동기화 상세 정보')).not.toBeInTheDocument();
+  });
+
+  it('reports a confirmed registration failure with an error toast', async () => {
+    apiMock.startInventorySync.mockRejectedValue({ status: 500, message: '동기화 실행을 시작할 수 없습니다.' });
+
+    renderControl();
+    fireEvent.click(await screen.findByRole('button', { name: '재고 동기화' }));
+
+    await waitFor(() => {
+      expect(toastMock.toast).toHaveBeenCalledWith(expect.objectContaining({ title: '재고 동기화가 실패했습니다.' }));
+    });
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
   it('starts one durable run and tracks it without duplicate clicks', async () => {
     apiMock.startInventorySync.mockResolvedValue({ syncRunId: 42, status: 'RUNNING' });
     renderControl();
@@ -43,7 +108,7 @@ describe('InventorySyncControl', () => {
     expect(await screen.findByRole('button', { name: '재고 동기화 중입니다' })).toBeDisabled();
   });
 
-  it('replaces the registration notice when a fast run has already completed', async () => {
+  it('keeps only the button when a fast run has already completed', async () => {
     apiMock.startInventorySync.mockResolvedValue({ syncRunId: 42, status: 'QUEUED' });
     apiMock.getInventorySync.mockResolvedValue({
       syncRunId: 42,
@@ -63,11 +128,11 @@ describe('InventorySyncControl', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '재고 동기화' }));
 
-    expect(
-      await screen.findByText(/동기화 완료 · 원천 33,358건 · 동기화 대상 0건 · 반영 0건 · 오류 0건 · 2026.08.21 22:48/),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(toastMock.toast).toHaveBeenCalledWith(expect.objectContaining({ title: '재고 동기화가 완료되었습니다.' })),
+    );
     expect(screen.getByRole('button', { name: '재고 동기화' })).toBeEnabled();
-    expect(screen.queryByText('동기화 실행을 등록하는 중입니다.')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('attaches to the active run returned by a concurrent-session conflict', async () => {
@@ -110,7 +175,7 @@ describe('InventorySyncControl', () => {
       await act(async () => {});
 
       expect(screen.getByRole('button', { name: '잠시 후 다시 실행' })).toBeDisabled();
-      expect(screen.getByText('1초 후 다시 실행할 수 있습니다.')).toBeInTheDocument();
+      expect(screen.getAllByRole('button')).toHaveLength(1);
 
       await act(() => vi.advanceTimersByTimeAsync(999));
       expect(screen.getByRole('button', { name: '잠시 후 다시 실행' })).toBeDisabled();
@@ -131,24 +196,19 @@ describe('InventorySyncControl', () => {
     }
   });
 
-  it('keeps the start button disabled and exposes retry when an active run detail is unavailable', async () => {
+  it('keeps the only button disabled when an active run detail is unavailable', async () => {
     apiMock.getInventorySyncLatest.mockResolvedValue({ syncRunId: 42, status: 'RUNNING' });
     apiMock.getInventorySync.mockRejectedValue({ status: 503, message: '상태 조회 실패' });
     const { container } = renderControl();
 
     const button = await screen.findByRole('button', { name: '상태 확인 필요' });
     expect(button).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('동기화 상태 조회에 실패했습니다.');
-    expect(screen.getByRole('button', { name: '상태 다시 확인' })).toBeEnabled();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
     expect(container.querySelector('svg')).not.toHaveClass('animate-spin');
     expect(apiMock.startInventorySync).not.toHaveBeenCalled();
-
-    apiMock.getInventorySync.mockResolvedValue({ syncRunId: 42, status: 'RUNNING' });
-    fireEvent.click(screen.getByRole('button', { name: '상태 다시 확인' }));
-    expect(await screen.findByRole('button', { name: '재고 동기화 중입니다' })).toBeDisabled();
   });
 
-  it('retries latest, not a cached terminal run, after a background latest failure', async () => {
+  it('keeps only the button after a background latest failure', async () => {
     const succeededRun = { syncRunId: 42, status: 'SUCCEEDED', completedAt: '2026-08-21T22:48:05+09:00' };
     apiMock.getInventorySyncLatest.mockResolvedValueOnce(succeededRun).mockRejectedValueOnce({ status: 503 });
     apiMock.getInventorySync.mockResolvedValue(succeededRun);
@@ -157,13 +217,7 @@ describe('InventorySyncControl', () => {
     expect(await screen.findByRole('button', { name: '재고 동기화' })).toBeEnabled();
     await queryClient.refetchQueries({ queryKey: ['inventory-sync', 'latest'] });
     expect(await screen.findByRole('button', { name: '상태 확인 필요' })).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('최근 동기화 상태를 불러오지 못했습니다.');
-
-    apiMock.getInventorySyncLatest.mockResolvedValue(null);
-    fireEvent.click(screen.getByRole('button', { name: '상태 다시 확인' }));
-
-    await waitFor(() => expect(apiMock.getInventorySyncLatest).toHaveBeenCalledTimes(3));
-    expect(await screen.findByRole('button', { name: '재고 동기화' })).toBeEnabled();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('keeps tracking a globally discovered run after latest changes it to terminal', async () => {
@@ -177,14 +231,14 @@ describe('InventorySyncControl', () => {
     const { queryClient } = renderControl();
 
     fireEvent.click(await screen.findByRole('button', { name: '재고 동기화' }));
-    expect(await screen.findByText('실행 #42')).toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
 
     act(() => {
       queryClient.setQueryData(['inventory-sync', 'latest'], globalRunningRun);
       queryClient.setQueryData(['inventory-sync', 'run', 43], globalRunningRun);
     });
     expect(await screen.findByRole('button', { name: '재고 동기화 중입니다' })).toBeDisabled();
-    expect(screen.getByText('실행 #43')).toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
 
     act(() => {
       queryClient.setQueryData(['inventory-sync', 'latest'], globalSucceededRun);
@@ -192,8 +246,7 @@ describe('InventorySyncControl', () => {
     });
 
     expect(await screen.findByRole('button', { name: '재고 동기화' })).toBeEnabled();
-    expect(screen.getByText('실행 #43')).toBeInTheDocument();
-    expect(screen.queryByText('실행 #42')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('keeps an interrupted run locked while showing recovery waiting guidance', async () => {
@@ -204,11 +257,10 @@ describe('InventorySyncControl', () => {
     renderControl();
 
     expect(await screen.findByRole('button', { name: '복구 대기 중' })).toBeDisabled();
-    expect(screen.getByText('동기화가 중단되어 운영자 복구를 기다리는 중입니다.')).toBeInTheDocument();
-    expect(screen.getByText('재고 동기화가 중단되어 복구를 기다립니다.')).toHaveClass('sr-only');
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('discloses phase, attempt, source progress, and failure detail from the run response', async () => {
+  it('reports a failed run without rendering its detailed response', async () => {
     const failedRun = {
       syncRunId: 42,
       status: 'FAILED',
@@ -227,15 +279,13 @@ describe('InventorySyncControl', () => {
     };
     apiMock.getInventorySyncLatest.mockResolvedValue(failedRun);
     apiMock.getInventorySync.mockResolvedValue(failedRun);
+    apiMock.startInventorySync.mockResolvedValue({ syncRunId: 42, status: 'QUEUED' });
 
     renderControl();
+    fireEvent.click(await screen.findByRole('button', { name: '재고 동기화' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('위험 판정 저장 중 오류가 발생했습니다.');
-    expect(screen.getByText('동기화 상세 정보')).toBeInTheDocument();
-    expect(screen.getByText('단계 통합재고 반영 · 시도 2회')).toBeInTheDocument();
-    expect(screen.getByText('오류 코드 SYNC_FAILED')).toBeInTheDocument();
-    expect(screen.getByText('오프라인')).toBeInTheDocument();
-    expect(screen.getByText('물류센터')).toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.queryByText('동기화 상세 정보')).not.toBeInTheDocument();
   });
 
   it('invalidates every integrated-inventory read scope once after success', async () => {
@@ -265,7 +315,6 @@ describe('InventorySyncControl', () => {
       ['inventory', 'lots'],
       ['inventory-risk'],
     ]);
-    expect(screen.getByText(/대시보드·재고통계 캐시를 최신 DB 스냅샷 기준으로 다시 조회했습니다/)).toBeInTheDocument();
     randomSpy.mockRestore();
   });
 
@@ -348,7 +397,7 @@ describe('InventorySyncControl', () => {
       await act(async () => {});
 
       expect(screen.getByRole('button', { name: '집계 확인 지연' })).toBeEnabled();
-      expect(screen.getByText(/5분 안에 대시보드·재고통계 저장 완료를 확인하지 못했습니다/)).toBeInTheDocument();
+      expect(screen.getAllByRole('button')).toHaveLength(1);
     } finally {
       vi.useRealTimers();
     }
@@ -378,7 +427,7 @@ describe('InventorySyncControl', () => {
 
     const button = await screen.findByRole('button', { name: '집계 최신화 실패' });
     expect(button).toBeEnabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('재고통계 최신화에 실패했습니다.');
+    expect(screen.getAllByRole('button')).toHaveLength(1);
 
     apiMock.startInventorySync.mockResolvedValue({ syncRunId: 43, status: 'QUEUED' });
     fireEvent.click(button);
@@ -477,8 +526,7 @@ describe('InventorySyncControl', () => {
     renderControl();
 
     expect(await screen.findByRole('button', { name: '재고 동기화 복구 중' })).toBeDisabled();
-    expect(screen.getByText(/재고 동기화 복구 시도 2회차/)).toBeInTheDocument();
-    expect(screen.getByText('복구 시도 2회차, 위험 판정 단계가 실행 중입니다.')).toHaveClass('sr-only');
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('uses a new idempotency key when deliberately retrying a terminal failure', async () => {

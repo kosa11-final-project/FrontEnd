@@ -12,7 +12,9 @@ function formatIntegerQuantity(value) {
 }
 
 function translatePrimaryReason(reason) {
-  return reason.replace(/(-?\d+(?:\.\d+)?)(?=개)/g, (_, value) => formatIntegerQuantity(value));
+  return reason
+    .replace(/판매중지일 도래/g, '판매중지일 임박')
+    .replace(/(-?\d+(?:\.\d+)?)(?=개)/g, (_, value) => formatIntegerQuantity(value));
 }
 
 /**
@@ -23,11 +25,17 @@ export function translateCalculationEvidence(evidence) {
   if (!evidence) return null;
 
   return evidence
+    .replace(
+      /판매가능재고=on_hand_qty\(([^)]+)\)-판매제외LOT\(([^)]+)\)=([^,]+)/g,
+      (_, physical, excluded, sellable) =>
+        `판매 가능 재고: ${formatIntegerQuantity(sellable)}개 (전체 가용 ${formatIntegerQuantity(physical)}개 중 판매 제외 ${formatIntegerQuantity(excluded)}개)`,
+    )
     .replace(/가용재고=on_hand_qty\(([^)]+)\)/g, (_, value) => `가용 재고: ${formatIntegerQuantity(value)}개`)
     .replace(/가용재고=([^,]+)/g, (_, value) => `가용 재고: ${formatIntegerQuantity(value)}개`)
     .replace(/D\+7예상잔고=max\([^)]*\)=([^,]+)/g, (_, value) => `7일 후 예상 잔고: ${formatIntegerQuantity(value)}개`)
     .replace(/D\+30부족량=max\([^)]*\)=([^,]+)/g, (_, value) => `30일 부족 수량: ${formatIntegerQuantity(value)}개`)
     .replace(/안전재고부족=max\([^)]*\)=([^,]+)/g, (_, value) => `안전 재고 부족: ${formatIntegerQuantity(value)}개`)
+    .replace(/판매 제외 LOT=([^,]+)/g, (_, value) => `판매 제외 LOT: ${formatIntegerQuantity(value)}개`)
     .replace(/소비기한\/LOT 규칙을 함께 적용했습니다\./g, '소비기한과 로트 규칙도 함께 적용했습니다.');
 }
 

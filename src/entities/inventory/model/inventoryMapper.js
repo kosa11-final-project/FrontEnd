@@ -25,6 +25,24 @@ function nullableNumber(...values) {
   return Number.isFinite(number) ? number : null;
 }
 
+function normalizeShortageYn(value) {
+  const normalized = String(value ?? '')
+    .trim()
+    .toUpperCase();
+  return normalized === 'Y' || normalized === 'N' ? normalized : null;
+}
+
+/**
+ * 동기화된 RISK_ASSESSMENT.shortage_yn을 우선 사용하고,
+ * 구형 응답에서 해당 값이 빠진 경우에만 현재 가용수량과 안전재고 기준으로 보완합니다.
+ */
+function resolveShortageYn(rawValue, availableQuantity, safetyQuantity) {
+  const persistedValue = normalizeShortageYn(rawValue);
+  if (persistedValue) return persistedValue;
+  if (availableQuantity == null || safetyQuantity == null) return null;
+  return availableQuantity < safetyQuantity ? 'Y' : 'N';
+}
+
 function mapCategoryPathItem(dto = {}) {
   return {
     id: valueOf(dto, 'id', 'categoryId', null),
@@ -96,6 +114,12 @@ function mapLocation(dto = {}) {
 function mapSalesPoint(dto = {}, fallback = {}) {
   const sellingPrice = nullableNumber(valueOf(dto, 'sellingPrice', 'selling_price', fallback.sellingPrice));
   const rawPriceStatus = valueOf(dto, 'priceStatus', 'price_status', null);
+  const currentQuantity = nullableNumber(valueOf(dto, 'currentQuantity', 'current_qty'));
+  const availableQuantity = nullableNumber(valueOf(dto, 'availableQuantity', 'available_qty'));
+  const reservedQuantity = nullableNumber(valueOf(dto, 'reservedQuantity', 'reserved_qty'));
+  const safetyQuantity = nullableNumber(valueOf(dto, 'safetyQuantity', 'safety_qty', fallback.safetyQuantity));
+  const rawShortageYn = valueOf(dto, 'shortageYn', 'shortage_yn', fallback.shortageYn || null);
+  const shortageYn = resolveShortageYn(rawShortageYn, availableQuantity, safetyQuantity);
   return {
     salesPointId: nullableNumber(valueOf(dto, 'salesPointId', 'sales_point_id', fallback.salesPointId)),
     salesPointCode: valueOf(dto, 'salesPointCode', 'sales_point_code', fallback.salesPointCode || ''),
@@ -106,10 +130,12 @@ function mapSalesPoint(dto = {}, fallback = {}) {
       fallback.salesPointName || valueOf(dto, 'salesPointCode', 'sales_point_code', ''),
     ),
     channelType: valueOf(dto, 'channelType', 'channel_type', fallback.channelType || ''),
-    currentQuantity: nullableNumber(valueOf(dto, 'currentQuantity', 'current_qty')),
-    availableQuantity: nullableNumber(valueOf(dto, 'availableQuantity', 'available_qty')),
-    reservedQuantity: nullableNumber(valueOf(dto, 'reservedQuantity', 'reserved_qty')),
+    currentQuantity,
+    availableQuantity,
+    reservedQuantity,
+    safetyQuantity,
     riskGrade: normalizeRiskGrade(valueOf(dto, 'riskGrade', 'risk_grade', fallback.riskGrade || null)),
+    shortageYn,
     salesPointState: valueOf(dto, 'salesPointState', 'sales_point_state', fallback.salesPointState || 'OWNED'),
     priceStatus: rawPriceStatus || (sellingPrice == null ? 'NOT_LOADED' : 'AVAILABLE'),
     warehouseName: valueOf(dto, 'warehouseName', 'warehouse_name', fallback.warehouseName || ''),
@@ -171,6 +197,8 @@ export function mapInventoryItem(response = {}) {
 
   // 위험 판정 정보
   const riskObj = dto.risk || {};
+  const rawShortageYn = dto.shortageYn ?? dto.shortage_yn ?? riskObj.shortageYn ?? riskObj.shortage_yn;
+  const shortageYn = resolveShortageYn(rawShortageYn, availableQuantity, safetyQuantity);
   const rawRiskGrade = dto.riskGrade ?? dto.risk_grade ?? riskObj.grade ?? null;
   const riskGrade = normalizeRiskGrade(rawRiskGrade);
   const rawAssessmentStatus =
@@ -236,6 +264,8 @@ export function mapInventoryItem(response = {}) {
       availableQuantity,
       reservedQuantity,
       riskGrade,
+      safetyQuantity: hasAggregateSalesPoints ? null : safetyQuantity,
+      shortageYn: hasAggregateSalesPoints ? null : shortageYn,
       warehouseName: primaryWarehouseName,
     }),
   );
@@ -264,6 +294,24 @@ export function mapInventoryItem(response = {}) {
     dto.unassignedReservedQty,
     dto.unassigned_reserved_qty,
     centerSalesPoint?.reservedQuantity,
+  );
+  const unassignedSafetyQuantity = nullableNumber(
+    rawUnassignedInventory?.safetyQuantity,
+    rawUnassignedInventory?.safety_quantity,
+    dto.unassignedSafetyQty,
+    dto.unassigned_safety_qty,
+  );
+  const rawUnassignedShortageYn =
+    rawUnassignedInventory?.shortageYn ??
+    rawUnassignedInventory?.shortage_yn ??
+    dto.unassignedShortageYn ??
+    dto.unassigned_shortage_yn ??
+    centerSalesPoint?.shortageYn ??
+    null;
+  const unassignedShortageYn = resolveShortageYn(
+    rawUnassignedShortageYn,
+    unassignedAvailableQuantity,
+    unassignedSafetyQuantity,
   );
   const rawUnassignedFactState =
     rawUnassignedInventory?.inventoryFactState ??
@@ -299,6 +347,7 @@ export function mapInventoryItem(response = {}) {
     availableQuantity: unassignedAvailableQuantity,
     reservedQuantity: unassignedReservedQuantity,
     inventoryFactState: unassignedFactState,
+    shortageYn: unassignedShortageYn,
     riskGrade: unassignedRiskGrade,
     assessmentStatus: unassignedAssessmentStatus,
     riskReason: unassignedRiskReason,
@@ -312,6 +361,11 @@ export function mapInventoryItem(response = {}) {
       nestedUnassignedLocations.length > 0,
     ),
   };
+  const hasShortage =
+    shortageYn === 'Y' || unassignedShortageYn === 'Y' || mappedSalesPoints.some((point) => point.shortageYn === 'Y');
+  const hasKnownShortageStatus =
+    shortageYn === 'N' || unassignedShortageYn === 'N' || mappedSalesPoints.some((point) => point.shortageYn === 'N');
+  const resolvedShortageYn = hasShortage ? 'Y' : hasKnownShortageStatus ? 'N' : null;
 
   // 채널별 지점 수 요약
   const channelCountMap = {};
@@ -370,6 +424,7 @@ export function mapInventoryItem(response = {}) {
     availableQuantity,
     reservedQuantity,
     safetyQuantity,
+    shortageYn: resolvedShortageYn,
     inventoryFactState,
     inventoryFactLabel: inventoryFactState ? getInventoryFactStateLabel(inventoryFactState) : null,
     riskGrade,

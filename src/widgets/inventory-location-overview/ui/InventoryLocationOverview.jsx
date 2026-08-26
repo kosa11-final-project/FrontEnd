@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Building, Database, Store } from 'reicon-react';
 import { cn } from '@/shared/lib/cn';
 import { formatQuantity } from '@/shared/lib/format';
@@ -98,10 +98,10 @@ function ViewModeButton({ active, count, disabled = false, icon, label, onClick 
       aria-selected={active}
       disabled={disabled}
       className={cn(
-        'inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] px-3 text-[13px] font-[var(--font-weight-bold)] transition-colors',
+        'group inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] px-3 text-[13px] font-[var(--font-weight-bold)] transition-colors',
         active
           ? 'bg-[var(--primary-strong)] text-[color:var(--text-inverse)] shadow-[var(--shadow-soft)]'
-          : 'text-[color:var(--text-body)] hover:bg-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent',
+          : 'text-[color:var(--text-body)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent',
       )}
       onClick={onClick}
     >
@@ -110,7 +110,9 @@ function ViewModeButton({ active, count, disabled = false, icon, label, onClick 
       <span
         className={cn(
           'rounded-full px-1.5 py-0.5 text-[11px]',
-          active ? 'bg-white/18 text-white' : 'bg-[var(--surface)] text-[color:var(--text-muted)]',
+          active
+            ? 'bg-white/18 text-white'
+            : 'bg-[var(--surface)] text-[color:var(--text-muted)] group-hover:bg-white/70 group-hover:text-[color:var(--primary-strong)]',
         )}
       >
         {count}
@@ -263,7 +265,13 @@ function getInitialViewMode(centers, onlineSalesPoints, stores) {
   return 'stores';
 }
 
-export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }) {
+export function InventoryLocationOverview({
+  centers,
+  onlineSalesPoints,
+  stores,
+  onSalesPointSelect,
+  onViewModeChange,
+}) {
   const [viewMode, setViewMode] = useState(() => getInitialViewMode(centers, onlineSalesPoints, stores));
   const [hoveredLocationId, setHoveredLocationId] = useState(null);
   const [activeLocationIds, setActiveLocationIds] = useState({
@@ -278,22 +286,30 @@ export function InventoryLocationOverview({ centers, onlineSalesPoints, stores }
   const activeLocation = locations.find((location) => location.id === activeLocationIds[viewMode]) ?? locations[0];
   const hoveredLocation = locations.find((location) => location.id === hoveredLocationId);
   const displayLocation = hoveredLocation ?? activeLocation;
-  const totalAvailableStock = useMemo(
-    () => locations.reduce((sum, location) => sum + location.availableStock, 0),
-    [locations],
-  );
-  const totalNearExpiryStock = useMemo(
-    () => locations.reduce((sum, location) => sum + location.nearExpiryStock, 0),
-    [locations],
-  );
+  const totalAvailableStock = locations.reduce((sum, location) => sum + location.availableStock, 0);
+  const totalNearExpiryStock = locations.reduce((sum, location) => sum + location.nearExpiryStock, 0);
+
+  const notifySalesPointSelection = (mode, locationId) => {
+    if (mode === 'centers') {
+      onSalesPointSelect?.(null);
+      return;
+    }
+
+    const selectedLocation = locationGroups[mode].find((location) => location.id === locationId);
+    onSalesPointSelect?.(selectedLocation?.salesPointId ?? null);
+  };
 
   const handleLocationActivate = (locationId) => {
     setActiveLocationIds((current) => ({ ...current, [viewMode]: locationId }));
+    notifySalesPointSelection(viewMode, locationId);
   };
 
   const handleViewModeChange = (mode) => {
     setHoveredLocationId(null);
     setViewMode(mode);
+    onViewModeChange?.(mode);
+    const nextLocationId = activeLocationIds[mode] ?? locationGroups[mode][0]?.id;
+    notifySalesPointSelection(mode, nextLocationId);
   };
 
   return (

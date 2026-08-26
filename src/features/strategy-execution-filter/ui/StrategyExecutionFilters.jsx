@@ -1,8 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { CloseCircle, Refresh, SearchNormal } from 'reicon-react';
-import { SUPPORTED_ACTION_TYPES, actionTypeMeta, strategyStatusMeta } from '@/entities/strategy';
+import { actionTypeMeta, strategyStatusMeta } from '@/entities/strategy';
 import { Icon, SelectMenu } from '@/shared/ui';
-import { defaultStrategyExecutionFilters, STRATEGY_EXECUTION_FILTER_STATUSES } from '../model/filterState.js';
+import {
+  defaultStrategyExecutionFilters,
+  STRATEGY_EXECUTION_FILTER_ACTION_TYPES,
+  STRATEGY_EXECUTION_FILTER_STATUSES,
+} from '../model/filterState.js';
 
 function ActiveFilterChip({ label, value, onRemove, tone = 'neutral' }) {
   const toneClasses = {
@@ -40,8 +44,10 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
   }, [filters.query]);
 
   const setFilter = (key, value) => onChange({ ...filters, [key]: value });
-  const hasActiveFilter =
-    Boolean(filters.query) || ['strategyStatus', 'actionType'].some((key) => filters[key] !== 'ALL');
+  const selectedActionType = STRATEGY_EXECUTION_FILTER_ACTION_TYPES.includes(filters.actionType)
+    ? filters.actionType
+    : 'ALL';
+  const hasActiveFilter = Boolean(filters.query) || filters.strategyStatus !== 'ALL' || selectedActionType !== 'ALL';
 
   const handleReset = () => {
     if (searchInputRef.current) searchInputRef.current.value = '';
@@ -95,16 +101,16 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
           >
             <button
               type="button"
-              aria-pressed={filters.actionType === 'ALL'}
+              aria-pressed={selectedActionType === 'ALL'}
               onClick={() => setFilter('actionType', 'ALL')}
               className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all ${
-                filters.actionType === 'ALL' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                selectedActionType === 'ALL' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
               전체 전략
             </button>
-            {SUPPORTED_ACTION_TYPES.map((type) => {
-              const selected = filters.actionType === type;
+            {STRATEGY_EXECUTION_FILTER_ACTION_TYPES.map((type) => {
+              const selected = selectedActionType === type;
               return (
                 <button
                   key={type}
@@ -162,10 +168,10 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
                 }}
               />
             ) : null}
-            {filters.actionType !== 'ALL' ? (
+            {selectedActionType !== 'ALL' ? (
               <ActiveFilterChip
                 label="전략"
-                value={actionTypeMeta[filters.actionType].label}
+                value={actionTypeMeta[selectedActionType].label}
                 tone="primary"
                 onRemove={() => setFilter('actionType', 'ALL')}
               />

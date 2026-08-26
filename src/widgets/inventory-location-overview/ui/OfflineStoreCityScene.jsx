@@ -48,7 +48,7 @@ const storeLayouts = Object.freeze({
   DEPT_JUNGDONG: { shortName: '중동', model: 2, position: [-2.35, 0, 0], height: 1.82 },
   DEPT_KINTEX: { shortName: '킨텍스', model: 2, position: [0, 0, 0], height: 1.9 },
   DEPT_PANGYO: { shortName: '판교', model: 0, position: [2.65, 0, 0], height: 2.38 },
-  HMART_ASAN_HOSPITAL: { shortName: 'Hmart', model: 2, position: [5.05, 0, 0], height: 1.78 },
+  HMART_ASAN_HOSPITAL: { shortName: 'Hmart 아산병원점', model: 2, position: [5.05, 0, 0], height: 1.78 },
   DEPT_CHUNGCHEONG: { shortName: '충청', model: 1, position: [-4.05, 0, 2.55], height: 1.94 },
   DEPT_DAEGU: { shortName: '대구', model: 0, position: [-1.35, 0, 2.55], height: 2.26 },
   DEPT_ULSAN: { shortName: '울산', model: 2, position: [1.85, 0, 2.55], height: 1.86 },
@@ -164,13 +164,11 @@ function StoreBuilding({ active, layout, location, onActivate, onHoverChange, re
 
   const handlePointerEnter = (event) => {
     event.stopPropagation();
-    onHoverChange(location.id);
     document.body.style.cursor = 'pointer';
   };
 
   const handlePointerLeave = (event) => {
     event.stopPropagation();
-    onHoverChange(null);
     document.body.style.cursor = 'default';
   };
 
@@ -216,6 +214,7 @@ function StoreBuilding({ active, layout, location, onActivate, onHoverChange, re
             active
               ? 'border-[#176d54] bg-[#176d54] text-white'
               : 'border-white/85 bg-white/95 text-[color:var(--text-heading)]',
+            'hover:border-[color:var(--primary)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary-strong)]',
           )}
           onClick={(event) => {
             event.stopPropagation();
@@ -232,12 +231,11 @@ function StoreBuilding({ active, layout, location, onActivate, onHoverChange, re
           onFocus={() => onHoverChange(location.id)}
           onBlur={() => onHoverChange(null)}
         >
-          <i className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: toneColor }} aria-hidden="true" />
           <span>{layout.shortName || location.shortName}</span>
           <strong
             className={cn(
               'tabular-nums text-[13px] font-[var(--font-weight-bold)]',
-              active ? 'text-white' : 'text-[color:var(--text-heading)]',
+              active ? 'text-white hover:text-[color:var(--primary-strong)]' : 'text-[color:var(--text-heading)]',
             )}
           >
             {formatQuantity(location.availableStock)}

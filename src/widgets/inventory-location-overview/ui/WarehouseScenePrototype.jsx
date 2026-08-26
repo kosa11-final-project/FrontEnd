@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Html, RoundedBox, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { cn } from '@/shared/lib/cn';
 
 const palette = Object.freeze({
   sky: '#dff5f4',
@@ -391,7 +392,7 @@ function createGableRoofGeometry() {
   return geometry;
 }
 
-function Warehouse({ onHoverChange, onSelect, riskColor, selected }) {
+function Warehouse({ onSelect, riskColor, selected }) {
   const roofGeometry = useMemo(() => createGableRoofGeometry(), []);
   const [hovered, setHovered] = useState(false);
 
@@ -400,13 +401,11 @@ function Warehouse({ onHoverChange, onSelect, riskColor, selected }) {
       onPointerEnter={(event) => {
         event.stopPropagation();
         setHovered(true);
-        onHoverChange(true);
         document.body.style.cursor = 'pointer';
       }}
       onPointerLeave={(event) => {
         event.stopPropagation();
         setHovered(false);
-        onHoverChange(false);
         document.body.style.cursor = 'default';
       }}
       onClick={(event) => {
@@ -494,7 +493,7 @@ function WarehouseNode({ center, onHoverChange, selected, onSelect }) {
   return (
     <group position={center.position}>
       <group scale={center.scale}>
-        <Warehouse onHoverChange={onHoverChange} onSelect={onSelect} riskColor={riskColor} selected={selected} />
+        <Warehouse onSelect={onSelect} riskColor={riskColor} selected={selected} />
       </group>
 
       <Html
@@ -508,15 +507,13 @@ function WarehouseNode({ center, onHoverChange, selected, onSelect }) {
           onClick={onSelect}
           onMouseEnter={() => onHoverChange(true)}
           onMouseLeave={() => onHoverChange(false)}
-          className="flex w-[138px] items-center justify-between gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-[0_8px_18px_rgba(42,76,66,0.16)] backdrop-blur-md transition-transform hover:-translate-y-0.5"
-          style={{
-            backgroundColor: selected ? 'rgba(30, 125, 13, 0.95)' : 'rgba(255, 255, 255, 0.94)',
-            borderColor: selected ? '#1e9d0d' : 'rgba(255, 255, 255, 0.92)',
-            color: selected ? '#ffffff' : '#263b3d',
-          }}
+          className={cn(
+            'flex w-[138px] items-center justify-between gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-[0_8px_18px_rgba(42,76,66,0.16)] backdrop-blur-md transition-[background-color,border-color,color,transform] hover:-translate-y-0.5',
+            selected ? 'border-[#1e9d0d] bg-[#1e7d0d] text-white' : 'border-white/92 bg-white/95 text-[#263b3d]',
+            'hover:border-[color:var(--primary)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary-strong)]',
+          )}
           aria-label={`${center.name} 선택`}
         >
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: riskColor }} />
           <span>{center.name}</span>
           <strong>{formatQuantity(center.availableQty)}개</strong>
         </button>

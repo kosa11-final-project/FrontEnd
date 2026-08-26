@@ -35,5 +35,6 @@ describe('InventoryLotsSection', () => {
     expect(screen.getByTitle('판매가 중지된 LOT입니다.')).toHaveTextContent('판매중지');
     expect(screen.getByText('LOT-SKU000032-03')).toBeInTheDocument();
     expect(screen.getByText('FEFO 1순위')).toBeInTheDocument();
+    expect(screen.getByText('개별 LOT 및 FEFO 출고 우선순위')).toBeInTheDocument();
   });
 });

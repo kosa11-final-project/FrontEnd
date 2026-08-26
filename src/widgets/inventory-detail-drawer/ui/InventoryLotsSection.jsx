@@ -27,7 +27,7 @@ export function InventoryLotsSection({
   const showWarehouse = selectedSalesPointCode === 'UNASSIGNED';
 
   return (
-    <div className="flex-1 flex flex-col bg-[#F9FAFB] overflow-y-auto">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       {/* LOT 패널 헤더 */}
       <div className="flex items-center justify-between border-b border-[var(--border)] bg-white px-5 py-3 shrink-0">
         <div className="flex items-center gap-2">
@@ -48,7 +48,7 @@ export function InventoryLotsSection({
       </div>
 
       {/* LOT 목록 */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-2.5">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-slate-50/40 px-3.5">
         {!selectedSalesPointCode ? (
           <div className="rounded-xl border border-[var(--border)] bg-white p-8 text-center">
             <Package size={28} className="mx-auto text-gray-300 mb-2" />
@@ -92,7 +92,7 @@ export function InventoryLotsSection({
           (lotsQuery?.data?.items || []).map((lot) => (
             <div
               key={lot.id || lot.lotNumber}
-              className="rounded-xl border border-[var(--border)] bg-white p-3.5 shadow-2xs transition-all hover:border-[var(--primary)]/60 hover:shadow-xs"
+              className="border-b border-slate-200 bg-white p-3.5 transition-colors first:border-t-0 last:border-b-0 hover:bg-slate-50/50"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap">

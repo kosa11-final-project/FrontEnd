@@ -2,6 +2,7 @@ export const INVENTORY_CHANNEL_TYPES = ['GREETING', 'ECOMMERCE', 'HYUNDAI_DEPT',
 export const INVENTORY_STORAGE_TYPES = ['FROZEN', 'COLD', 'ROOM_TEMP'];
 export const INVENTORY_RISK_GRADES = ['SAFE', 'NORMAL', 'CAUTION', 'DANGER'];
 export const INVENTORY_ASSESSMENT_STATUSES = ['ASSESSED', 'UNASSESSED'];
+export const INVENTORY_SHORTAGE_FLAGS = ['Y'];
 export const INVENTORY_FILTER_OPERATORS = ['AND', 'OR'];
 export const INVENTORY_DETAIL_TABS = ['OVERVIEW', 'FORECAST'];
 export const INVENTORY_SORT_FIELDS = [
@@ -12,6 +13,7 @@ export const INVENTORY_SORT_FIELDS = [
   'availableQuantity',
   'reservedQuantity',
   'riskGrade',
+  'shortageYn',
   'nearestExpiryDays',
 ];
 export const INVENTORY_SORT_DIRECTIONS = ['asc', 'desc'];
@@ -24,9 +26,11 @@ export const DEFAULT_INVENTORY_FILTERS = Object.freeze({
   warehouseCode: [],
   regionCode: [],
   categoryId: '',
+  categoryIds: [],
   storageType: [],
   riskGrade: [],
   assessmentStatus: [],
+  shortageYn: '',
   page: 1,
   size: 20,
   sort: 'updatedAt,desc',
@@ -35,17 +39,19 @@ export const DEFAULT_INVENTORY_FILTERS = Object.freeze({
   detailTab: 'OVERVIEW',
 });
 
+// 화면에서 제거된 legacy 그룹(regionCode/assessmentStatus)은 URL을 직접 열어도
+// 목록·요약 조회 조건으로 다시 살아나지 않도록 API 직렬화 대상에서 제외합니다.
 const INVENTORY_API_FILTER_KEYS = Object.freeze([
   'q',
   'filterOperator',
   'channelType',
   'salesPointCode',
   'warehouseCode',
-  'regionCode',
   'categoryId',
+  'categoryIds',
   'storageType',
   'riskGrade',
-  'assessmentStatus',
+  'shortageYn',
   'page',
   'size',
   'sort',
@@ -70,6 +76,10 @@ function normalizeArrayParam(raw, allowed = null) {
 function normalizeCategoryId(raw) {
   const value = typeof raw === 'string' ? raw.trim() : raw == null ? '' : String(raw).trim();
   return /^[1-9]\d*$/.test(value) ? value : '';
+}
+
+function normalizeCategoryIds(raw) {
+  return normalizeArrayParam(raw).map(normalizeCategoryId).filter(Boolean);
 }
 
 function normalizeSort(raw) {
@@ -135,10 +145,14 @@ export function parseInventoryFilters(rawParams) {
   const salesPointCode = getArray('salesPointCode');
   const warehouseCode = getArray('warehouseCode');
   const regionCode = getArray('regionCode');
-  const categoryId = normalizeCategoryId(getString('categoryId', ''));
+  const rawCategoryIds = getArray('categoryIds').length > 0 ? getArray('categoryIds') : getArray('categoryId');
+  const categoryIds = normalizeCategoryIds(rawCategoryIds);
+  const categoryId = categoryIds[0] || '';
   const storageType = getArray('storageType', INVENTORY_STORAGE_TYPES);
   const riskGrade = getArray('riskGrade', INVENTORY_RISK_GRADES);
   const assessmentStatus = getArray('assessmentStatus', INVENTORY_ASSESSMENT_STATUSES);
+  const rawShortageYn = getString('shortageYn', '').toUpperCase();
+  const shortageYn = INVENTORY_SHORTAGE_FLAGS.includes(rawShortageYn) ? rawShortageYn : '';
 
   const page = getNumber('page', 1, 1);
   const size = getNumber('size', 20, 1, 100);
@@ -157,9 +171,11 @@ export function parseInventoryFilters(rawParams) {
     warehouseCode,
     regionCode,
     categoryId,
+    categoryIds,
     storageType,
     riskGrade,
     assessmentStatus,
+    shortageYn,
     page,
     size,
     sort,
@@ -176,7 +192,17 @@ export function parseInventoryFilters(rawParams) {
  */
 export function toInventoryQueryParams(filters = {}) {
   const normalized = parseInventoryFilters(filters);
+  const categoryIds = normalized.categoryIds || [];
   return INVENTORY_API_FILTER_KEYS.reduce((params, key) => {
+    if (key === 'categoryIds') {
+      if (categoryIds.length > 1) params.categoryIds = categoryIds;
+      return params;
+    }
+    if (key === 'categoryId' && categoryIds.length > 1) return params;
+    if (key === 'categoryId' && categoryIds.length === 1) {
+      params.categoryId = categoryIds[0];
+      return params;
+    }
     const value = normalized[key];
     if (key === 'filterOperator' && value === DEFAULT_INVENTORY_FILTERS.filterOperator) {
       return params;
@@ -205,15 +231,7 @@ export function serializeInventoryFilters(filters) {
     params.set('filterOperator', normalized.filterOperator);
   }
 
-  const arrayKeys = [
-    'channelType',
-    'salesPointCode',
-    'warehouseCode',
-    'regionCode',
-    'storageType',
-    'riskGrade',
-    'assessmentStatus',
-  ];
+  const arrayKeys = ['channelType', 'salesPointCode', 'warehouseCode', 'storageType', 'riskGrade'];
 
   arrayKeys.forEach((key) => {
     const arr = normalized[key] || [];
@@ -222,7 +240,8 @@ export function serializeInventoryFilters(filters) {
     });
   });
 
-  if (normalized.categoryId) params.set('categoryId', normalized.categoryId);
+  (normalized.categoryIds || []).forEach((categoryId) => params.append('categoryId', categoryId));
+  if (normalized.shortageYn) params.set('shortageYn', normalized.shortageYn);
 
   if (normalized.page > 1) params.set('page', String(normalized.page));
   if (normalized.size !== DEFAULT_INVENTORY_FILTERS.size) params.set('size', String(normalized.size));

@@ -39,6 +39,7 @@ describe('inventoryApi', () => {
       method: 'get',
       params: { q: '만두', filterOperator: 'OR', page: 1, size: 20 },
       signal,
+      timeout: 30_000,
     });
   });
 
@@ -57,12 +58,25 @@ describe('inventoryApi', () => {
       method: 'get',
       params: { q: '만두' },
       signal: undefined,
+      timeout: 30_000,
     });
     expect(requestJson).toHaveBeenNthCalledWith(2, {
       path: 'v1/inventories/filter-options',
       method: 'get',
       signal: undefined,
     });
+  });
+
+  it('forwards multiple category ids together with the selected operator', async () => {
+    requestJson.mockResolvedValueOnce({ data: { items: [] } });
+
+    await getInventories({ categoryIds: ['301', '302'], filterOperator: 'AND', page: 1, size: 20 });
+
+    expect(requestJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: { categoryIds: ['301', '302'], filterOperator: 'AND', page: 1, size: 20 },
+      }),
+    );
   });
 
   it('does not send list pagination to the summary endpoint', async () => {
@@ -75,10 +89,11 @@ describe('inventoryApi', () => {
       method: 'get',
       params: { q: '만두' },
       signal: undefined,
+      timeout: 30_000,
     });
   });
 
-  it('forwards every inventory filter group to both list and summary requests', async () => {
+  it('forwards every visible inventory filter group to both list and summary requests', async () => {
     const filters = {
       q: '만두',
       filterOperator: 'OR',
@@ -89,6 +104,7 @@ describe('inventoryApi', () => {
       categoryId: '301',
       storageType: ['FROZEN'],
       riskGrade: ['NORMAL'],
+      shortageYn: 'Y',
       assessmentStatus: ['ASSESSED'],
       page: 2,
       size: 50,
@@ -102,8 +118,22 @@ describe('inventoryApi', () => {
     expect(requestJson).toHaveBeenNthCalledWith(1, {
       path: 'v1/inventories',
       method: 'get',
-      params: filters,
+      params: {
+        q: '만두',
+        filterOperator: 'OR',
+        channelType: ['GREETING'],
+        salesPointCode: ['GREETING'],
+        warehouseCode: ['GYEONGIN_1'],
+        categoryId: '301',
+        storageType: ['FROZEN'],
+        riskGrade: ['NORMAL'],
+        shortageYn: 'Y',
+        page: 2,
+        size: 50,
+        sort: 'riskGrade,asc',
+      },
       signal: undefined,
+      timeout: 30_000,
     });
     expect(requestJson).toHaveBeenNthCalledWith(2, {
       path: 'v1/inventories/summary',
@@ -114,14 +144,18 @@ describe('inventoryApi', () => {
         channelType: ['GREETING'],
         salesPointCode: ['GREETING'],
         warehouseCode: ['GYEONGIN_1'],
-        regionCode: ['GYEONGGI'],
         categoryId: '301',
         storageType: ['FROZEN'],
         riskGrade: ['NORMAL'],
-        assessmentStatus: ['ASSESSED'],
+        shortageYn: 'Y',
       }),
       signal: undefined,
+      timeout: 30_000,
     });
+    expect(requestJson.mock.calls[0][0].params).not.toHaveProperty('regionCode');
+    expect(requestJson.mock.calls[0][0].params).not.toHaveProperty('assessmentStatus');
+    expect(requestJson.mock.calls[1][0].params).not.toHaveProperty('regionCode');
+    expect(requestJson.mock.calls[1][0].params).not.toHaveProperty('assessmentStatus');
     expect(requestJson.mock.calls[1][0].params).not.toHaveProperty('page');
     expect(requestJson.mock.calls[1][0].params).not.toHaveProperty('size');
     expect(requestJson.mock.calls[1][0].params).not.toHaveProperty('sort');

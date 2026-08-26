@@ -34,7 +34,14 @@ const filterOptions = {
     { code: 'ICHEON_DC', name: '이천 통합센터' },
   ],
   regions: [{ code: 'GYEONGGI', name: '경기권' }],
-  categories: [{ id: 1, name: '냉장·냉동 식품' }],
+  categories: [
+    { code: '1', name: '간편식/메인요리', categoryLevel: 1 },
+    { code: '2', name: '부침/전', categoryLevel: 2, parentCode: '1' },
+    { code: '3', name: '부침', categoryLevel: 3, parentCode: '2' },
+    { code: '6', name: '생활/주방', categoryLevel: 1 },
+    { code: '7', name: '생활용품', categoryLevel: 2, parentCode: '6' },
+    { code: '8', name: '수세미', categoryLevel: 3, parentCode: '7' },
+  ],
   storageTypes: [
     { code: 'FROZEN', name: '냉동' },
     { code: 'COLD', name: '냉장' },
@@ -58,6 +65,17 @@ const summary = {
   underSafetyCount: 14,
   dangerRiskCount: 5,
   cautionRiskCount: 9,
+};
+
+const activeFilterSnapshot = {
+  ...DEFAULT_INVENTORY_FILTERS,
+  categoryIds: ['3', '8'],
+  categoryId: '3',
+  storageType: ['FROZEN', 'COLD'],
+  riskGrade: ['CAUTION', 'DANGER'],
+  warehouseCode: ['GYEONGIN_1', 'GYEONGIN_2'],
+  salesPointCode: selectedItem.salesPoints.slice(0, 2).map(({ salesPointCode }) => salesPointCode),
+  shortageYn: 'Y',
 };
 
 function createInventoryStoryClient() {
@@ -110,12 +128,15 @@ function createInventoryStoryClient() {
   });
 }
 
-function InventoryWorkspace({ initialDetailTab = '', initialSelected = [] }) {
+function InventoryWorkspace({ initialDetailTab = '', initialSelected = [], initialFilters = {} }) {
   const [filters, setFilters] = useState({
     ...DEFAULT_INVENTORY_FILTERS,
-    detailSkuCode: initialSelected.length ? selectedItem.skuCode : '',
-    detailSalesPointCode: initialSelected.length ? selectedItem.salesPoints[0]?.salesPointCode : '',
-    detailTab: initialDetailTab || DEFAULT_INVENTORY_FILTERS.detailTab,
+    ...initialFilters,
+    detailSkuCode: initialSelected.length ? selectedItem.skuCode : initialFilters.detailSkuCode || '',
+    detailSalesPointCode: initialSelected.length
+      ? selectedItem.salesPoints[0]?.salesPointCode
+      : initialFilters.detailSalesPointCode || '',
+    detailTab: initialDetailTab || initialFilters.detailTab || DEFAULT_INVENTORY_FILTERS.detailTab,
   });
   const [selectedSkuCodes, setSelectedSkuCodes] = useState(initialSelected);
   const selectedRow = selectedSkuCodes.length ? selectedItem : null;
@@ -142,23 +163,22 @@ function InventoryWorkspace({ initialDetailTab = '', initialSelected = [] }) {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-[color:var(--text-heading)]">통합 재고 관제</h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--primary)]/25 bg-[color:var(--primary-soft)] px-2.5 py-0.5 text-xs font-semibold text-[color:var(--primary-strong)]">
-              <span className="size-1.5 rounded-full bg-[color:var(--primary)]" />
-              현재 DB 기준
-            </span>
-          </div>
-          <p className="mt-1 text-xs font-medium text-[color:var(--text-muted)]">
-            통합 판매채널과 물류센터에 적재된 현재 재고 현황과 위험도를 관제합니다.
+      <section
+        aria-label="재고 동기화"
+        className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="min-w-0">
+          <strong className="text-[length:var(--font-size-body)] text-[color:var(--text-heading)]">
+            통합 재고 동기화
+          </strong>
+          <p className="mt-1 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+            그리팅, 이커머스(모두의 맛집), 백화점, 직영점의 재고가 통합재고로 동기화됩니다.
           </p>
         </div>
         <Button type="button" variant="secondary" size="sm" onClick={fn()}>
           재고 동기화
         </Button>
-      </div>
+      </section>
 
       <InventorySummaryBar summary={summary} isLoading={false} isError={false} onRetry={fn()} />
       <InventoryFilterBar
@@ -233,6 +253,14 @@ export const InventoryWithSelectedRows = {
   ),
 };
 
+export const InventoryWithActiveFilters = {
+  render: () => (
+    <StorybookProductFrame path="/inventory" minHeight="980px" queryClient={createInventoryStoryClient()}>
+      <InventoryWorkspace initialFilters={activeFilterSnapshot} />
+    </StorybookProductFrame>
+  ),
+};
+
 export const SkuDetailOverview = {
   render: () => (
     <StorybookProductFrame
@@ -262,7 +290,6 @@ export const InventoryEmpty = {
     <StorybookProductFrame path="/inventory" minHeight="760px">
       <div className="grid gap-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[color:var(--text-heading)]">통합 재고 관제</h1>
           <p className="mt-1 text-xs text-[color:var(--text-muted)]">조회 조건에 맞는 재고가 없습니다.</p>
         </div>
         <InventoryTable items={[]} totalCount={0} resultState={RESULT_STATE.NO_DATA} onRetry={fn()} />

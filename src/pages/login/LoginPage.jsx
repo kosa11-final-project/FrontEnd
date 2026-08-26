@@ -55,41 +55,48 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[var(--background)] px-6 py-10">
-      <section className="w-full max-w-md">
-        <div className="mb-8 flex items-center justify-center gap-3">
-          <span className="grid size-11 place-items-center rounded-[var(--radius-card)] bg-[var(--primary-soft)] text-base font-bold text-[color:var(--primary-strong)]">
-            H
-          </span>
-          <div>
-            <strong className="block text-base text-[color:var(--text-heading)]">현대그린푸드</strong>
-            <span className="text-xs text-[color:var(--text-muted)]">재고 운영 플랫폼</span>
+    <main className="login-page">
+      <div className="login-page__frame">
+        <section className="login-page__visual" aria-labelledby="stockfit-visual-title">
+          <img
+            className="login-page__visual-image"
+            src="/assets/brand/stockfit-login-hero.jpg"
+            alt="식품 매장과 재고 흐름을 추상화한 파스텔 페이퍼 콜라주"
+          />
+          <div className="login-page__visual-wash" aria-hidden="true" />
+          <div className="login-page__visual-copy">
+            <img
+              className="login-page__visual-logo"
+              src="/assets/brand/stockfit-sidebar-logo.png"
+              alt=""
+              aria-hidden="true"
+            />
+            <div>
+              <h1 id="stockfit-visual-title">StockFit</h1>
+              <p>HYUNDAI GREEN FOOD 통합 재고 관리 플랫폼</p>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[var(--shadow-panel)] sm:p-8">
-          <div className="mb-8 text-center">
-            <h1 className="text-[length:var(--font-size-headline1)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
-              로그인
-            </h1>
-            <p className="mt-2 text-[length:var(--font-size-body)] text-[color:var(--text-muted)]">
-              업무 계정으로 재고 운영 플랫폼에 접속해 주세요.
-            </p>
+        <section className="login-page__form" aria-labelledby="login-title">
+          <div className="login-page__form-inner">
+            <div className="login-page__form-heading">
+              <h2 id="login-title">로그인</h2>
+              <p>업무 계정으로 StockFit에 접속해 주세요.</p>
+            </div>
+
+            {isSessionExpired ? (
+              <Alert className="mb-6" variant="danger" title="로그인 세션이 만료되었습니다.">
+                계속하려면 다시 로그인해 주세요.
+              </Alert>
+            ) : null}
+
+            <LoginForm />
+
+            <p className="login-page__support-copy">계정 접근에 문제가 있다면 시스템 관리자에게 문의해 주세요.</p>
           </div>
-
-          {isSessionExpired ? (
-            <Alert className="mb-6" variant="danger" title="로그인 세션이 만료되었습니다.">
-              계속하려면 다시 로그인해 주세요.
-            </Alert>
-          ) : null}
-
-          <LoginForm />
-        </div>
-
-        <p className="mt-5 text-center text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-          계정 접근에 문제가 있다면 시스템 관리자에게 문의해 주세요.
-        </p>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

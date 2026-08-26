@@ -1,5 +1,9 @@
 import { SUPPORTED_ACTION_TYPES } from '@/entities/strategy';
 
+export const STRATEGY_EXECUTION_FILTER_ACTION_TYPES = Object.freeze(
+  SUPPORTED_ACTION_TYPES.filter((type) => type !== 'CHANNEL_CONCENTRATION'),
+);
+
 export const defaultStrategyExecutionFilters = Object.freeze({
   strategyStatus: 'ALL',
   actionType: 'ALL',
@@ -23,6 +27,6 @@ export function toStrategyExecutionQueryParams(filters = defaultStrategyExecutio
   const query = typeof filters.query === 'string' ? filters.query.trim().slice(0, 100) : '';
   if (query) params.query = query;
   if (STRATEGY_EXECUTION_FILTER_STATUSES.includes(filters.strategyStatus)) params.status = filters.strategyStatus;
-  if (SUPPORTED_ACTION_TYPES.includes(filters.actionType)) params.actionType = filters.actionType;
+  if (STRATEGY_EXECUTION_FILTER_ACTION_TYPES.includes(filters.actionType)) params.actionType = filters.actionType;
   return params;
 }

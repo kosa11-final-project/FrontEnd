@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { defaultStrategyExecutionFilters } from '../model/filterState.js';
@@ -21,5 +21,14 @@ describe('StrategyExecutionFilters', () => {
       ...defaultStrategyExecutionFilters,
       actionType: 'PRICE_DISCOUNT',
     });
+  });
+
+  it('omits channel concentration from the action type filter', () => {
+    const onChange = vi.fn();
+
+    render(<StrategyExecutionFilters filters={defaultStrategyExecutionFilters} resultCount={0} onChange={onChange} />);
+
+    const actionTypeGroup = screen.getByRole('group', { name: '전략 유형' });
+    expect(within(actionTypeGroup).queryByRole('button', { name: '채널 집중' })).not.toBeInTheDocument();
   });
 });

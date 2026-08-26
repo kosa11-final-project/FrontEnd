@@ -6,8 +6,8 @@ export function TooltipProvider({ children }) {
   return <TooltipPrimitive.Provider delayDuration={250}>{children}</TooltipPrimitive.Provider>;
 }
 
-export function Tooltip({ children }) {
-  return <TooltipPrimitive.Root>{children}</TooltipPrimitive.Root>;
+export function Tooltip({ children, ...props }) {
+  return <TooltipPrimitive.Root {...props}>{children}</TooltipPrimitive.Root>;
 }
 
 export function TooltipTrigger({ children, asChild = true }) {

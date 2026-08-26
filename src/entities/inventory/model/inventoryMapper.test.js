@@ -26,6 +26,7 @@ describe('Inventory Mapper', () => {
       available_qty: 420,
       reserved_qty: 30,
       safety_qty: 100,
+      shortage_yn: 'N',
       inventory_fact_state: 'AVAILABLE',
       risk: {
         grade: 'SAFE',
@@ -58,6 +59,7 @@ describe('Inventory Mapper', () => {
     expect(mapped.riskGrade).toBe('SAFE');
     expect(mapped.riskMeta.tone).toBe('success');
     expect(mapped.inventoryFactState).toBe(INVENTORY_FACT_STATE.AVAILABLE);
+    expect(mapped.shortageYn).toBe('N');
     expect(mapped.primaryWarehouseName).toBe('경인 1센터');
     expect(mapped.category.leaf).toEqual({ id: 301, name: '베이커리', level: 3 });
     expect(mapped.categoryPathLabel).toBe('식품 > 베이커리/간식 > 베이커리');
@@ -92,6 +94,56 @@ describe('Inventory Mapper', () => {
     expect(zeroMapped.safetyQuantity).toBe(0);
   });
 
+  it('derives safety-stock status when a legacy response omits shortageYn', () => {
+    const shortage = mapInventoryItem({
+      skuCode: 'SKU-SAFETY-SHORT',
+      available_qty: 80,
+      safety_qty: 100,
+    });
+    const healthy = mapInventoryItem({
+      skuCode: 'SKU-SAFETY-OK',
+      available_qty: 120,
+      safety_qty: 100,
+    });
+
+    expect(shortage.shortageYn).toBe('Y');
+    expect(healthy.shortageYn).toBe('N');
+  });
+
+  it('derives each direct sales-point status from its own safety policy', () => {
+    const mapped = mapInventoryItem({
+      skuCode: 'SKU-SELLER-SAFETY-FALLBACK',
+      salesPointCode: 'STORE-A',
+      available_qty: 80,
+      safety_qty: 100,
+    });
+
+    expect(mapped.salesPoints[0]).toMatchObject({
+      salesPointCode: 'STORE-A',
+      availableQuantity: 80,
+      safetyQuantity: 100,
+      shortageYn: 'Y',
+    });
+  });
+
+  it('does not copy an aggregate status onto sellers without seller-level evidence', () => {
+    const mapped = mapInventoryItem({
+      skuCode: 'SKU-AGGREGATE-SAFETY',
+      available_qty: 80,
+      safety_qty: 100,
+      shortage_yn: 'Y',
+      sales_points: [
+        {
+          sales_point_code: 'STORE-A',
+          available_qty: 80,
+        },
+      ],
+    });
+
+    expect(mapped.shortageYn).toBe('Y');
+    expect(mapped.salesPoints[0].shortageYn).toBeNull();
+  });
+
   it('does not invent SKU, storage, LOT, or assessment facts that are absent from the API', () => {
     const mapped = mapInventoryItem({ skuCode: 'SKU_EMPTY', salesPoints: [] });
 
@@ -115,6 +167,29 @@ describe('Inventory Mapper', () => {
 
     expect(mapped.assessmentStatus).toBeNull();
     expect(mapped.ownerSalesPointCount).toBe(5);
+  });
+
+  it('preserves safety-stock shortage independently for each sales point', () => {
+    const mapped = mapInventoryItem({
+      skuCode: 'SKU-SELLER-SAFETY',
+      salesPoints: [
+        {
+          salesPointCode: 'STORE-A',
+          salesPointName: 'A점',
+          channelType: 'HYUNDAI_DEPT',
+          shortage_yn: 'Y',
+        },
+        {
+          salesPointCode: 'STORE-B',
+          salesPointName: 'B점',
+          channelType: 'HYUNDAI_DEPT',
+          shortageYn: 'N',
+        },
+      ],
+    });
+
+    expect(mapped.salesPoints.map((point) => point.shortageYn)).toEqual(['Y', 'N']);
+    expect(mapped.shortageYn).toBe('Y');
   });
 
   it('maps inventory list response and computes pagination correctly', () => {
@@ -201,6 +276,7 @@ describe('Inventory Mapper', () => {
       unassignedRiskGrade: 'CAUTION',
       unassignedAssessmentStatus: 'ASSESSED',
       unassignedRiskReason: '미할당 공용재고의 예측 데이터 없음',
+      unassigned_shortage_yn: 'Y',
     });
 
     expect(mapped.salesPoints.map((point) => point.salesPointCode)).toEqual(['STORE-A']);
@@ -213,6 +289,7 @@ describe('Inventory Mapper', () => {
       riskGrade: 'CAUTION',
       assessmentStatus: 'ASSESSED',
       riskReason: '미할당 공용재고의 예측 데이터 없음',
+      shortageYn: 'Y',
     });
     expect(mapped.unassignedInventory.locations).toEqual([
       { warehouseCode: 'DC-A', warehouseName: '센터 A', quantity: 40 },

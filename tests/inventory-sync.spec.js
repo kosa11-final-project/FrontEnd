@@ -63,10 +63,7 @@ test.describe('통합재고 동기화', () => {
     await expect.poll(() => detailRequestCount, { timeout: 4_000 }).toBeGreaterThanOrEqual(1);
     await expect.poll(() => detailRequestCount, { timeout: 12_000 }).toBeGreaterThanOrEqual(2);
     await expect(page.getByRole('button', { name: '재고 동기화', exact: true })).toBeEnabled();
-    await expect(
-      page.getByText(/동기화 완료 · 원천 33,358건 · 동기화 대상 0건 · 반영 0건 · 오류 0건 · 2026.08.21 22:48/),
-    ).toBeVisible();
-    await expect(page.getByText('동기화 실행을 등록하는 중입니다.')).toHaveCount(0);
+    await expect(page.getByText('재고 동기화가 완료되었습니다.', { exact: true })).toBeVisible();
 
     expect(startRequest).toBeTruthy();
     expect(startRequest.method()).toBe('POST');
@@ -111,11 +108,11 @@ test.describe('통합재고 동기화', () => {
     await expect(lockedButton.locator('svg')).toHaveClass(/animate-spin/);
     await expect(
       page.getByText('재고 동기화 중입니다. 이 화면의 실행 버튼을 잠그고 서버에서 중복 실행을 차단합니다.'),
-    ).toBeVisible();
+    ).toHaveCount(0);
     expect(startRequestCount).toBe(0);
   });
 
-  test('모바일 상세에서 DB 저장 판정 이유와 산식을 툴팁으로 확인한다', async ({ page }) => {
+  test('모바일 상세에서 서버 위험 판정의 계산 근거를 툴팁으로 확인한다', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await mockAuthenticatedSession(page);
     await mockCsrfToken(page);
@@ -214,14 +211,12 @@ test.describe('통합재고 동기화', () => {
     await page.goto('/inventory?detailSkuCode=SKU-TOOLTIP&detailSalesPointCode=GREETING&detailTab=OVERVIEW');
 
     await expect(page.getByRole('dialog')).toBeVisible();
-    const trigger = page.getByRole('button', { name: '재고 위험 판정 이유 보기' });
+    const trigger = page.getByRole('button', { name: '계산 근거 보기' });
     await expect(trigger).toBeVisible();
     await trigger.click();
 
     const tooltip = page.getByRole('tooltip');
     await expect(tooltip).toBeVisible();
-    await expect(tooltip).toContainText('D+30 예상 수요가 가용재고를 초과합니다.');
     await expect(tooltip).toContainText('가용 재고: 100개, 30일 부족 수량: 40개');
-    await expect(tooltip).toContainText('마지막 재고 동기화에서 서버 규칙으로 판정해 DB에 저장한 결과입니다.');
   });
 });

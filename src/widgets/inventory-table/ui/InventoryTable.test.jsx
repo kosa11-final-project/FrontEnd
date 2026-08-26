@@ -86,6 +86,17 @@ describe('InventoryTable pagination', () => {
     expect(onSizeChange).toHaveBeenCalledWith(100);
   });
 
+  it('keeps the selection column flush left and distributes desktop columns evenly', () => {
+    render(<InventoryTable items={[item]} totalCount={1} page={1} size={20} totalPages={1} />);
+
+    const table = screen.getByRole('table');
+    const columnWidths = [...table.querySelectorAll('col')].map((column) => column.className);
+
+    expect(table.querySelector('th')).toHaveClass('text-left', 'pl-3');
+    expect(table.querySelector('tbody td')).toHaveClass('text-left', 'pl-3');
+    expect(columnWidths).toEqual(['w-[4%]', 'w-[28%]', 'w-[20%]', 'w-[8%]', 'w-[11%]', 'w-[12%]', 'w-[9%]', 'w-[8%]']);
+  });
+
   it('renders a compact sort caret and announces the next sort direction', () => {
     const onSortChange = vi.fn();
     const { rerender } = render(
@@ -127,7 +138,7 @@ describe('InventoryTable pagination', () => {
     expect(onSortChange).toHaveBeenLastCalledWith('availableQuantity,desc');
   });
 
-  it('starts 종합 위험도 sorting from 양호 and toggles to 위험 first', () => {
+  it('starts 최고 위험도 sorting from 양호 and toggles to 위험 first', () => {
     const onSortChange = vi.fn();
     const { rerender } = render(
       <InventoryTable
@@ -141,7 +152,7 @@ describe('InventoryTable pagination', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '종합 위험도 오름차순 정렬' }));
+    fireEvent.click(screen.getByRole('button', { name: '최고 위험도 오름차순 정렬' }));
     expect(onSortChange).toHaveBeenLastCalledWith('riskGrade,asc');
 
     rerender(
@@ -156,7 +167,7 @@ describe('InventoryTable pagination', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '종합 위험도 내림차순 정렬' }));
+    fireEvent.click(screen.getByRole('button', { name: '최고 위험도 내림차순 정렬' }));
     expect(onSortChange).toHaveBeenLastCalledWith('riskGrade,desc');
   });
 
@@ -170,7 +181,15 @@ describe('InventoryTable pagination', () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
-  it('shows center-only inventory as a separate stock owner in the table', () => {
+  it('explains when an inventory request exceeds its time limit', () => {
+    render(<InventoryTable items={[]} totalCount={0} isError error={{ code: 'REQUEST_TIMEOUT' }} />);
+
+    expect(
+      screen.getByText('재고 조회 시간이 초과되었습니다. 조건을 줄이거나 잠시 후 다시 시도해 주세요.'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps center-only inventory in the mobile owner summary without a desktop column', () => {
     render(
       <InventoryTable
         items={[
@@ -193,10 +212,10 @@ describe('InventoryTable pagination', () => {
     );
 
     expect(screen.getByText('물류센터 미할당 40개')).toBeInTheDocument();
-    expect(screen.getAllByText('40개').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByRole('columnheader', { name: '미할당 재고' })).not.toBeInTheDocument();
   });
 
-  it('renders separate 판매처 and 미할당 재고 column headers and hides 판정 완료 text for ASSESSED status', () => {
+  it('removes the 미할당 재고 column and hides 판정 완료 text for ASSESSED status', () => {
     render(
       <InventoryTable
         items={[
@@ -220,9 +239,61 @@ describe('InventoryTable pagination', () => {
     );
 
     expect(screen.getByRole('columnheader', { name: '판매처' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: '미할당 재고' })).toBeInTheDocument();
-    expect(screen.getByText('22개')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: '미할당 재고' })).not.toBeInTheDocument();
+    expect(screen.queryByText('22개')).not.toBeInTheDocument();
     expect(screen.queryByText('판정 완료')).not.toBeInTheDocument();
+  });
+
+  it('shows safety-stock shortage in the risk column without adding a separate column', () => {
+    const { rerender } = render(
+      <InventoryTable
+        items={[
+          {
+            ...item,
+            shortageYn: 'Y',
+            salesPoints: [{ ...item.salesPoints[0], shortageYn: 'Y' }],
+          },
+        ]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+      />,
+    );
+
+    expect(screen.queryByRole('columnheader', { name: '안전재고' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('안전재고 미달 상품 포함')).toHaveLength(2);
+
+    rerender(
+      <InventoryTable items={[{ ...item, shortageYn: 'N' }]} totalCount={1} page={1} size={20} totalPages={1} />,
+    );
+    expect(screen.queryByText('안전재고 충족')).not.toBeInTheDocument();
+    expect(screen.queryByText('안전재고 미달 상품 포함')).not.toBeInTheDocument();
+  });
+
+  it('shows safety-stock shortage when only center-only inventory is below safety stock', () => {
+    render(
+      <InventoryTable
+        items={[
+          {
+            ...item,
+            shortageYn: 'N',
+            unassignedInventory: {
+              currentQuantity: 6,
+              availableQuantity: 6,
+              shortageYn: 'Y',
+              hasStock: true,
+            },
+          },
+        ]}
+        totalCount={1}
+        page={1}
+        size={20}
+        totalPages={1}
+      />,
+    );
+
+    expect(screen.getAllByText('안전재고 미달 상품 포함')).toHaveLength(2);
   });
 
   it('renders selection checkboxes and enforces max 5 selection limit', () => {
@@ -286,7 +357,13 @@ describe('InventoryTable pagination', () => {
       <InventoryTable items={[item]} totalCount={1} selectedSkuCodes={[]} onGenerateStrategy={onGenerateStrategy} />,
     );
 
-    expect(screen.getByRole('button', { name: 'AI 전략 생성' })).toBeDisabled();
+    const generateButton = screen.getByRole('button', { name: 'AI 전략 생성' });
+    expect(generateButton).toBeDisabled();
+    expect(generateButton).toHaveClass(
+      'disabled:opacity-100',
+      'disabled:bg-[var(--primary-soft)]',
+      'disabled:text-[color:var(--text-muted)]',
+    );
 
     rerender(
       <InventoryTable

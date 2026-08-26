@@ -135,15 +135,16 @@ export function formatAchievementRateText(value) {
 
 export function formatKpiValue(kpi) {
   if (!kpi || kpi.value === null || kpi.value === undefined) return kpi?.emptyLabel ?? '미수집';
+  const unit = kpi.unit === 'EA' ? '개' : (kpi.unit ?? '');
   if (typeof kpi.value === 'number') {
     const isAchievementRate = kpi.unit === '%' && kpi.label?.includes('달성률');
     const value = isAchievementRate
       ? kpi.value.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
       : kpi.value.toLocaleString('ko-KR');
-    return `${value}${kpi.unit ?? ''}`;
+    return `${value}${unit}`;
   }
   const value = formatAchievementRateText(kpi.value);
-  return `${value}${kpi.unit ?? ''}`;
+  return `${value}${unit}`;
 }
 
 export const strategyStatuses = STRATEGY_STATUSES;
