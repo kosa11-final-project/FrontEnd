@@ -41,9 +41,10 @@ In **Manage Jenkins -> System -> AWS**, enable **Retrieve credentials from
 node**. The `Jenkinsfile` also uses `withAWS(useNode: true)` so credentials are
 resolved on the node running the pipeline.
 
-Create these Jenkins credentials as **Secret text** values:
+The deployment target identifiers are not secrets and are defined directly in
+the `Jenkinsfile`:
 
-| Credential ID | Value |
+| Environment variable | Value |
 | --- | --- |
 | `stockfit-frontend-s3-bucket` | `stockfit-frontend-prod-7` |
 | `stockfit-cloudfront-distribution-id` | `E226SCR3XTL20H` |
