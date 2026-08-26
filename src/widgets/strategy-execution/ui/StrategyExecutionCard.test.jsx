@@ -54,6 +54,9 @@ describe('StrategyExecutionCard', () => {
     await user.click(screen.getByRole('button', { name: '실행 단계 보기' }));
 
     expect(screen.getByRole('listitem', { name: '할인: 완료' })).toBeInTheDocument();
+    const expandedSection = screen.getByRole('region', { name: '정직한돈 김치 짜글이 실행 단계' });
+    expect(expandedSection).toHaveClass('border-t');
+    expect(expandedSection).not.toHaveClass('p-3', 'bg-[var(--surface-subtle)]');
     expect(screen.getByText('모두의 맛집')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar', { name: '할인 진행률' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '실행 단계 닫기' })).toHaveAttribute('aria-expanded', 'true');

@@ -14,7 +14,14 @@ describe('StrategyActionStepProgress', () => {
       />,
     );
 
-    expect(screen.getByRole('list', { name: '전략 액션 진행 단계' })).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: '전략 액션 진행 단계' });
+    expect(list).toBeInTheDocument();
+    expect(list.parentElement).toHaveClass('w-full');
+    expect(list.parentElement).not.toHaveClass(
+      'rounded-[var(--radius-panel)]',
+      'border',
+      'shadow-[var(--shadow-soft)]',
+    );
     expect(screen.getByRole('listitem', { name: '재할당: 완료' })).toBeInTheDocument();
     expect(screen.getByRole('listitem', { name: 'RT 이동: 진행 중' })).toBeInTheDocument();
     expect(screen.getByRole('listitem', { name: '채널 확장: 시작 전' })).toBeInTheDocument();

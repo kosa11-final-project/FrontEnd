@@ -126,14 +126,14 @@ function ActionProgressInfo({ action, state, tone, progress, typeLabel, detailHr
 export function StrategyActionStepProgress({ actions = [], detailHref }) {
   if (!actions.length) {
     return (
-      <div className="grid min-h-20 place-items-center rounded-[var(--radius-panel)] border border-dashed border-[var(--border)] bg-[var(--surface-subtle)] p-3">
+      <div className="grid min-h-20 w-full place-items-center px-3 py-4">
         <p className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">진행 단계 미수집</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-soft)]">
+    <div className="w-full min-w-0">
       <div
         className={cn(
           'hidden min-h-8 items-center gap-3 bg-[var(--surface-subtle)] px-3 text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-body)] sm:grid',

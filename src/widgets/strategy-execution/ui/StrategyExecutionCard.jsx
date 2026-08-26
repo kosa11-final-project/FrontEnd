@@ -189,7 +189,7 @@ export function StrategyExecutionCard({ strategy }) {
           <section
             id={progressId}
             aria-label={`${strategy.product.name} 실행 단계`}
-            className="border-t border-[var(--border)] bg-[var(--surface-subtle)] p-3"
+            className="border-t border-[var(--border)]"
           >
             <StrategyActionStepProgress actions={strategy.actions} detailHref={detailPath} />
           </section>
