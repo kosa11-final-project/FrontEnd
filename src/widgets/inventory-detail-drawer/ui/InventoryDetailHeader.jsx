@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { CloseCircle, Package } from 'reicon-react';
 import { formatDateTime } from '@/shared/lib/format';
+import { getImageThumbnailUrl } from '@/shared/lib/media';
 import { ImageLightbox, toRect } from '@/shared/ui';
 import { STORAGE_BADGE_STYLES } from './constants.js';
 
@@ -69,8 +70,13 @@ export function InventoryDetailHeader({
             onClick={handleImageClick}
           >
             <img
-              src={item.imageUrl}
+              src={getImageThumbnailUrl(item.imageUrl)}
               alt={imageAlt}
+              width={48}
+              height={48}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
               className="size-full rounded-xl border border-[var(--border)] bg-white object-cover shadow-2xs transition-transform duration-[var(--motion-standard)] group-hover/image:scale-105"
             />
           </button>
