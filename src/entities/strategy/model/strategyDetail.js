@@ -23,12 +23,18 @@ function resolveLocationValue(location, includeType) {
 
 export function resolveStrategyLocationPresentation(action = {}) {
   if (action.actionType === 'REALLOCATION') {
+    const storageLocation = action.physicalSourceLocation ?? null;
+    const allocationSource = action.allocationSourceSalesPoint ?? action.sourceLocation;
+    const allocationTarget = action.allocationTargetSalesPoint ?? action.targetLocation;
     return {
       quantityLabel: '재할당 수량',
       sourceLabel: '기존 할당 판매처',
       targetLabel: '변경 할당 판매처',
-      sourceValue: resolveLocationValue(action.sourceLocation, false),
-      targetValue: resolveLocationValue(action.targetLocation, false),
+      sourceValue: resolveLocationValue(allocationSource, false),
+      targetValue: resolveLocationValue(allocationTarget, false),
+      supplementaryConditions: storageLocation
+        ? [{ label: '보관 위치', value: resolveLocationValue(storageLocation, true) }]
+        : [],
       badge: '물리적 이동 없음',
       badgeVariant: 'neutral',
       description: '같은 물류센터에서 재고 보관 위치는 유지하고 판매처 할당량만 변경합니다.',
@@ -36,14 +42,38 @@ export function resolveStrategyLocationPresentation(action = {}) {
   }
 
   if (action.actionType === 'RT_TRANSFER') {
-    const sourceType = locationTypeLabels[action.sourceLocation?.locationType];
-    const targetType = locationTypeLabels[action.targetLocation?.locationType];
+    const physicalSource = action.physicalSourceLocation ?? action.sourceLocation;
+    const physicalDestination = action.physicalDestinationLocation ?? action.targetLocation;
+    const sourceType = locationTypeLabels[physicalSource?.locationType];
+    const targetType = locationTypeLabels[physicalDestination?.locationType];
+    const allocationSource = action.allocationSourceSalesPoint;
+    const allocationTarget = action.allocationTargetSalesPoint;
+    const supplementaryConditions = [];
+    const allocationSourceMatchesPhysicalSource =
+      allocationSource?.locationType === physicalSource?.locationType &&
+      allocationSource?.locationId === physicalSource?.locationId;
+    if (allocationSource && !allocationSourceMatchesPhysicalSource) {
+      supplementaryConditions.push({
+        label: '기존 할당 판매처',
+        value: resolveLocationValue(allocationSource, false),
+      });
+    }
+    const allocationTargetMatchesPhysicalDestination =
+      allocationTarget?.locationType === physicalDestination?.locationType &&
+      allocationTarget?.locationId === physicalDestination?.locationId;
+    if (allocationTarget && !allocationTargetMatchesPhysicalDestination) {
+      supplementaryConditions.push({
+        label: '대상 판매처',
+        value: resolveLocationValue(allocationTarget, false),
+      });
+    }
     return {
       quantityLabel: '이동 수량',
       sourceLabel: sourceType ? `출발 ${sourceType}` : '출발 위치',
       targetLabel: targetType ? `도착 ${targetType}` : '도착 위치',
-      sourceValue: resolveLocationValue(action.sourceLocation, true),
-      targetValue: resolveLocationValue(action.targetLocation, true),
+      sourceValue: resolveLocationValue(physicalSource, true),
+      targetValue: resolveLocationValue(physicalDestination, true),
+      supplementaryConditions,
       badge: '실물 재고 이동',
       badgeVariant: 'warning',
       description: '출발 위치에서 도착 위치로 재고를 실제 운송합니다.',
@@ -81,6 +111,10 @@ export function getStrategyAdjustmentDefaults(option) {
         endDate: action.endDate ?? '',
         sourceLocation: action.sourceLocation ?? null,
         targetLocation: action.targetLocation ?? null,
+        physicalSourceLocation: action.physicalSourceLocation ?? null,
+        physicalDestinationLocation: action.physicalDestinationLocation ?? null,
+        allocationSourceSalesPoint: action.allocationSourceSalesPoint ?? null,
+        allocationTargetSalesPoint: action.allocationTargetSalesPoint ?? null,
       };
 
       if (action.actionType === 'PRICE_DISCOUNT') {
