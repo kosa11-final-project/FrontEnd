@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { aiStrategyKeys } from '@/entities/strategy';
@@ -6,21 +6,26 @@ import {
   inventoryFilterOptionsQueryOptions,
   inventoryListQueryOptions,
   inventorySummaryQueryOptions,
-  RESULT_STATE,
-} from '@/entities/inventory';
+} from '@/entities/inventory/api/inventoryQueries.js';
+import { RESULT_STATE } from '@/entities/inventory/model/inventory.js';
 import {
   DEFAULT_INVENTORY_FILTERS,
   applyFilterChanges,
   parseInventoryFilters,
   serializeInventoryFilters,
   toInventoryQueryParams,
-} from '@/features/inventory-filter';
-import { InventoryFilterBar } from '@/features/inventory-filter';
-import { InventorySyncControl } from '@/features/inventory-sync';
-import { InventorySummaryBar } from '@/widgets/inventory-summary';
-import { InventoryTable } from '@/widgets/inventory-table';
-import { InventoryDetailDrawer } from '@/widgets/inventory-detail-drawer';
-import { StrategyRequestModal } from '@/widgets/strategy-request-modal';
+} from '@/features/inventory-filter/model/filterState.js';
+import { InventoryFilterBar } from '@/features/inventory-filter/ui/InventoryFilterBar.jsx';
+import { InventorySyncControl } from '@/features/inventory-sync/ui/InventorySyncControl.jsx';
+import { InventorySummaryBar } from '@/widgets/inventory-summary/ui/InventorySummaryBar.jsx';
+import { InventoryTable } from '@/widgets/inventory-table/ui/InventoryTable.jsx';
+import { StrategyRequestModal } from '@/widgets/strategy-request-modal/ui/StrategyRequestModal.jsx';
+
+const LazyInventoryDetailDrawer = lazy(() =>
+  import('@/widgets/inventory-detail-drawer/ui/InventoryDetailDrawer.jsx').then((module) => ({
+    default: module.InventoryDetailDrawer,
+  })),
+);
 
 const FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY = Object.freeze([
   'q',
@@ -44,36 +49,35 @@ export default function InventoryPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [shouldResetFilterQueryOnEntry] = useState(() => hasPersistedFilterQuery(searchParams));
+  const [initialFilterQuery] = useState(() => (hasPersistedFilterQuery(searchParams) ? searchParams.toString() : null));
   const [selectedSkuItems, setSelectedSkuItems] = useState([]);
   const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
   const selectedSkuCodes = useMemo(() => selectedSkuItems.map((item) => item.skuCode), [selectedSkuItems]);
 
-  // 페이지에 다시 진입하거나 새로고침하면 이전 필터 query를 제거하고 기본 조건으로 시작합니다.
-  // 상세 드로어·페이지 크기·정렬 같은 화면 문맥은 유지하되, 검색/선택 필터만 초기화합니다.
+  // 페이지에 처음 진입할 때만 이전 잔여 필터 query를 1회 정리합니다.
   useEffect(() => {
-    if (!shouldResetFilterQueryOnEntry) return;
+    if (initialFilterQuery == null) return;
 
-    const nextSearchParams = new URLSearchParams(searchParams);
+    const nextSearchParams = new URLSearchParams(initialFilterQuery);
     FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY.forEach((key) => nextSearchParams.delete(key));
 
-    if (nextSearchParams.toString() !== searchParams.toString()) {
-      setSearchParams(nextSearchParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams, shouldResetFilterQueryOnEntry]);
+    setSearchParams(nextSearchParams, { replace: true });
+  }, [initialFilterQuery, setSearchParams]);
 
   // 1. URL searchParams로부터 필터 상태 파싱 (SSOT)
-  const isResettingFilterQuery = shouldResetFilterQueryOnEntry && hasPersistedFilterQuery(searchParams);
+  const isInitialResetPending = initialFilterQuery != null && searchParams.toString() === initialFilterQuery;
   const filters = useMemo(
-    () => (isResettingFilterQuery ? DEFAULT_INVENTORY_FILTERS : parseInventoryFilters(searchParams)),
-    [isResettingFilterQuery, searchParams],
+    () => (isInitialResetPending ? DEFAULT_INVENTORY_FILTERS : parseInventoryFilters(searchParams)),
+    [isInitialResetPending, searchParams],
   );
   const queryParams = useMemo(() => toInventoryQueryParams(filters), [filters]);
+  const listFetchKey = useMemo(() => JSON.stringify(queryParams), [queryParams]);
 
   // 2. TanStack Query로 목록 데이터 조회
   const {
     data: listData,
     isLoading: isListLoading,
+    isFetching: isListFetching,
     isError: isListError,
     error: listError,
     refetch: refetchList,
@@ -257,7 +261,7 @@ export default function InventoryPage() {
       {/* 1. 상단 KPI 요약 카드 바 */}
       <InventorySummaryBar
         summary={summaryData}
-        isLoading={isSummaryLoading}
+        isLoading={isSummaryLoading && !summaryData}
         isError={isSummaryError}
         error={summaryError}
         onRetry={refetchSummary}
@@ -303,7 +307,9 @@ export default function InventoryPage() {
         onClearSelectedSkus={handleClearSelectedSkus}
         onGenerateStrategy={handleGenerateStrategy}
         resultState={listData?.resultState || RESULT_STATE.HAS_DATA}
-        isLoading={isListLoading}
+        fetchKey={listFetchKey}
+        isLoading={isListLoading && !listData}
+        isFetching={isListFetching && Boolean(listData)}
         isError={isListError}
         error={listError}
         onRetry={refetchList}
@@ -323,17 +329,21 @@ export default function InventoryPage() {
       ) : null}
 
       {/* 4. 우측 상세 관제 드로어 */}
-      <InventoryDetailDrawer
-        // 닫힘/재오픈 또는 SKU 전환은 새 상세 세션으로 취급해 내부 판매처 선택을 초기화합니다.
-        key={isDrawerOpen ? filters.detailSkuCode : 'closed'}
-        item={selectedItem}
-        open={isDrawerOpen}
-        activeTab={filters.detailTab}
-        onTabChange={handleDrawerTabChange}
-        selectedSalesPointCode={filters.detailSalesPointCode}
-        onSalesPointChange={handleSalesPointChange}
-        onClose={handleCloseDrawer}
-      />
+      {isDrawerOpen ? (
+        <Suspense fallback={null}>
+          <LazyInventoryDetailDrawer
+            // 닫힘/재오픈 또는 SKU 전환은 새 상세 세션으로 취급해 내부 판매처 선택을 초기화합니다.
+            key={filters.detailSkuCode}
+            item={selectedItem}
+            open
+            activeTab={filters.detailTab}
+            onTabChange={handleDrawerTabChange}
+            selectedSalesPointCode={filters.detailSalesPointCode}
+            onSalesPointChange={handleSalesPointChange}
+            onClose={handleCloseDrawer}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

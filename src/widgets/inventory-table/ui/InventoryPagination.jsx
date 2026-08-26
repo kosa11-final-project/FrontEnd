@@ -29,7 +29,7 @@ export function InventoryPagination({
   const paginationRange = getPaginationRange(page, totalPages);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[var(--border)] bg-white px-6 py-3.5">
+    <div className="inventory-pagination flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[var(--border)] bg-white px-6 py-3.5">
       {/* 좌측: 건수 표시 */}
       <div className="text-xs text-gray-500 tabular-nums">
         총 <strong className="text-gray-900 font-semibold">{formatNumber(totalCount)}</strong>건 중 {startIdx} -{' '}
@@ -53,6 +53,7 @@ export function InventoryPagination({
               return (
                 <span
                   key={`${item}-${idx}`}
+                  aria-hidden="true"
                   className="flex size-8 items-center justify-center text-xs text-gray-400 font-bold select-none"
                 >
                   ···

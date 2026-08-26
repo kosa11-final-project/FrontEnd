@@ -140,7 +140,7 @@ function SummaryGrid({ summary }) {
       value: formatRevenue(summary.totalRevenue),
       icon: Money,
       cardClass: 'border-[#A6E8F6] bg-[#F0FBFE]',
-      iconClass: 'bg-[var(--info-soft)] text-[color:#007B9E]',
+      iconClass: 'bg-[var(--info-soft)] text-[color:var(--info)]',
     },
     {
       label: '운영 채널',

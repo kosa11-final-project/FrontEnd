@@ -5,6 +5,12 @@ import { TooltipProvider } from '../src/shared/ui/Tooltip.jsx';
 const preview = {
   parameters: {
     layout: 'centered',
+    options: {
+      storySort: {
+        method: 'alphabetical',
+        order: ['Introduction', 'Foundations', 'Shared UI', 'Entities', 'Features', 'Widgets', 'Pages', 'Prototypes'],
+      },
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,

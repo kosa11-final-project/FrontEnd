@@ -5,7 +5,8 @@ import { Logout, User } from 'reicon-react';
 import { getNavigationItem } from '../model/navigation.js';
 import { NotificationMenu } from './NotificationMenu.jsx';
 import { authKeys, currentUserQueryOptions, logout as logoutSession } from '@/entities/auth';
-import { Avatar, Icon } from '@/shared/ui';
+import { Avatar } from '@/shared/ui/Avatar.jsx';
+import { Icon } from '@/shared/ui/Icon.jsx';
 
 // DESIGN / WIDGET: 전역 헤더 조합입니다. 경로 변경 때 breadcrumb만 갱신합니다.
 export function AppHeader() {

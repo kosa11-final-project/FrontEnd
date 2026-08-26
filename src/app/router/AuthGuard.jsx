@@ -1,7 +1,19 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { currentUserQueryOptions } from '@/entities/auth';
-import { StateView } from '@/shared/ui';
+import { StateView } from '@/shared/ui/StateView.jsx';
+import { InventoryPageSkeleton } from '@/pages/inventory/ui/InventoryPageSkeleton.jsx';
+import { DashboardSkeleton } from '@/pages/dashboard/ui/DashboardSkeleton.jsx';
+import { StatisticsSkeleton } from '@/pages/statistics/ui/StatisticsSkeleton.jsx';
+import { ExecutionListSkeleton } from '@/pages/execution/ui/ExecutionListSkeleton.jsx';
+
+function getAuthSkeleton(pathname) {
+  if (pathname.startsWith('/inventory')) return <InventoryPageSkeleton />;
+  if (pathname.startsWith('/dashboard')) return <DashboardSkeleton />;
+  if (pathname.startsWith('/statistics')) return <StatisticsSkeleton />;
+  if (pathname.startsWith('/execution')) return <ExecutionListSkeleton />;
+  return <InventoryPageSkeleton />;
+}
 
 /**
  * 하위 업무 라우트에 진입하기 전에 백엔드 세션의 현재 사용자를 확인함
@@ -11,18 +23,9 @@ export default function AuthGuard() {
   const location = useLocation();
   const currentUserQuery = useQuery(currentUserQueryOptions());
 
-  // /me 확인이 끝나기 전에 보호 화면이 잠깐 노출되는 것을 방지함
+  // /me 확인 중에도 회색 로딩 박스 대신 라우트 스켈레톤을 렌더링하여 Zero-CLS를 유지함
   if (currentUserQuery.isPending) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-[var(--background)] px-6">
-        <StateView
-          state="loading"
-          title="로그인 상태를 확인하고 있습니다."
-          description="잠시만 기다려 주세요."
-          className="w-full max-w-md"
-        />
-      </main>
-    );
+    return getAuthSkeleton(location.pathname);
   }
 
   if (currentUserQuery.isError) {

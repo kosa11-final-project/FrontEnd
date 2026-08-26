@@ -4,6 +4,7 @@ import { mockDashboardResponse } from '@/entities/inventory/testing/dashboardFix
 import { StateView } from '@/shared/ui';
 import { StorybookProductFrame } from '@/storybook/StorybookProductFrame.jsx';
 import { DashboardPageContent } from './DashboardPage.jsx';
+import { DashboardSkeleton } from './ui/DashboardSkeleton.jsx';
 
 // Storybook 전용 API 응답 예시입니다. 운영 엔티티 barrel에는 정적 재고값을 노출하지 않습니다.
 const dashboardFixture = mapDashboardResponse(mockDashboardResponse);
@@ -49,11 +50,7 @@ export const Loading = {
   render: () => (
     <StorybookProductFrame path="/dashboard" minHeight="760px">
       <div className="page-shell">
-        <StateView
-          state="loading"
-          title="대시보드 데이터를 불러오고 있습니다."
-          description="최근 재고 동기화 결과를 확인하는 중입니다."
-        />
+        <DashboardSkeleton />
       </div>
     </StorybookProductFrame>
   ),

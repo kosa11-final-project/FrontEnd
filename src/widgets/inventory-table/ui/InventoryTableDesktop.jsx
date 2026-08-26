@@ -1,13 +1,13 @@
 import { Building, Shop, ShoppingCart, Store } from 'reicon-react';
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
-import { InventoryStatusBadge } from '@/entities/inventory';
-import { getAssessmentStatusLabel } from '@/entities/risk';
-import { SortHeaderButton } from './SortHeaderButton.jsx';
+import { InventoryStatusBadge } from '@/entities/inventory/ui/InventoryStatusBadge.jsx';
+import { getAssessmentStatusLabel } from '@/entities/risk/model/risk.js';
 import { CHANNEL_BADGE_STYLES, STORAGE_BADGE_STYLES } from './constants.js';
+import { InventoryTableDesktopBodySkeleton } from './InventoryTableSkeleton.jsx';
+import { InventoryTableDesktopShell } from './InventoryTableDesktopShell.jsx';
+import { LazyThumbnailImage } from './LazyThumbnailImage.jsx';
 
 function categorizeSalesPoints(salesPoints = []) {
-  let dangerPoints = 0;
-  let cautionPoints = 0;
   const hyundaiDeptStores = [];
   const onlineGreeting = [];
   const ecommerceStores = [];
@@ -15,8 +15,6 @@ function categorizeSalesPoints(salesPoints = []) {
 
   for (let i = 0; i < salesPoints.length; i++) {
     const sp = salesPoints[i];
-    if (sp.riskGrade === 'DANGER') dangerPoints++;
-    else if (sp.riskGrade === 'CAUTION') cautionPoints++;
 
     switch (sp.channelType) {
       case 'HYUNDAI_DEPT':
@@ -39,8 +37,6 @@ function categorizeSalesPoints(salesPoints = []) {
     onlineGreeting,
     ecommerceStores,
     hmartStores,
-    dangerPoints,
-    cautionPoints,
   };
 }
 
@@ -55,6 +51,8 @@ export function InventoryTableDesktop({
   onSortChange,
   onRowClick,
   onImageClick,
+  isFetching = false,
+  showBodySkeleton = false,
 }) {
   const currentItemSkuCodes = items.map((i) => i.skuCode).filter(Boolean);
   const selectedInCurrentPage = currentItemSkuCodes.filter((code) => selectedSkuCodes.includes(code));
@@ -64,6 +62,8 @@ export function InventoryTableDesktop({
   const isSomeSelected = selectedInCurrentPage.length > 0 && !isAllSelected;
 
   const handleHeaderCheckboxChange = () => {
+    if (showBodySkeleton) return;
+
     if (isAllSelected || isSomeSelected || selectedSkuCodes.length > 0) {
       onSelectAllSkus?.([]);
     } else {
@@ -72,92 +72,20 @@ export function InventoryTableDesktop({
   };
 
   return (
-    <div className="hidden lg:block overflow-x-auto">
-      <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
-        <colgroup>
-          <col className="w-[4%]" />
-          <col className="w-[28%]" />
-          <col className="w-[20%]" />
-          <col className="w-[8%]" />
-          <col className="w-[11%]" />
-          <col className="w-[12%]" />
-          <col className="w-[9%]" />
-          <col className="w-[8%]" />
-        </colgroup>
-        <thead className="border-b border-[var(--border)] bg-[#F8F9FA] text-[11px] font-bold tracking-wider text-gray-500 uppercase">
-          <tr>
-            <th scope="col" className="min-w-[52px] py-3.5 pl-3 pr-2 text-left">
-              <input
-                type="checkbox"
-                checked={isAllSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = isSomeSelected;
-                }}
-                onChange={handleHeaderCheckboxChange}
-                aria-label={`현재 페이지 항목 최대 ${maxSelection}개 선택 토글`}
-                title={
-                  isAllSelected || isSomeSelected || selectedSkuCodes.length > 0
-                    ? '일괄 선택 해제'
-                    : `현재 페이지 항목 최대 ${maxSelection}개 선택`
-                }
-                className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
-              />
-            </th>
-            <th scope="col" className="min-w-[240px] px-4 py-3.5">
-              SKU 및 상품 정보
-            </th>
-            <th scope="col" className="min-w-[180px] px-4 py-3.5">
-              판매처
-            </th>
-            <th scope="col" className="min-w-[75px] px-3 py-3.5">
-              보관유형
-            </th>
-            <th scope="col" className="min-w-[80px] px-4 py-3.5 text-right">
-              <div className="flex justify-end">
-                <SortHeaderButton
-                  label="현재고"
-                  field="currentQuantity"
-                  currentSort={sort}
-                  onSortChange={onSortChange}
-                  align="right"
-                />
-              </div>
-            </th>
-            <th scope="col" className="min-w-[90px] px-4 py-3.5 text-right">
-              <div className="flex justify-end">
-                <SortHeaderButton
-                  label="가용수량"
-                  field="availableQuantity"
-                  currentSort={sort}
-                  onSortChange={onSortChange}
-                  align="right"
-                />
-              </div>
-            </th>
-            <th scope="col" className="min-w-[100px] px-4 py-3.5 text-center">
-              <div className="flex justify-center">
-                <SortHeaderButton
-                  label="최고 위험도"
-                  field="riskGrade"
-                  currentSort={sort}
-                  onSortChange={onSortChange}
-                  align="center"
-                />
-              </div>
-            </th>
-            <th scope="col" className="min-w-[80px] px-4 py-3.5 text-center">
-              <div className="flex justify-center">
-                <SortHeaderButton
-                  label="소비기한"
-                  field="nearestExpiryDays"
-                  currentSort={sort}
-                  onSortChange={onSortChange}
-                  align="center"
-                />
-              </div>
-            </th>
-          </tr>
-        </thead>
+    <InventoryTableDesktopShell
+      sort={sort}
+      isFetching={isFetching}
+      maxSelection={maxSelection}
+      isAllSelected={isAllSelected}
+      isSomeSelected={isSomeSelected}
+      hasSelection={selectedSkuCodes.length > 0}
+      selectDisabled={showBodySkeleton}
+      onSelectAll={handleHeaderCheckboxChange}
+      onSortChange={onSortChange}
+    >
+      {showBodySkeleton ? (
+        <InventoryTableDesktopBodySkeleton rowCount={Math.max(items.length, 1)} />
+      ) : (
         <tbody className="divide-y divide-[#F3F4F6]">
           {items.map((item) => {
             const isSelected = selectedItem?.rowId === item.rowId;
@@ -167,7 +95,7 @@ export function InventoryTableDesktop({
 
             // 판매처 지점 목록 및 채널/위험도 분류 (1회 순회)
             const salesPoints = item.salesPoints || [];
-            const { hyundaiDeptStores, onlineGreeting, ecommerceStores, hmartStores, dangerPoints, cautionPoints } =
+            const { hyundaiDeptStores, onlineGreeting, ecommerceStores, hmartStores } =
               categorizeSalesPoints(salesPoints);
             const skuLabel = item.skuName || item.productName || 'SKU명 미지정';
             const categoryLeafName = item.category?.leaf?.name || item.categoryName || '';
@@ -192,7 +120,7 @@ export function InventoryTableDesktop({
                     onRowClick?.(item);
                   }
                 }}
-                className={`group cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 ${
+                className={`group h-[76px] cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40 ${
                   isSelected || isSelectedSku
                     ? 'bg-[#F4FAF6] border-l-4 border-l-[var(--primary)] shadow-2xs'
                     : 'hover:bg-[#F8FDF9] border-l-4 border-l-transparent'
@@ -200,46 +128,39 @@ export function InventoryTableDesktop({
               >
                 {/* 0. 체크박스 (최대 5개 다중 선택) */}
                 <td
-                  className="min-w-[52px] py-4 pl-3 pr-2 text-left align-middle"
+                  className="min-w-[52px] py-3 pl-3 pr-2 text-left align-middle"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isSelectedSku}
-                    disabled={!isSelectedSku && isMaxReached}
-                    onChange={() => onToggleSelectSku?.(item.skuCode)}
-                    aria-label={`${skuLabel} 선택`}
-                    title={
-                      !isSelectedSku && isMaxReached
-                        ? `최대 ${maxSelection}개까지 선택 가능합니다`
-                        : `${skuLabel} 선택 (${selectedSkuCodes.length}/${maxSelection})`
-                    }
-                    className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  />
+                  <label className="inline-flex size-9 items-center justify-center cursor-pointer rounded-lg hover:bg-gray-100/80">
+                    <input
+                      type="checkbox"
+                      checked={isSelectedSku}
+                      disabled={!isSelectedSku && isMaxReached}
+                      onChange={() => onToggleSelectSku?.(item.skuCode)}
+                      aria-label={`${skuLabel} 선택`}
+                      title={
+                        !isSelectedSku && isMaxReached
+                          ? `최대 ${maxSelection}개까지 선택 가능합니다`
+                          : `${skuLabel} 선택 (${selectedSkuCodes.length}/${maxSelection})`
+                      }
+                      className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    />
+                  </label>
                 </td>
 
                 {/* 1. SKU 정보 및 소분류 */}
-                <td className="px-4 py-4">
+                <td className="pl-4 pr-3 py-4">
                   <div className="flex items-center gap-3.5">
-                    {item.imageUrl ? (
-                      <button
-                        type="button"
-                        aria-label={`${skuLabel} 이미지 크게 보기`}
-                        className="group/image size-12 shrink-0 cursor-zoom-in rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-                        onClick={(event) => onImageClick?.(event, item, skuLabel)}
-                      >
-                        <img
-                          src={item.imageUrl}
-                          alt={skuLabel}
-                          className="size-full rounded-lg border border-[var(--border)] object-cover shadow-2xs transition-transform duration-[var(--motion-standard)] group-hover/image:scale-105"
-                        />
-                      </button>
-                    ) : (
-                      <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[#F3F4F6] text-[11px] font-medium text-gray-400">
-                        No Img
-                      </div>
-                    )}
+                    <LazyThumbnailImage
+                      src={item.imageUrl}
+                      alt={skuLabel}
+                      width={48}
+                      height={48}
+                      className="size-12"
+                      item={item}
+                      onImageClick={onImageClick}
+                    />
                     <div className="flex flex-col min-w-0">
                       {/* 1행: SKU 규격명 (메인 식별자) */}
                       <span
@@ -281,7 +202,7 @@ export function InventoryTableDesktop({
                 </td>
 
                 {/* 2. 판매처 요약 */}
-                <td className="px-4 py-4">
+                <td className="px-3 py-4">
                   <div className="flex flex-wrap items-center gap-1.5 w-full">
                     {hyundaiDeptStores.length > 0 && (
                       <span
@@ -327,7 +248,7 @@ export function InventoryTableDesktop({
                 </td>
 
                 {/* 3. 보관유형 */}
-                <td className="px-3 py-4">
+                <td className="px-2.5 py-4">
                   <span
                     className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${storageBadgeClass}`}
                   >
@@ -336,14 +257,14 @@ export function InventoryTableDesktop({
                 </td>
 
                 {/* 4. 총 현재고 */}
-                <td className="px-4 py-4 text-right">
+                <td className="px-3 py-4 text-right">
                   <span className="font-semibold text-gray-800 tabular-nums">
                     {formatQuantity(item.currentQuantity)}
                   </span>
                 </td>
 
                 {/* 5. 가용수량 */}
-                <td className="px-4 py-4 text-right">
+                <td className="px-3 py-4 text-right">
                   <div className="flex flex-col items-end">
                     <span className="text-base font-bold text-[color:var(--primary)] tabular-nums">
                       {formatQuantity(item.availableQuantity)}
@@ -355,31 +276,23 @@ export function InventoryTableDesktop({
                 </td>
 
                 {/* 6. 최고 위험도 */}
-                <td className="px-4 py-4 text-center">
+                <td className="px-3 py-4 text-center">
                   <div className="flex flex-col items-center gap-1">
                     <InventoryStatusBadge status={item.riskGrade} />
                     {item.assessmentStatus && item.assessmentStatus !== 'ASSESSED' && (
-                      <span className="text-[10px] font-medium text-gray-500">
+                      <span className="text-[10px] font-medium text-gray-500 whitespace-nowrap">
                         {getAssessmentStatusLabel(item.assessmentStatus)}
                       </span>
                     )}
-                    {(dangerPoints > 0 || cautionPoints > 0) && (
-                      <span className="text-[10px] font-medium text-gray-500 tabular-nums">
-                        {dangerPoints > 0 && (
-                          <span className="text-[color:var(--danger)] font-bold">위험 {dangerPoints} </span>
-                        )}
-                        {cautionPoints > 0 && (
-                          <span className="text-[color:var(--warning)] font-bold">주의 {cautionPoints}</span>
-                        )}
-                      </span>
-                    )}
                     {item.inventoryFactState && item.inventoryFactState !== 'AVAILABLE' && (
-                      <span className="text-[10px] font-medium text-gray-500">
+                      <span className="text-[10px] font-medium text-gray-500 whitespace-nowrap">
                         {item.inventoryFactLabel || '재고 상태 확인 필요'}
                       </span>
                     )}
                     {hasSafetyShortage && (
-                      <span className="text-[10px] font-medium text-amber-700">안전재고 미달 상품 포함</span>
+                      <span className="text-[10px] font-medium text-amber-700 whitespace-nowrap">
+                        안전재고 미달 상품 포함
+                      </span>
                     )}
                   </div>
                 </td>
@@ -390,23 +303,23 @@ export function InventoryTableDesktop({
                     <span
                       className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${
                         item.nearestExpiryDays <= 7
-                          ? 'bg-[#FEE4E2] text-[color:var(--danger)]'
+                          ? 'bg-rose-100 text-rose-900 border border-rose-200'
                           : item.nearestExpiryDays <= 30
-                            ? 'bg-[#FFF8E6] text-[#B45309]'
-                            : 'bg-[#F3F4F6] text-gray-600'
+                            ? 'bg-amber-100 text-amber-950 border border-amber-200'
+                            : 'bg-gray-100 text-gray-800 border border-gray-200'
                       }`}
                     >
                       {formatDaysRemaining(item.nearestExpiryDays)}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-400">-</span>
+                    <span className="text-xs text-gray-500">-</span>
                   )}
                 </td>
               </tr>
             );
           })}
         </tbody>
-      </table>
-    </div>
+      )}
+    </InventoryTableDesktopShell>
   );
 }

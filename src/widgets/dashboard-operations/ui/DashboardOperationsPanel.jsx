@@ -1,7 +1,9 @@
 import { AlertTriangle, ChevronDown, Store } from 'reicon-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger, Card, Icon } from '@/shared/ui';
-import { RiskSalesPointTable } from '@/widgets/risk-sales-points';
-import { UrgentSkuList } from '@/widgets/urgent-skus';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/ui/Accordion.jsx';
+import { Card } from '@/shared/ui/Card.jsx';
+import { Icon } from '@/shared/ui/Icon.jsx';
+import { RiskSalesPointTable } from '@/widgets/risk-sales-points/ui/RiskSalesPointTable.jsx';
+import { UrgentSkuList } from '@/widgets/urgent-skus/ui/UrgentSkuList.jsx';
 
 export function DashboardOperationsPanel({ accordionResetKey = 0, selectedSalesPoint, urgentSkus, riskSalesPoints }) {
   const showUrgentSection = Boolean(selectedSalesPoint);
@@ -74,7 +76,7 @@ export function DashboardOperationsPanel({ accordionResetKey = 0, selectedSalesP
               />
             </AccordionTrigger>
             <AccordionContent>
-              <RiskSalesPointTable compact embedded hideHeader points={riskSalesPoints} />
+              <RiskSalesPointTable points={riskSalesPoints} />
             </AccordionContent>
           </AccordionItem>
         </Accordion>

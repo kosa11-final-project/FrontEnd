@@ -1,6 +1,6 @@
 export const CHANNEL_BADGE_STYLES = {
   GREETING: 'bg-[#DAF7E9] text-[#1E8251] border-[#B7ECCF]',
-  ECOMMERCE: 'bg-[#CFF4FC] text-[#007B9E] border-[#A6E8F6]',
+  ECOMMERCE: 'bg-[#CFF4FC] text-[#00627F] border-[#A6E8F6]',
   HYUNDAI_DEPT: 'bg-[#F3E8FF] text-[#6B21A8] border-[#E9D5FF]',
   HMART: 'bg-[#FFEDD5] text-[#C2410C] border-[#FED7AA]',
 };

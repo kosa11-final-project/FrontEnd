@@ -2,7 +2,7 @@ import { Input } from '@/shared/ui/Input.jsx';
 import { Select } from '@/shared/ui/Select.jsx';
 
 const meta = {
-  title: 'Shared UI/Form controls',
+  title: 'Shared UI/Form Controls',
   tags: ['autodocs'],
 };
 

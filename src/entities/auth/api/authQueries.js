@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { getCurrentUser } from './authApi.js';
+import { getCsrfToken, getCurrentUser } from './authApi.js';
 
 // 인증 상태 캐시를 일관된 키로 참조하기 위한 Query Key Factory
 export const authKeys = Object.freeze({
@@ -18,6 +18,10 @@ export function isAuthenticationError(error) {
  */
 export async function resolveCurrentUser(signal) {
   try {
+    // Prime the in-memory CSRF token for subsequent state-changing requests.
+    // This is required when the API lives on a different subdomain and its
+    // host-only XSRF-TOKEN cookie is not readable by the frontend.
+    await getCsrfToken(signal);
     return await getCurrentUser(signal);
   } catch (error) {
     if (isAuthenticationError(error)) return null;

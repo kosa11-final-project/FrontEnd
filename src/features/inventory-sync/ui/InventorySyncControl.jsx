@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Refresh } from 'reicon-react';
-import { Button, toast } from '@/shared/ui';
+import { Button } from '@/shared/ui/Button.jsx';
+import { toast } from '@/shared/ui/use-toast.js';
 import { formatDateTime } from '@/shared/lib/format';
-import { dashboardKeys, inventoryKeys } from '@/entities/inventory';
-import { riskQueryKeys } from '@/entities/risk';
-import { statisticsKeys } from '@/entities/statistics';
+import { dashboardKeys, inventoryKeys } from '@/entities/inventory/api/inventoryQueries.js';
+import { riskQueryKeys } from '@/entities/risk/api/riskQueries.js';
+import { statisticsKeys } from '@/entities/statistics/api/statisticsQueries.js';
 import { getInventorySync, retryAfterSeconds, startInventorySync } from '../api/inventorySyncApi.js';
 import {
   ACTIVE_STATUSES,
@@ -363,7 +364,7 @@ export function InventorySyncControl() {
           그리팅, 이커머스(모두의 맛집), 백화점, 직영점의 재고가 통합재고로 동기화됩니다.
         </p>
       </div>
-      <div className="flex flex-wrap items-center justify-end gap-3">
+      <div className="inventory-sync-actions flex min-h-[68px] flex-wrap items-center justify-end gap-3">
         <p
           className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]"
           data-testid="inventory-last-sync"

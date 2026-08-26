@@ -42,7 +42,6 @@ segment api, model, ui처럼 slice 내부의 기술 역할
 | `providers` | 앱 전체 Context 연결 | QueryClientProvider, TooltipProvider | 페이지별 상태와 화면 JSX |
 | `layouts` | 전역 배치 | AppShell widget, Router Outlet 배치 | Sidebar·Header 세부 구현 |
 | `router` | URL 구조 | route, redirect, lazy route boundary | navigation 버튼의 세부 스타일 |
-| `monitoring` | 오류·성능 관측 | Sentry 초기화, 민감정보 제거 | 사용자 알림 UI, 업무 로그 |
 | `stories` | 독립 UI 문서 | 기본·variant·disabled·긴 텍스트·오류 상태 | 실제 서버 호출, 업무 데이터 저장 |
 | `assets` | 코드와 함께 배포하는 정적 리소스 | 이미지, 로컬 SVG, 애니메이션 | API 응답이나 사용자가 업로드한 파일 |
 

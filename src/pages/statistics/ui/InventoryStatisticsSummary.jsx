@@ -1,6 +1,6 @@
 import { AlertTriangle, Clock, Danger, InfoCircle, Package, Warning } from 'reicon-react';
 import { formatDate, formatNumber, formatPercent, formatQuantity } from '@/shared/lib/format';
-import { Alert, Badge, Icon, MetricCard, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui';
+import { Alert, Icon, MetricCard, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui';
 
 function MetricLabel({ label, calculation }) {
   return (
@@ -156,24 +156,7 @@ export function InventoryStatisticsSummary({ trend, scopeName = '전체' }) {
   ];
 
   return (
-    <section aria-labelledby="inventory-statistics-summary-title">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2
-            id="inventory-statistics-summary-title"
-            className="m-0 text-[length:var(--font-size-section-title)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]"
-          >
-            {scopeName} 위험재고 핵심 변화
-          </h2>
-          <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-            선택 기간의 첫 집계와 마지막 집계를 비교해 전체 위험재고 상태의 순변화를 확인합니다.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="neutral">입고·판매·이동·폐기 포함</Badge>
-          <Badge variant="warning">API 연결 전 화면 검토용</Badge>
-        </div>
-      </div>
+    <section aria-label={`${scopeName} 위험재고 핵심 변화`}>
       <Alert variant="info" title={insight.title} className="mb-3">
         {insight.description}
       </Alert>

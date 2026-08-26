@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Html, RoundedBox, useGLTF } from '@react-three/drei';
+import { RoundedBox } from '@react-three/drei/core/RoundedBox.js';
+import { useGLTF } from '@react-three/drei/core/Gltf.js';
+import { Html } from '@react-three/drei/web/Html.js';
 import * as THREE from 'three';
 import { cn } from '@/shared/lib/cn';
 

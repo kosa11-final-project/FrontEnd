@@ -28,6 +28,9 @@ axiosClient.interceptors.request.use((config) => {
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
     const normalizedError = normalizeApiError(error);
     notifySessionExpiration(normalizedError, error?.config);
     return Promise.reject(normalizedError);

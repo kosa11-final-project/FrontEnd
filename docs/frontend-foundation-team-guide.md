@@ -31,7 +31,6 @@
 | Axios | 완료 | 중앙 인스턴스, timeout, credentials, CSRF, 오류 정규화 |
 | TanStack Query | 부분 완료 | 전역 Provider, inventory query key/options 구성; 실제 API 연결과 hooks 사용은 남음 |
 | Spring Security 세션 | 부분 완료 | 프론트 쿠키 전송과 CSRF 헤더 골격만 구성; 실제 서버 계약 검증은 남음 |
-| Sentry | 완료 | DSN, Error Boundary, 민감정보 scrubber와 단위 테스트 구성; 배포별 정책은 운영 단계에서 확정 |
 | TanStack Table | 완료 | 재사용 `DataTable`, 정렬, 상태, row click, Storybook 예시 구성 |
 | Zustand | 설치만 완료 | 전역 UI 상태가 실제로 필요할 때 store를 생성 |
 | React Hook Form + Zod | 설치만 완료 | 검색·필터 또는 입력 폼의 요구가 확정될 때 feature에 적용 |
@@ -96,7 +95,6 @@ pnpm run build-storybook
 | 차트 | Recharts | 데이터 시각화 기능에서만 사용 |
 | 모션 | 완료 | MP4 레퍼런스와 공통 `LottieLoader`를 분리하고 reduced-motion 정책을 반영 |
 | HTTP | Axios | `shared/api` 내부에서만 직접 import |
-| 모니터링 | Sentry | 환경변수 DSN이 있을 때만 활성화 |
 | 아이콘 | Reicon | `reicon-react` 외의 아이콘 라이브러리를 혼용하지 않음 |
 | 컴포넌트 문서 | Storybook | 공통 UI와 디자인 토큰 계약 확인 |
 | 정적 검사 | ESLint + Prettier | 코드 오류와 공통 포맷을 PR 전에 검증 |
@@ -535,10 +533,6 @@ Spring Security가 CSRF cookie 발급
 | `VITE_API_TIMEOUT_MS` | `10000` | Axios timeout |
 | `VITE_CSRF_COOKIE_NAME` | `XSRF-TOKEN` | CSRF cookie 이름 |
 | `VITE_CSRF_HEADER_NAME` | `X-XSRF-TOKEN` | 변경 요청 header 이름 |
-| `VITE_SENTRY_DSN` | 빈 값 | Sentry 활성화 |
-| `VITE_APP_ENVIRONMENT` | Vite mode | Sentry environment |
-| `VITE_APP_VERSION` | `local` | release 식별자 |
-| `VITE_SENTRY_TRACES_SAMPLE_RATE` | `0` | 성능 추적 비율 |
 
 백엔드와 확정해야 할 계약:
 
@@ -597,29 +591,7 @@ const form = useForm({
 });
 ```
 
-## 11. Sentry
-
-현재 구현:
-
-- `VITE_SENTRY_DSN`이 있을 때만 초기화
-- environment, release, traces sample rate 설정
-- React Error Boundary 적용
-- 사용자 email과 IP 제거
-- authorization, cookie, CSRF, token, session, SKU, LOT, 재고·판매·원가 관련 key를 recursive scrubber로 제거
-- URL query·hash, message·exception 문자열의 token·email과 업무 식별자 제거
-- 오류, breadcrumb, transaction, span에 같은 scrubber 적용
-- scrubber 단위 테스트 구성
-
-운영 배포 전에 확정할 항목:
-
-- request body, cookie, authorization, 재고·판매·원가 필드 scrubber 정책
-- 401·403 같은 예상 오류를 Sentry에 보낼지 필터 기준
-- 사용자 식별자를 원문이 아닌 내부 비식별 ID로 보낼지 결정
-- 배포 아키텍처 확정 후 source map 업로드
-- 개발·스테이징·운영 DSN 또는 environment 분리
-- 실제 오류 이벤트에서 민감정보가 제거되는지 테스트
-
-## 12. Storybook과 테스트
+## 11. Storybook과 테스트
 
 Storybook은 앱과 같은 `src/styles.css`와 Pretendard를 사용하므로 색상, 폰트, 컴포넌트 variant가 실제 코드와 연결됩니다.
 
@@ -634,7 +606,7 @@ Storybook의 Show code는 실제 React 컴포넌트와 Tailwind class를 기반�
 
 현재 테스트 범위:
 
-- Vitest: `cn`, Sentry scrubber, inventory query 규칙, 공통 formatter, template mapper·URL filter 총 19개
+- Vitest: `cn`, inventory query 규칙, 공통 formatter, template mapper·URL filter 총 18개
 - Playwright: 기본 경로 이동과 사이드바 라우팅 2개
 - Storybook build: 모든 story가 정적으로 빌드되는지 확인
 
@@ -650,7 +622,7 @@ Storybook의 Show code는 실제 React 컴포넌트와 Tailwind class를 기반�
 
 현재 Storybook a11y 설정은 `todo`이므로 접근성 문제가 빌드를 실패시키지 않습니다. 팀이 컴포넌트 기반에 익숙해진 뒤 CI 실패 기준을 단계적으로 강화합니다.
 
-## 13. 초기 세팅 완료와 보류 범위
+## 12. 초기 세팅 완료와 보류 범위
 
 현재 합의한 프론트엔드 공통 초기 세팅은 완료했습니다.
 
@@ -661,11 +633,10 @@ Storybook의 Show code는 실제 React 컴포넌트와 Tailwind class를 기반�
 - Query Provider와 전역 TooltipProvider
 - Axios, CSRF, ApiError와 선택적 Vite `/api` proxy
 - `StateView`, `Skeleton`, `Alert`, `Checkbox`, `LoadingMedia`, `LottieLoader`
-- Sentry recursive scrubber와 단위 테스트
 - Node.js 24 LTS와 pnpm 11.18.0 고정
 - ESLint, Prettier와 공통 `pnpm run check`
 - GitHub Actions PR 자동 검증
-- `.env*`와 Sentry build plugin 설정의 Git 제외 규칙
+- `.env*` 비밀정보 보호 규칙
 
 Spring Boot 계약이 정해지기 전에는 다음을 임의로 구현하지 않습니다.
 
@@ -695,7 +666,7 @@ Spring Boot 계약이 정해지기 전에는 다음을 임의로 구현하지 �
 - React Virtual
 - 실제 데이터 연결 전의 성급한 최적화
 
-## 14. 권장 진행 순서
+## 13. 권장 진행 순서
 
 ```text
 1. 모든 팀원이 `docs/team-onboarding.md`의 필수 검증 완료
@@ -704,7 +675,7 @@ Spring Boot 계약이 정해지기 전에는 다음을 임의로 구현하지 �
 4. 통합 재고 조회를 첫 실제 수직 slice로 개발
 5. 실제 구현에서 확인된 공통 규칙만 foundation으로 승격
 6. 인증 계약 확정 후 `/me`와 401·403 경계 구성
-7. 운영 전 Sentry와 배포 정책 확정
+7. 운영 전 배포와 오류 관측 정책 확정
 ```
 
 첫 실제 slice는 다음 범위가 적합합니다.
@@ -721,7 +692,7 @@ Spring Boot 계약이 정해지기 전에는 다음을 임의로 구현하지 �
 
 이 한 흐름을 완성하면 네 명의 팀원이 같은 구조를 복제해 재고 상세, AI 전략, 성과 관제, 통계로 나눠 개발할 수 있습니다.
 
-## 15. 팀 체크리스트
+## 14. 팀 체크리스트
 
 상세 작업 체크리스트는 `docs/checklists/frontend-feature-checklist.md`, 파일과 폴더 규칙은 `docs/development-conventions.md`, PR 작성 시에는 `.github/pull_request_template.md`를 사용합니다.
 
@@ -745,7 +716,7 @@ Spring Boot 계약이 정해지기 전에는 다음을 임의로 구현하지 �
 - [ ] 기존 variant와 API를 깨지 않고 확장했는가?
 - [ ] `pnpm run audit:prod`, `pnpm run check`, `pnpm run test:e2e`, `pnpm run build-storybook`을 확인했는가?
 
-## 16. 관련 문서와 코드
+## 15. 관련 문서와 코드
 
 - 시작 안내: `README.md`
 - 신규 팀원 필수 온보딩: `docs/team-onboarding.md`

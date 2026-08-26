@@ -16,6 +16,7 @@ import {
   StrategyExecutionPagination,
   StrategyExecutionSummary,
 } from '@/widgets/strategy-execution';
+import { ExecutionListSkeleton } from './ui/ExecutionListSkeleton.jsx';
 
 export function ExecutionPageShell({ children }) {
   return <main className="page-shell">{children}</main>;
@@ -132,7 +133,7 @@ export default function ExecutionListPage() {
   if (query.isPending)
     return (
       <ExecutionPageShell>
-        <StateView state="loading" title="전략 실행 현황을 불러오고 있습니다." />
+        <ExecutionListSkeleton />
       </ExecutionPageShell>
     );
   if (query.isError)

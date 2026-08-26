@@ -3,7 +3,7 @@ import { strategyExecutionFixtures } from '@/entities/strategy';
 import { StrategyExecutionCard } from './StrategyExecutionCard.jsx';
 
 const meta = {
-  title: 'Widgets/Strategy Execution Card',
+  title: 'Widgets/Strategy/Execution Card',
   component: StrategyExecutionCard,
   tags: ['autodocs'],
   decorators: [
