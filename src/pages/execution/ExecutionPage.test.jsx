@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -10,7 +10,7 @@ import { StrategyExecutionListContent } from './ExecutionListPage.jsx';
 
 const renderRoute = (ui, path = '/execution') => render(<MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>);
 
-function StrategyExecutionListHarness({ strategies = strategyExecutionFixtures }) {
+function StrategyExecutionListHarness({ strategies = strategyExecutionFixtures, onSync }) {
   const [filters, setFilters] = useState(defaultStrategyExecutionFilters);
   const filtered = useMemo(() => filterStrategies(strategies, filters), [filters, strategies]);
   return (
@@ -25,6 +25,7 @@ function StrategyExecutionListHarness({ strategies = strategyExecutionFixtures }
       }}
       onFiltersChange={setFilters}
       onPageChange={() => {}}
+      onSync={onSync}
     />
   );
 }
@@ -61,12 +62,16 @@ describe('strategy execution pages', () => {
     fireEvent.click(screen.getByRole('button', { name: '검색' }));
     expect(screen.getByText('조건에 맞는 실행 전략이 없습니다.')).toBeInTheDocument();
   });
-  it('keeps synchronization disabled until the backend API is available', () => {
-    renderRoute(<StrategyExecutionListHarness />);
-    expect(screen.queryByRole('button', { name: /성과 동기화/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('status', { name: '성과 동기화 기능 준비 중' })).toBeInTheDocument();
-    expect(screen.getByText(/수동 동기화는 API 연동 후 제공됩니다/)).toBeInTheDocument();
-    expect(screen.queryByLabelText('동기화 상태')).not.toBeInTheDocument();
+  it('offers manual performance synchronization', () => {
+    const onSync = vi.fn();
+    renderRoute(<StrategyExecutionListHarness onSync={onSync} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '전략 성과 동기화' }));
+
+    expect(onSync).toHaveBeenCalledOnce();
+    expect(screen.getByRole('region', { name: '전략 성과 동기화' })).toHaveTextContent(
+      '판매량, 매출, 기여이익과 잔여재고',
+    );
   });
   it('renders multi-action dependency, missing data and required detail sections', () => {
     renderRoute(<StrategyExecutionDetailContent strategy={strategyExecutionFixtures[1]} />, '/execution/102');
@@ -78,12 +83,16 @@ describe('strategy execution pages', () => {
     expect(screen.getByText('재고 이동 경로')).toBeInTheDocument();
     expect(screen.getByRole('listitem', { name: '서부센터 → 동부센터, 90개 이동' })).toBeInTheDocument();
     expect(screen.getByText('위치별 재고 변화')).toBeInTheDocument();
+    expect(screen.getAllByText('전략 시작').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('현재 재고').length).toBeGreaterThan(0);
     expect(screen.getByRole('img', { name: '위치별 재고 변화 비교 가로 막대 차트' })).toBeInTheDocument();
     expect(screen.getByText('채널별 판매 성과 리포트')).toBeInTheDocument();
     expect(screen.getByText('채널 판매 성과가 없습니다.')).toBeInTheDocument();
     expect(screen.queryByText('동기화 이력')).not.toBeInTheDocument();
     expect(screen.queryByText('경고 및 후속 추천')).not.toBeInTheDocument();
     expect(screen.getByRole('img', { name: '프리미엄 오피스 체어 에어 상품 이미지 없음' })).toBeInTheDocument();
+    expect(screen.queryByText('이동 수량')).not.toBeInTheDocument();
+    expect(screen.queryByText('폐기 수량')).not.toBeInTheDocument();
   });
   it('renders an interactive daily sales area chart for an executing strategy', () => {
     renderRoute(<StrategyExecutionDetailContent strategy={strategyExecutionFixtures[0]} />, '/execution/101');

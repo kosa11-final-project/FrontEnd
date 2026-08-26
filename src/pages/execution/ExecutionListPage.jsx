@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { AlertCircle, Activity, CheckCircle, InfoCircle } from 'reicon-react';
-import { actionTypeMeta, getExecutionSummary, getStrategyExecutions } from '@/entities/strategy';
+import { AlertCircle, Activity, CheckCircle, Refresh } from 'reicon-react';
+import {
+  actionTypeMeta,
+  getExecutionSummary,
+  getStrategyExecutions,
+  synchronizeStrategyPerformances,
+} from '@/entities/strategy';
+import { statisticsKeys } from '@/entities/statistics';
 import {
   defaultStrategyExecutionFilters,
   parseStrategyExecutionPage,
@@ -10,7 +16,7 @@ import {
   StrategyExecutionFilters,
   toStrategyExecutionQueryParams,
 } from '@/features/strategy-execution-filter';
-import { Button, Icon, StateView } from '@/shared/ui';
+import { Button, Icon, StateView, toast } from '@/shared/ui';
 import {
   StrategyExecutionCard,
   StrategyExecutionPagination,
@@ -102,22 +108,24 @@ function StrategySituationSummary({ strategies, filters, onFiltersChange }) {
   );
 }
 
-function StrategySyncAvailabilityNotice() {
+function StrategyPerformanceSyncControl({ isPending = false, onSync = () => {} }) {
   return (
     <section
-      role="status"
-      aria-label="성과 동기화 기능 준비 중"
-      className="flex items-start gap-2.5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-2.5"
+      aria-label="전략 성과 동기화"
+      className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-4 sm:flex-row sm:items-center sm:justify-between"
     >
-      <Icon icon={InfoCircle} size={16} className="mt-0.5 shrink-0 text-[color:var(--info)]" aria-hidden="true" />
-      <div>
-        <strong className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
-          성과 동기화 기능 준비 중
+      <div className="min-w-0">
+        <strong className="text-[length:var(--font-size-body)] text-[color:var(--text-heading)]">
+          전략 성과 동기화
         </strong>
-        <p className="mt-0.5 text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">
-          목록을 다시 열거나 조회 조건을 변경하면 서버의 최신 응답이 반영됩니다. 수동 동기화는 API 연동 후 제공됩니다.
+        <p className="mt-1 text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+          최신 판매·재고 데이터를 기준으로 실행 전략의 판매량, 매출, 기여이익과 잔여재고를 갱신합니다.
         </p>
       </div>
+      <Button type="button" variant="secondary" size="md" onClick={onSync} disabled={isPending} aria-busy={isPending}>
+        <Icon icon={Refresh} size={15} className={isPending ? 'animate-spin' : undefined} aria-hidden="true" />
+        {isPending ? '성과 동기화 중' : '전략 성과 동기화'}
+      </Button>
     </section>
   );
 }
@@ -132,6 +140,8 @@ export function StrategyExecutionListContent({
     totalPages: 1,
   },
   isFetching = false,
+  isSyncing = false,
+  onSync = () => {},
   onFiltersChange,
   onPageChange,
 }) {
@@ -141,7 +151,7 @@ export function StrategyExecutionListContent({
         <StrategySituationSummary strategies={strategies} filters={filters} onFiltersChange={onFiltersChange} />
         <StrategyExecutionSummary strategies={strategies} />
         <StrategyExecutionFilters filters={filters} resultCount={pagination.totalElements} onChange={onFiltersChange} />
-        <StrategySyncAvailabilityNotice />
+        <StrategyPerformanceSyncControl isPending={isSyncing} onSync={onSync} />
         {isFetching ? (
           <p className="sr-only" aria-live="polite">
             전략 실행 목록을 업데이트하고 있습니다.
@@ -171,6 +181,7 @@ export function StrategyExecutionListContent({
 }
 
 export default function ExecutionListPage() {
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(defaultStrategyExecutionFilters);
   const requestedPage = parseStrategyExecutionPage(searchParams);
@@ -180,6 +191,26 @@ export default function ExecutionListPage() {
     queryFn: ({ signal }) => getStrategyExecutions(queryParams, signal),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
+  });
+  const syncMutation = useMutation({
+    mutationFn: () => synchronizeStrategyPerformances(),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['strategy-executions'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['strategy-execution'], refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: statisticsKeys.all, refetchType: 'all' });
+      const warning = result?.warnings?.[0];
+      toast({
+        title: '전략 성과 동기화가 완료되었습니다.',
+        description: warning || `${result?.processedStrategyCount ?? 0}개 전략의 성과를 갱신했습니다.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: '전략 성과 동기화에 실패했습니다.',
+        description: error?.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   useEffect(() => {
@@ -233,6 +264,8 @@ export default function ExecutionListPage() {
       filters={filters}
       pagination={query.data}
       isFetching={query.isFetching}
+      isSyncing={syncMutation.isPending}
+      onSync={() => syncMutation.mutate()}
       onFiltersChange={changeFilters}
       onPageChange={changePage}
     />

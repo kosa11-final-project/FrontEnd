@@ -1,14 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getJson } = vi.hoisted(() => ({ getJson: vi.fn() }));
+const { getJson, postJson, unwrapApiResponse } = vi.hoisted(() => ({
+  getJson: vi.fn(),
+  postJson: vi.fn(),
+  unwrapApiResponse: vi.fn((response) => response?.data),
+}));
 
-vi.mock('@/shared/api', () => ({ getJson }));
+vi.mock('@/shared/api', () => ({ getJson, postJson, unwrapApiResponse }));
 
 import {
   getStrategyExecution,
   getStrategyExecutions,
   mapStrategyExecutionPageResponse,
   mapStrategyExecutionResponse,
+  synchronizeStrategyPerformances,
 } from './strategyExecutionApi.js';
 
 const backendExecution = {
@@ -60,7 +65,21 @@ const backendExecution = {
 };
 
 describe('strategy execution API', () => {
-  beforeEach(() => getJson.mockReset());
+  beforeEach(() => {
+    getJson.mockReset();
+    postJson.mockReset();
+    unwrapApiResponse.mockClear();
+  });
+
+  it('requests a manual strategy performance synchronization', async () => {
+    const response = { data: { processedStrategyCount: 2, warnings: [] } };
+    postJson.mockResolvedValue(response);
+
+    await expect(synchronizeStrategyPerformances()).resolves.toEqual(response.data);
+
+    expect(postJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions/sync', signal: undefined });
+    expect(unwrapApiResponse).toHaveBeenCalledWith(response);
+  });
 
   it('maps the paged execution list and sends only the provided query parameters', async () => {
     getJson.mockResolvedValue({

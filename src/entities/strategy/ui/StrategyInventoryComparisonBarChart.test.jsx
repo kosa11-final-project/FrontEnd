@@ -23,9 +23,11 @@ describe('StrategyInventoryComparisonBarChart', () => {
     render(<StrategyInventoryComparisonBarChart results={results} />);
 
     expect(screen.getByRole('img', { name: '위치별 재고 변화 비교 가로 막대 차트' })).toBeInTheDocument();
-    expect(screen.getByLabelText('차트 범례')).toHaveTextContent('이동 전');
-    expect(screen.getByLabelText('차트 범례')).toHaveTextContent('이동 후');
-    expect(screen.getByText(/경기 광주센터: 이동 전 2,310개, 이동 후 1,830개, 재고 증감 -480개/)).toBeInTheDocument();
+    expect(screen.getByLabelText('차트 범례')).toHaveTextContent('전략 시작');
+    expect(screen.getByLabelText('차트 범례')).toHaveTextContent('현재 재고');
+    expect(
+      screen.getByText(/경기 광주센터: 전략 시작 2,310개, 현재 재고 1,830개, 재고 증감 -480개/),
+    ).toBeInTheDocument();
   });
 
   it('does not render an empty chart when no comparable inventory value exists', () => {

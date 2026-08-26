@@ -29,7 +29,7 @@ function InventoryComparisonTooltip({ active, payload }) {
         {result.location}
       </strong>
       <dl className="mt-2 grid grid-cols-[auto_auto] gap-x-5 gap-y-1 text-[length:var(--font-size-meta)]">
-        <dt className="text-[color:var(--text-muted)]">이동 전</dt>
+        <dt className="text-[color:var(--text-muted)]">전략 시작</dt>
         <dd className="text-right font-semibold text-[color:var(--text-heading)]">
           {formatQuantity(result.before, { fallback: '미수집' })}
         </dd>
@@ -37,7 +37,7 @@ function InventoryComparisonTooltip({ active, payload }) {
         <dd className="text-right font-semibold text-[color:var(--text-heading)]">
           {formatQuantity(result.moved, { fallback: '미수집' })}
         </dd>
-        <dt className="text-[color:var(--text-muted)]">이동 후</dt>
+        <dt className="text-[color:var(--text-muted)]">현재 재고</dt>
         <dd className="text-right font-semibold text-[color:var(--text-heading)]">
           {formatQuantity(result.after, { fallback: '미수집' })}
         </dd>
@@ -67,11 +67,11 @@ export function StrategyInventoryComparisonBarChart({ results = [] }) {
         >
           <span className="inline-flex items-center gap-1.5">
             <span className="size-2.5 rounded-sm bg-[var(--chart-2)]" aria-hidden="true" />
-            이동 전
+            전략 시작
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="size-2.5 rounded-sm bg-[var(--chart-1)]" aria-hidden="true" />
-            이동 후
+            현재 재고
           </span>
         </div>
       </div>
@@ -108,8 +108,8 @@ export function StrategyInventoryComparisonBarChart({ results = [] }) {
               tickLine={false}
             />
             <Tooltip cursor={{ fill: 'var(--surface-subtle)' }} content={<InventoryComparisonTooltip />} />
-            <Bar dataKey="before" name="이동 전" fill="var(--chart-2)" radius={[0, 5, 5, 0]} maxBarSize={18} />
-            <Bar dataKey="after" name="이동 후" fill="var(--chart-1)" radius={[0, 5, 5, 0]} maxBarSize={18} />
+            <Bar dataKey="before" name="전략 시작" fill="var(--chart-2)" radius={[0, 5, 5, 0]} maxBarSize={18} />
+            <Bar dataKey="after" name="현재 재고" fill="var(--chart-1)" radius={[0, 5, 5, 0]} maxBarSize={18} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -117,7 +117,7 @@ export function StrategyInventoryComparisonBarChart({ results = [] }) {
       <ul className="sr-only">
         {chartData.map((result) => (
           <li key={result.id}>
-            {result.location}: 이동 전 {formatQuantity(result.before, { fallback: '미수집' })}, 이동 후{' '}
+            {result.location}: 전략 시작 {formatQuantity(result.before, { fallback: '미수집' })}, 현재 재고{' '}
             {formatQuantity(result.after, { fallback: '미수집' })}, 재고 증감{' '}
             {formatQuantity(result.moved, { fallback: '미수집' })}
           </li>
