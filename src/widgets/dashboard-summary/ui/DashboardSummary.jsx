@@ -7,7 +7,7 @@ export function DashboardSummary({ calculatedAt, summary }) {
     summary.totalCurrentStock > 0 ? (summary.totalAvailableStock / summary.totalCurrentStock) * 100 : null;
   const metrics = [
     {
-      label: '전체 판매 가능 재고',
+      label: '전체 가용수량',
       value: formatQuantity(summary.totalAvailableStock),
       helper:
         availabilityRate === null
