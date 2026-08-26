@@ -5,13 +5,14 @@ import { MetricCard } from '@/shared/ui';
 export function StrategyExecutionSummary({ strategies }) {
   const summary = getExecutionSummary(strategies);
   return (
-    <section aria-label="전략 실행 요약" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <section aria-label="전략 실행 요약" className="grid grid-cols-2 gap-2 xl:grid-cols-4">
       <MetricCard
         label="실행 전략 수"
         value={`${summary.strategyCount}건`}
         helper="대기 제외"
         icon={Target}
         tone="neutral"
+        compact
       />
       <MetricCard
         label="진행 중 액션 수"
@@ -19,6 +20,7 @@ export function StrategyExecutionSummary({ strategies }) {
         helper="요청·진행 중"
         icon={Activity}
         tone="info"
+        compact
       />
       <MetricCard
         label="확인 필요 액션 수"
@@ -26,6 +28,7 @@ export function StrategyExecutionSummary({ strategies }) {
         helper="부분·실패·차단"
         icon={AlertCircle}
         tone="warning"
+        compact
       />
       <MetricCard
         label="전체 액션 수"
@@ -33,6 +36,7 @@ export function StrategyExecutionSummary({ strategies }) {
         helper="지원 액션 4종"
         icon={Layers}
         tone="neutral"
+        compact
       />
     </section>
   );

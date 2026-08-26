@@ -7,6 +7,7 @@ import {
   formatKpiValue,
   getExecutionSummary,
   getStrategyGenerationProgress,
+  isDisplayableStrategyNumber,
   resolveStrategyGenerationStage,
   resolveStrategyGenerationStatus,
 } from './strategy.js';
@@ -48,6 +49,12 @@ describe('AI 전략 생성 상태 모델', () => {
 
 const filters = { strategyStatus: 'ALL', actionType: 'ALL', query: '' };
 describe('strategy execution model', () => {
+  it('hides UUID-based internal case codes while preserving user-facing strategy numbers', () => {
+    expect(isDisplayableStrategyNumber('SC-c57fa559f43a4163a57dd6f48d9bb537')).toBe(false);
+    expect(isDisplayableStrategyNumber('SC-20260820-001')).toBe(true);
+    expect(isDisplayableStrategyNumber('DEMO-STAT-0360')).toBe(true);
+  });
+
   it('exposes price discount as a supported user-facing action type', () => {
     expect(actionTypeMeta.PRICE_DISCOUNT).toEqual({ label: '가격 할인', shortLabel: '할인' });
   });

@@ -5,7 +5,7 @@ export function StrategySyncStatus({ lastSyncedAt }) {
 
   return (
     <span
-      className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]"
+      className="text-[length:var(--font-size-meta)] text-[color:var(--text-body)]"
       aria-label={`최근 동기화 이력 ${formattedLastSyncedAt}`}
     >
       최근 동기화 이력 {formattedLastSyncedAt}
