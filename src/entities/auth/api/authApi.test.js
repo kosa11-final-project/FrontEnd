@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearCsrfCredentials } from '@/shared/api/csrf.js';
 
 const { getJson, postJson } = vi.hoisted(() => ({
   getJson: vi.fn(),
@@ -28,10 +29,13 @@ describe('auth API', () => {
   beforeEach(() => {
     getJson.mockReset();
     postJson.mockReset();
+    clearCsrfCredentials();
   });
 
   it('issues a CSRF token before posting login credentials', async () => {
-    getJson.mockResolvedValueOnce({ data: { token: 'csrf-token', headerName: 'X-XSRF-TOKEN' } });
+    getJson
+      .mockResolvedValueOnce({ data: { token: 'csrf-token', headerName: 'X-XSRF-TOKEN' } })
+      .mockResolvedValueOnce({ data: { token: 'refreshed-csrf-token', headerName: 'X-XSRF-TOKEN' } });
     postJson.mockResolvedValueOnce(userResponse);
 
     await expect(login({ loginId: 'greenfood-admin', password: 'password' })).resolves.toEqual(mappedUser);
@@ -44,6 +48,7 @@ describe('auth API', () => {
     expect(postJson).toHaveBeenCalledWith({
       path: 'v1/auth/login',
       body: { loginId: 'greenfood-admin', password: 'password' },
+      headers: { 'X-XSRF-TOKEN': 'csrf-token' },
       signal: undefined,
       skipSessionExpirationHandling: true,
     });
@@ -72,7 +77,11 @@ describe('auth API', () => {
       signal: undefined,
       skipSessionExpirationHandling: true,
     });
-    expect(postJson).toHaveBeenCalledWith({ path: 'v1/auth/logout', signal: undefined });
+    expect(postJson).toHaveBeenCalledWith({
+      path: 'v1/auth/logout',
+      headers: { 'X-XSRF-TOKEN': 'csrf-token' },
+      signal: undefined,
+    });
     expect(getJson.mock.invocationCallOrder[0]).toBeLessThan(postJson.mock.invocationCallOrder[0]);
   });
 });
