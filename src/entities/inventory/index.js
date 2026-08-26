@@ -7,8 +7,6 @@ export {
   getInventorySummary,
 } from './api/inventoryApi.js';
 export {
-  dashboardKeys,
-  dashboardQueryOptions,
   inventoryKeys,
   inventoryListQueryOptions,
   inventorySummaryQueryOptions,
@@ -16,6 +14,7 @@ export {
   inventoryDetailQueryOptions,
   inventoryLotsQueryOptions,
 } from './api/inventoryQueries.js';
+export { dashboardKeys, dashboardQueryOptions } from './api/dashboardQueries.js';
 export {
   CHANNEL_NAMES,
   FACT_STATE_LABELS,

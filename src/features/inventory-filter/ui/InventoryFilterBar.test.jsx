@@ -4,6 +4,19 @@ import { DEFAULT_INVENTORY_FILTERS } from '../model/filterState.js';
 import { InventoryFilterBar } from './InventoryFilterBar.jsx';
 
 describe('InventoryFilterBar', () => {
+  it('allows the search form to shrink below the desktop minimum on narrow screens', () => {
+    render(
+      <InventoryFilterBar
+        filters={DEFAULT_INVENTORY_FILTERS}
+        filterOptions={{ channels: [] }}
+        onFilterChange={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('searchbox').parentElement).toHaveClass('w-full', 'min-w-0', 'lg:min-w-[280px]');
+  });
+
   it('lets the user switch the filter group operator directly from the filter bar', () => {
     const onFilterChange = vi.fn();
 

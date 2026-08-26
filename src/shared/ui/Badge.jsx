@@ -8,8 +8,8 @@ const badgeVariants = cva(
       variant: {
         neutral: 'border-[#E5E7EB] bg-[#F9FAFB] text-gray-700',
         outline: 'border-[#E5E7EB] bg-white text-gray-700',
-        good: 'border-[#B7ECCF] bg-[#DAF7E9] text-[#1E8251]',
-        success: 'border-[#B7ECCF] bg-[#DAF7E9] text-[#1E8251]',
+        good: 'border-[#B7ECCF] bg-[#DAF7E9] text-[#166534]',
+        success: 'border-[#B7ECCF] bg-[#DAF7E9] text-[#166534]',
         // The original cyan text is too light on the soft cyan surface at the
         // 11px badge size. Keep the brand surface while using a WCAG AA-safe
         // text color for normal-sized labels.

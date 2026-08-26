@@ -216,7 +216,7 @@ describe('InventoryPage Integration', () => {
       ],
     });
 
-    await vi.waitFor(() => expect(forecastApiMock.getDemandForecast).toHaveBeenCalled());
+    await vi.waitFor(() => expect(forecastApiMock.getDemandForecast).toHaveBeenCalled(), { timeout: 5000 });
     expect(inventoryApiMock.getInventoryLots).not.toHaveBeenCalled();
   });
 

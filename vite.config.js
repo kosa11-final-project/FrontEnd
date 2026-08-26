@@ -50,9 +50,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('reicon-react')) {
-                return 'vendor-icons';
-              }
+              // ponytail: 전역 아이콘 청크를 만들지 않아 사용한 아이콘만 각 화면에 포함합니다.
               if (id.includes('@tanstack/react-table') || id.includes('@tanstack/table-core')) {
                 return 'vendor-tanstack-table';
               }

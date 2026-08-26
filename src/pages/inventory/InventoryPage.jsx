@@ -1,7 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { aiStrategyKeys } from '@/entities/strategy';
 import {
   inventoryFilterOptionsQueryOptions,
   inventoryListQueryOptions,
@@ -19,11 +18,16 @@ import { InventoryFilterBar } from '@/features/inventory-filter/ui/InventoryFilt
 import { InventorySyncControl } from '@/features/inventory-sync/ui/InventorySyncControl.jsx';
 import { InventorySummaryBar } from '@/widgets/inventory-summary/ui/InventorySummaryBar.jsx';
 import { InventoryTable } from '@/widgets/inventory-table/ui/InventoryTable.jsx';
-import { StrategyRequestModal } from '@/widgets/strategy-request-modal/ui/StrategyRequestModal.jsx';
 
 const LazyInventoryDetailDrawer = lazy(() =>
   import('@/widgets/inventory-detail-drawer/ui/InventoryDetailDrawer.jsx').then((module) => ({
     default: module.InventoryDetailDrawer,
+  })),
+);
+// ponytail: 전략 모달은 버튼을 누를 때만 필요하므로 초기 재고 청크에서 제외합니다.
+const LazyStrategyRequestModal = lazy(() =>
+  import('@/widgets/strategy-request-modal/ui/StrategyRequestModal.jsx').then((module) => ({
+    default: module.StrategyRequestModal,
   })),
 );
 
@@ -248,7 +252,7 @@ export default function InventoryPage() {
     setIsStrategyModalOpen(false);
     setSelectedSkuItems([]);
     await queryClient.invalidateQueries({
-      queryKey: aiStrategyKeys.lists(),
+      queryKey: ['ai-strategies', 'list'],
       refetchType: 'all',
     });
     navigate('/ai-strategy');
@@ -321,11 +325,13 @@ export default function InventoryPage() {
       />
 
       {isStrategyModalOpen ? (
-        <StrategyRequestModal
-          selectedItems={selectedSkuItems}
-          onClose={() => setIsStrategyModalOpen(false)}
-          onCreated={handleStrategyCreated}
-        />
+        <Suspense fallback={null}>
+          <LazyStrategyRequestModal
+            selectedItems={selectedSkuItems}
+            onClose={() => setIsStrategyModalOpen(false)}
+            onCreated={handleStrategyCreated}
+          />
+        </Suspense>
       ) : null}
 
       {/* 4. 우측 상세 관제 드로어 */}

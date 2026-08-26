@@ -68,7 +68,7 @@ export function DataTable({
   loading = false,
   error = null,
   emptyMessage = '표시할 데이터가 없습니다.',
-  loadingMessage = '데이터를 불러오는 중입니다.',
+  loadingMessage = null,
   errorMessage = '데이터를 불러오지 못했습니다.',
   onRowClick,
   rowClassName,

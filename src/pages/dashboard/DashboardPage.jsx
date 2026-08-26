@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardQueryOptions } from '@/entities/inventory/api/inventoryQueries.js';
+import { dashboardQueryOptions } from '@/entities/inventory/api/dashboardQueries.js';
 import { StateView } from '@/shared/ui/StateView.jsx';
 import { DashboardOperationsPanel } from '@/widgets/dashboard-operations/ui/DashboardOperationsPanel.jsx';
 import { InventoryLocationOverview } from '@/widgets/inventory-location-overview/ui/InventoryLocationOverview.jsx';

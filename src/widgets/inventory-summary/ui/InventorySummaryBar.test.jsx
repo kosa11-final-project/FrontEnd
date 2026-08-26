@@ -3,6 +3,27 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { InventorySummaryBar } from './InventorySummaryBar.jsx';
 
 describe('InventorySummaryBar', () => {
+  it('keeps KPI labels and status chips on one line when the cards are compressed', () => {
+    render(
+      <InventorySummaryBar
+        summary={{
+          totalCurrentQuantity: 100,
+          totalAvailableQuantity: 80,
+          totalReservedQuantity: 20,
+          underSafetyCount: 12,
+          dangerRiskCount: 4,
+          cautionRiskCount: 8,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('위험, 주의 SKU 관제')).toHaveClass('whitespace-nowrap');
+    expect(screen.getByText('재고 보충 필요')).toHaveClass('whitespace-nowrap');
+    expect(screen.getByText('긴급 점검 권고')).toHaveClass('whitespace-nowrap');
+    expect(screen.getByText('위험 4')).toHaveClass('whitespace-nowrap');
+    expect(screen.getByText('주의 8')).toHaveClass('whitespace-nowrap');
+  });
+
   it('explains a timeout and lets the user retry', () => {
     const onRetry = vi.fn();
 

@@ -67,7 +67,9 @@ function getLocationDetailItems(location, viewMode) {
 
 function LocationMetrics({ className, compact = false, layout = 'default', location, viewMode }) {
   return (
-    <dl className={cn('grid gap-2', layout === 'dock' ? 'grid-cols-5' : 'grid-cols-2', className)}>
+    <dl
+      className={cn('grid gap-2', layout === 'dock' ? 'grid-cols-5' : 'grid-cols-1 min-[360px]:grid-cols-2', className)}
+    >
       {getLocationDetailItems(location, viewMode).map((item) => (
         <div
           key={item.label}
@@ -77,12 +79,22 @@ function LocationMetrics({ className, compact = false, layout = 'default', locat
             compact ? 'min-h-10 px-2.5 py-2' : 'min-h-11 px-3 py-2.5',
           )}
         >
-          <dt className="whitespace-nowrap text-[length:var(--font-size-meta)] font-[var(--font-weight-medium)] text-[color:var(--text-body)]">
+          <dt
+            className={cn(
+              'font-[var(--font-weight-medium)] text-[color:var(--text-body)]',
+              layout === 'dock'
+                ? 'break-keep text-center text-[10px] leading-tight lg:text-[length:var(--font-size-meta)]'
+                : 'whitespace-nowrap text-[length:var(--font-size-meta)]',
+            )}
+          >
             {item.label}
           </dt>
           <dd
             className={cn(
-              'whitespace-nowrap tabular-nums text-[length:var(--font-size-body)] font-[var(--font-weight-bold)]',
+              'whitespace-nowrap tabular-nums font-[var(--font-weight-bold)]',
+              layout === 'dock'
+                ? 'text-[11px] lg:text-[length:var(--font-size-body)]'
+                : 'text-[length:var(--font-size-body)]',
               detailToneClasses[item.tone],
             )}
           >
@@ -94,29 +106,31 @@ function LocationMetrics({ className, compact = false, layout = 'default', locat
   );
 }
 
-function ViewModeButton({ active, count, disabled = false, icon, label, onClick }) {
+function ViewModeButton({ active, count, disabled = false, icon, id, label, onClick }) {
   return (
     <button
       type="button"
       role="tab"
+      id={id}
       aria-selected={active}
+      aria-controls="inventory-location-tabpanel"
       disabled={disabled}
       className={cn(
-        'group inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] px-3 text-[13px] font-[var(--font-weight-bold)] transition-colors',
+        'group inline-flex min-h-10 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-control)] px-1 text-[11px] font-[var(--font-weight-bold)] transition-colors xl:flex-none xl:shrink-0 xl:justify-start xl:gap-2 xl:px-3 xl:text-[13px]',
         active
           ? 'bg-[var(--primary-strong)] text-[color:var(--text-inverse)] shadow-[var(--shadow-soft)]'
           : 'text-[color:var(--text-body)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent',
       )}
       onClick={onClick}
     >
-      <Icon icon={icon} size={14} aria-hidden="true" />
+      <Icon icon={icon} size={14} className="hidden shrink-0 xl:block" aria-hidden="true" />
       {label}
       <span
         className={cn(
-          'rounded-full px-1.5 py-0.5 text-[11px]',
+          'rounded-full px-1 py-0.5 text-[10px] xl:px-1.5 xl:text-[11px]',
           active
-            ? 'bg-white/18 text-white'
-            : 'bg-[var(--surface)] text-[color:var(--text-muted)] group-hover:bg-white/70 group-hover:text-[color:var(--primary-strong)]',
+            ? 'bg-white text-[var(--primary-strong)] font-bold'
+            : 'bg-[var(--surface)] text-[color:var(--text-body)] font-medium group-hover:bg-white/90 group-hover:text-[color:var(--primary-strong)]',
         )}
       >
         {count}
@@ -383,11 +397,12 @@ export function InventoryLocationOverview({
           <div
             role="tablist"
             aria-label="재고 위치 유형"
-            className="flex w-fit max-w-full flex-nowrap gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1"
+            className="flex w-full max-w-full flex-nowrap gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1 xl:w-fit"
           >
             {Object.entries(locationGroups).map(([mode, group]) => (
               <ViewModeButton
                 key={mode}
+                id={`tab-${mode}`}
                 active={viewMode === mode}
                 count={group.length}
                 disabled={group.length === 0}
@@ -400,7 +415,12 @@ export function InventoryLocationOverview({
         </CardHeader>
 
         {locations.length > 0 ? (
-          <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
+          <div
+            role="tabpanel"
+            id="inventory-location-tabpanel"
+            aria-labelledby={`tab-${viewMode}`}
+            className="flex min-h-0 flex-1 flex-col p-3 sm:p-4"
+          >
             <MobileLocationList
               activeLocationId={activeLocation?.id}
               locations={locations}

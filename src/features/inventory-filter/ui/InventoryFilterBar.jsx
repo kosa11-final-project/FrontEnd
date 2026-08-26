@@ -201,7 +201,7 @@ export function InventoryFilterBar({
       {/* 1층: 검색바 + 채널 빠른 전환 칩 + 상세 필터 버튼 + 초기화 */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* 검색창 */}
-        <form onSubmit={handleSearchSubmit} className="relative min-w-[280px] flex-1 max-w-md">
+        <form onSubmit={handleSearchSubmit} className="relative w-full min-w-0 max-w-md flex-1 lg:min-w-[280px]">
           <label htmlFor={searchInputId} className="sr-only">
             상품명, SKU 또는 판매처 검색
           </label>
