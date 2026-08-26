@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { aiStrategyKeys } from '@/entities/strategy';
 import {
   inventoryFilterOptionsQueryOptions,
   inventoryListQueryOptions,
@@ -41,6 +42,7 @@ const hasPersistedFilterQuery = (searchParams) =>
 
 export default function InventoryPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [shouldResetFilterQueryOnEntry] = useState(() => hasPersistedFilterQuery(searchParams));
   const [selectedSkuItems, setSelectedSkuItems] = useState([]);
@@ -238,11 +240,15 @@ export default function InventoryPage() {
     setIsStrategyModalOpen(true);
   }, [selectedSkuItems.length]);
 
-  const handleStrategyCreated = useCallback(() => {
+  const handleStrategyCreated = useCallback(async () => {
     setIsStrategyModalOpen(false);
     setSelectedSkuItems([]);
+    await queryClient.invalidateQueries({
+      queryKey: aiStrategyKeys.lists(),
+      refetchType: 'all',
+    });
     navigate('/ai-strategy');
-  }, [navigate]);
+  }, [navigate, queryClient]);
 
   return (
     <div className="inventory-page flex flex-col gap-4">
