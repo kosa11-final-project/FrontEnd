@@ -45,7 +45,6 @@ describe('StatisticsPageContent', () => {
     expect(screen.getAllByRole('button', { name: /계산 기준/ })).toHaveLength(5);
     expect(screen.getByRole('heading', { name: '전체 위험재고 추이' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '위험재고 구성 변화' })).toBeInTheDocument();
-    expect(screen.getByText('API 연결 전 화면 검토용')).toBeInTheDocument();
   });
 
   it('위험재고 스냅샷이 부족하면 0 대신 데이터 부족 상태를 보여준다', async () => {

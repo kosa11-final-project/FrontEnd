@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster, TooltipProvider } from '@/shared/ui';
+import { Toaster } from '@/shared/ui/Toaster.jsx';
+import { TooltipProvider } from '@/shared/ui/Tooltip.jsx';
 import { SessionExpirationHandler } from './SessionExpirationHandler.jsx';
 
 function createQueryClient() {

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mapInventoryItem, mapInventoryListResponse, mapInventorySummaryResponse } from '@/entities/inventory';
@@ -228,6 +228,46 @@ describe('InventoryPage Integration', () => {
     expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('keeps the current table visible while a filter refetch is still pending', async () => {
+    renderWithProviders(<InventoryPage />);
+
+    expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
+
+    let resolveRefetch;
+    inventoryApiMock.getInventories.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRefetch = resolve;
+        }),
+    );
+
+    const searchInput = screen.getByPlaceholderText(/상품명, SKU 코드, 판매처명/);
+    fireEvent.change(searchInput, { target: { value: '비비고' } });
+    fireEvent.click(screen.getByRole('button', { name: /검색/i }));
+
+    await waitFor(() => {
+      expect(inventoryApiMock.getInventories.mock.calls.at(-1)?.[0]).toMatchObject({ q: '비비고' });
+      expect(screen.getByRole('table')).toHaveAttribute('aria-busy', 'true');
+    });
+
+    expect(screen.queryByRole('status', { name: '재고 목록 불러오는 중' })).not.toBeInTheDocument();
+    expect(screen.getAllByText(/1\.05kg 단품팩/).length).toBeGreaterThanOrEqual(1);
+
+    await act(async () => {
+      resolveRefetch(
+        mapInventoryListResponse({
+          items: mockRawInventoryItems,
+          totalCount: mockRawInventoryItems.length,
+          page: 1,
+          size: 20,
+          isFilterEmpty: false,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(screen.getByRole('table')).not.toHaveAttribute('aria-busy'));
+  });
+
   it('clears persisted filter query parameters when the inventory page opens', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: [
@@ -278,7 +318,11 @@ describe('InventoryPage Integration', () => {
       initialEntries: ['/inventory?page=4'],
     });
 
-    await vi.waitFor(() => expect(screen.getByRole('button', { name: '1', current: 'page' })).toBeInTheDocument());
+    await vi.waitFor(() => {
+      const pageOneButton = screen.getByRole('button', { name: '1' });
+      expect(pageOneButton).toBeInTheDocument();
+      expect(pageOneButton).toHaveAttribute('aria-current', 'page');
+    });
   });
 
   it('does not let removed legacy URL filters affect list or summary requests', async () => {

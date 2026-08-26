@@ -63,7 +63,7 @@ export const RISK_GRADE_META = Object.freeze({
     label: '양호',
     tone: 'success',
     badgeVariant: 'success',
-    colorHex: '#27B06E',
+    colorHex: '#1E8251',
   },
   NORMAL: {
     label: '보통',

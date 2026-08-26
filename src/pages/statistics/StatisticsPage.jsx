@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { inventoryStatisticsQueryOptions, strategyStatisticsQueryOptions } from '@/entities/statistics';
-import { StateView, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
+import { Badge, StateView, Tabs, TabsList, TabsTrigger } from '@/shared/ui';
 import { strategyStatisticsFixture } from './model/strategyStatisticsFixtures.js';
 import { buildStrategyStatisticsView } from './model/strategyStatisticsModel.js';
 import {
@@ -17,6 +17,7 @@ import { InventoryRiskCompositionCard } from './ui/InventoryRiskCompositionCard.
 import { RiskTrendCard } from './ui/RiskTrendCard.jsx';
 import { StatisticsFilters } from './ui/StatisticsFilters.jsx';
 import { StrategyStatisticsPanel } from './ui/StrategyStatisticsPanel.jsx';
+import { StatisticsSkeleton } from './ui/StatisticsSkeleton.jsx';
 
 export function StatisticsPageShell({ children }) {
   return (
@@ -113,7 +114,7 @@ export function StatisticsPageContent({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-4">
         {({ value, setValue }) => (
           <>
-            <div className="border-b border-[var(--border)]">
+            <div className="flex items-center justify-between border-b border-[var(--border)]">
               <TabsList aria-label="통계 유형" size="lg" className="h-12 gap-6">
                 <TabsTrigger value="strategy" activeValue={value} onSelect={setValue} size="lg" className="h-12 px-1">
                   AI 전략 성과
@@ -122,6 +123,11 @@ export function StatisticsPageContent({
                   위험재고 추이
                 </TabsTrigger>
               </TabsList>
+              {value === 'strategy' ? (
+                <div className="flex items-center gap-2">
+                  <Badge variant="good">종료 전략 기준</Badge>
+                </div>
+              ) : null}
             </div>
 
             <StatisticsFilters
@@ -190,11 +196,7 @@ export default function StatisticsPage() {
   if (statisticsQuery.isPending) {
     return (
       <StatisticsPageShell>
-        <StateView
-          state="loading"
-          title="재고 통계를 불러오고 있습니다."
-          description="최근 정상 집계와 위험재고 추이를 확인하는 중입니다."
-        />
+        <StatisticsSkeleton />
       </StatisticsPageShell>
     );
   }

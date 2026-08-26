@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardQueryOptions } from '@/entities/inventory';
-import { DashboardOperationsPanel } from '@/widgets/dashboard-operations';
-import { InventoryLocationOverview } from '@/widgets/inventory-location-overview';
-import { StateView } from '@/shared/ui';
+import { dashboardQueryOptions } from '@/entities/inventory/api/inventoryQueries.js';
+import { StateView } from '@/shared/ui/StateView.jsx';
+import { DashboardOperationsPanel } from '@/widgets/dashboard-operations/ui/DashboardOperationsPanel.jsx';
+import { InventoryLocationOverview } from '@/widgets/inventory-location-overview/ui/InventoryLocationOverview.jsx';
+
+import { DashboardSkeleton } from './ui/DashboardSkeleton.jsx';
 
 function DashboardShell({ children }) {
   return (
@@ -21,10 +23,7 @@ export function DashboardPageContent({ dashboard }) {
     () => dashboard.offlineStores[0]?.salesPointId ?? dashboard.onlineSalesPoints[0]?.salesPointId ?? null,
   );
   const [tabSelectionVersion, setTabSelectionVersion] = useState(0);
-  const salesPoints = useMemo(
-    () => [...dashboard.offlineStores, ...dashboard.onlineSalesPoints],
-    [dashboard.offlineStores, dashboard.onlineSalesPoints],
-  );
+  const salesPoints = [...dashboard.offlineStores, ...dashboard.onlineSalesPoints];
   const selectedSalesPoint = salesPoints.find((salesPoint) => salesPoint.salesPointId === selectedSalesPointId) ?? null;
   const urgentSkusBySalesPoint = dashboard.urgentSkusBySalesPoint ?? {};
   const hasSelectedSalesPointSkus =
@@ -67,11 +66,7 @@ export default function DashboardPage() {
   if (dashboardQuery.isPending) {
     return (
       <DashboardShell>
-        <StateView
-          state="loading"
-          title="대시보드 데이터를 불러오고 있습니다."
-          description="최근 재고 동기화 결과를 확인하는 중입니다."
-        />
+        <DashboardSkeleton />
       </DashboardShell>
     );
   }

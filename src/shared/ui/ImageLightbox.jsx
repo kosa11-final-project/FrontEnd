@@ -2,18 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { CloseCircle } from 'reicon-react';
+import { toRect } from '@/shared/lib/geometry.js';
 
 const MAX_IMAGE_WIDTH = 760;
 const MAX_IMAGE_HEIGHT = 760;
-
-function toRect(rect) {
-  return {
-    left: rect.left,
-    top: rect.top,
-    width: rect.width,
-    height: rect.height,
-  };
-}
 
 function getCenteredRect(originRect, naturalWidth = 1, naturalHeight = 1, viewport) {
   if (!viewport) return originRect;

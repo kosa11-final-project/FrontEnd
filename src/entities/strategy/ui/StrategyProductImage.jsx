@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Package } from 'reicon-react';
 import { cn } from '@/shared/lib/cn';
-import { Icon } from '@/shared/ui';
+import { Icon } from '@/shared/ui/Icon.jsx';
 
 const sizeClasses = Object.freeze({
   md: 'size-16 rounded-[var(--radius-card)]',

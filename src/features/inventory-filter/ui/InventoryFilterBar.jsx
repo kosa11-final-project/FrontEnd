@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { SearchNormal, Refresh, Filter, CloseCircle } from 'reicon-react';
 import { INVENTORY_CHANNEL_TYPES } from '../model/filterState.js';
-import { CHANNEL_NAMES, STORAGE_NAMES } from '@/entities/inventory';
-import { getRiskGradeLabel } from '@/entities/risk';
-import { InventoryFilterModal } from './InventoryFilterModal.jsx';
+import { CHANNEL_NAMES, STORAGE_NAMES } from '@/entities/inventory/model/inventory.js';
+import { getRiskGradeLabel } from '@/entities/risk/model/risk.js';
+
+const LazyInventoryFilterModal = lazy(() =>
+  import('./InventoryFilterModal.jsx').then((module) => ({ default: module.InventoryFilterModal })),
+);
 
 export function InventoryFilterBar({
   filters,
@@ -194,7 +197,7 @@ export function InventoryFilterBar({
   const hasAnyActiveFilter = Boolean(filters.q) || selectedChannels.length > 0 || detailFilterCount > 0;
 
   return (
-    <div className="flex flex-col gap-3.5 rounded-2xl border border-gray-200/90 bg-white p-4.5 shadow-2xs">
+    <div className="inventory-filter-bar flex flex-col gap-3.5 rounded-2xl border border-gray-200/90 bg-white p-4.5 shadow-2xs">
       {/* 1층: 검색바 + 채널 빠른 전환 칩 + 상세 필터 버튼 + 초기화 */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* 검색창 */}
@@ -209,7 +212,7 @@ export function InventoryFilterBar({
             placeholder="상품명, SKU 코드, 판매처명으로 빠른 검색..."
             defaultValue={filters.q || ''}
             onChange={handleKeywordChange}
-            className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] pl-10 pr-20 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#27B06E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#27B06E]/20"
+            className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] pl-10 pr-20 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[var(--primary)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
           />
           <SearchNormal
             className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
@@ -217,7 +220,7 @@ export function InventoryFilterBar({
           />
           <button
             type="submit"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-[#27B06E] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#20945C] focus:outline-none focus:ring-2 focus:ring-[#27B06E]/40"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-[var(--primary)] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[var(--primary-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/40"
           >
             검색
           </button>
@@ -250,7 +253,7 @@ export function InventoryFilterBar({
                   type="button"
                   onClick={() => handleChannelToggle(type)}
                   className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all ${
-                    isSelected ? 'bg-[#27B06E] text-white shadow-xs' : 'text-gray-500 hover:text-gray-900'
+                    isSelected ? 'bg-[var(--primary)] text-white shadow-xs' : 'text-gray-500 hover:text-gray-900'
                   }`}
                 >
                   {typeof option === 'string' ? CHANNEL_NAMES[type] || type : option.name || type}
@@ -277,7 +280,7 @@ export function InventoryFilterBar({
                   onClick={() => onFilterChange({ filterOperator: operator })}
                   className={`rounded-md px-2.5 py-1.5 text-[11px] font-black transition-colors ${
                     isSelected
-                      ? 'bg-white text-[#1E8251] shadow-xs ring-1 ring-[#27B06E]/30'
+                      ? 'bg-white text-[color:var(--primary-strong)] shadow-xs ring-1 ring-[var(--primary)]/30'
                       : 'text-gray-500 hover:text-gray-800'
                   }`}
                 >
@@ -293,14 +296,14 @@ export function InventoryFilterBar({
             onClick={() => setIsFilterModalOpen(true)}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-bold transition-all ${
               detailFilterCount > 0
-                ? 'border-[#27B06E] bg-[#EBF7F0] text-[#1E8251] shadow-2xs'
+                ? 'border-[var(--primary)] bg-[#EBF7F0] text-[color:var(--primary-strong)] shadow-2xs'
                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
             }`}
           >
             <Filter size={15} />
             <span>상세 필터</span>
             {detailFilterCount > 0 && (
-              <span className="flex size-4.5 items-center justify-center rounded-full bg-[#27B06E] text-[10px] font-mono font-bold text-white">
+              <span className="flex size-4.5 items-center justify-center rounded-full bg-[var(--primary)] text-[10px] font-mono font-bold text-white">
                 {detailFilterCount}
               </span>
             )}
@@ -488,14 +491,18 @@ export function InventoryFilterBar({
       )}
 
       {/* 상세 필터 팝오버 / 모달 다이얼로그 */}
-      <InventoryFilterModal
-        open={isFilterModalOpen}
-        filters={filters}
-        filterOptions={filterOptions}
-        isFilterOptionsLoading={isFilterOptionsLoading}
-        onClose={handleCloseFilterModal}
-        onApply={handleApplyFilter}
-      />
+      {isFilterModalOpen ? (
+        <Suspense fallback={null}>
+          <LazyInventoryFilterModal
+            open
+            filters={filters}
+            filterOptions={filterOptions}
+            isFilterOptionsLoading={isFilterOptionsLoading}
+            onClose={handleCloseFilterModal}
+            onApply={handleApplyFilter}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

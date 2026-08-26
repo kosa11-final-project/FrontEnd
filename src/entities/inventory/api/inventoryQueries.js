@@ -62,7 +62,7 @@ export function inventoryListQueryOptions(params = {}) {
     queryKey: inventoryKeys.list(params),
     queryFn: ({ signal }) => getInventories(params, signal),
     placeholderData: keepPreviousData,
-    staleTime: 30_000,
+    staleTime: 0,
     retry: retryServerErrorOnly,
   });
 }
@@ -75,7 +75,7 @@ export function inventorySummaryQueryOptions(params = {}) {
     queryKey: inventoryKeys.summary(summaryParams),
     queryFn: ({ signal }) => getInventorySummary(summaryParams, signal),
     placeholderData: keepPreviousData,
-    staleTime: 30_000,
+    staleTime: 0,
     retry: retryServerErrorOnly,
   });
 }

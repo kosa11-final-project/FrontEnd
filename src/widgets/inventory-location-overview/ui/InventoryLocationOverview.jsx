@@ -1,8 +1,12 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Building, Database, Store } from 'reicon-react';
 import { cn } from '@/shared/lib/cn';
 import { formatQuantity } from '@/shared/lib/format';
-import { Badge, Card, CardDescription, CardHeader, CardTitle, Icon, StateView } from '@/shared/ui';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery.js';
+import { Badge } from '@/shared/ui/Badge.jsx';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/shared/ui/Card.jsx';
+import { Icon } from '@/shared/ui/Icon.jsx';
+import { StateView } from '@/shared/ui/StateView.jsx';
 import { getInventoryLocationTone } from '../model/inventoryLocationTone.js';
 
 const InventoryLocationScene = lazy(() =>
@@ -258,6 +262,60 @@ function getInitialViewMode(centers, onlineSalesPoints, stores) {
   return 'stores';
 }
 
+function useDeferredScene(enabled) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+
+    const SCENE_DEFER_MS = 180;
+    let cancelled = false;
+    let timeoutId;
+    let idleId;
+    const start = () => {
+      if (!cancelled) setReady(true);
+    };
+    const startWhenIdle = () => {
+      if (cancelled) return;
+      if (typeof window.requestIdleCallback === 'function') {
+        idleId = window.requestIdleCallback(start, { timeout: 900 });
+      } else {
+        start();
+      }
+    };
+
+    // The scene is requested explicitly, so only a short delay is needed to
+    // let the interaction settle before importing the 3D module and GLB data.
+    timeoutId = window.setTimeout(startWhenIdle, SCENE_DEFER_MS);
+
+    return () => {
+      cancelled = true;
+      if (idleId !== undefined && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [enabled]);
+
+  return enabled && ready;
+}
+
+function SceneLoadingPlaceholder() {
+  return (
+    <div className="absolute inset-0 grid place-items-center bg-[var(--surface-subtle)]">
+      <div className="flex flex-col items-center justify-center text-center">
+        <span className="size-9 animate-spin rounded-full border-3 border-[var(--primary-soft)] border-t-[var(--primary)]" />
+        <strong className="mt-3 block text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
+          3D 재고 관제 장면을 불러오는 중...
+        </strong>
+        <p className="mt-1 text-xs text-[color:var(--text-muted)]">
+          전국 매장 및 물류센터 3D 공간 데이터를 시각화하고 있습니다.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function InventoryLocationOverview({
   centers,
   onlineSalesPoints,
@@ -273,9 +331,12 @@ export function InventoryLocationOverview({
     stores: stores[0]?.id,
   });
   const [webglAvailable] = useState(supportsWebGL);
+  const desktopSceneAvailable = useMediaQuery('(min-width: 640px)');
   const locationGroups = { stores, centers, online: onlineSalesPoints };
   const locations = locationGroups[viewMode];
   const meta = viewMeta[viewMode];
+  const sceneEnabled = desktopSceneAvailable && webglAvailable && locations.length > 0;
+  const sceneReady = useDeferredScene(sceneEnabled);
   const activeLocation = locations.find((location) => location.id === activeLocationIds[viewMode]) ?? locations[0];
   const hoveredLocation = locations.find((location) => location.id === hoveredLocationId);
   const displayLocation = hoveredLocation ?? activeLocation;
@@ -348,19 +409,8 @@ export function InventoryLocationOverview({
             />
 
             <div className="relative hidden h-[clamp(380px,49vh,500px)] min-h-0 overflow-hidden rounded-[var(--radius-panel)] border border-[var(--border-strong)] bg-[var(--surface-subtle)] sm:block 2xl:h-auto 2xl:flex-1">
-              {webglAvailable ? (
-                <Suspense
-                  fallback={
-                    <div className="absolute inset-0 grid place-items-center bg-[var(--surface-subtle)]">
-                      <div className="text-center">
-                        <span className="mx-auto block size-9 animate-pulse rounded-full bg-[var(--primary-soft)] motion-reduce:animate-none" />
-                        <strong className="mt-3 block text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)]">
-                          3D 재고 장면을 준비하고 있습니다.
-                        </strong>
-                      </div>
-                    </div>
-                  }
-                >
+              {desktopSceneAvailable && webglAvailable && sceneReady ? (
+                <Suspense fallback={<SceneLoadingPlaceholder />}>
                   <InventoryLocationScene
                     key={viewMode}
                     activeLocationId={activeLocation?.id}
@@ -370,6 +420,8 @@ export function InventoryLocationOverview({
                     viewMode={viewMode}
                   />
                 </Suspense>
+              ) : desktopSceneAvailable && webglAvailable ? (
+                <SceneLoadingPlaceholder />
               ) : (
                 <StateView
                   state="empty"

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { ContactShadows, Html, RoundedBox, useGLTF } from '@react-three/drei';
+import { ContactShadows } from '@react-three/drei/core/ContactShadows.js';
+import { RoundedBox } from '@react-three/drei/core/RoundedBox.js';
+import { useGLTF } from '@react-three/drei/core/Gltf.js';
+import { Html } from '@react-three/drei/web/Html.js';
 import * as THREE from 'three';
 import { cn } from '@/shared/lib/cn';
 import { formatQuantity } from '@/shared/lib/format';

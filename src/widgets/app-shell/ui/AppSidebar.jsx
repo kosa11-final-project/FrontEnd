@@ -1,16 +1,16 @@
 import { memo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Sidebar2 } from 'reicon-react';
+import { Icon } from '@/shared/ui/Icon.jsx';
+import { IconButton } from '@/shared/ui/IconButton.jsx';
 import {
-  Icon,
-  IconButton,
   Sidebar,
   SidebarContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/shared/ui';
+} from '@/shared/ui/sidebar/index.js';
 import { navigationItems } from '../model/navigation.js';
 
 // DESIGN / WIDGET: 앱 셸의 메뉴 조합만 담당합니다. 시각 primitive는 shared/ui/sidebar에서 재사용합니다.
@@ -18,7 +18,17 @@ function AppSidebar({ isOpen = true, onToggle }) {
   return (
     <Sidebar id="app-sidebar" aria-label="주요 메뉴">
       <SidebarHeader className="brand-lockup">
-        <img className="brand-logo" src="/assets/brand/stockfit-sidebar-logo.png" alt="StockFit 로고" />
+        <picture>
+          <source srcSet="/assets/brand/stockfit-sidebar-logo.webp" type="image/webp" />
+          <img
+            className="brand-logo"
+            src="/assets/brand/stockfit-sidebar-logo.png"
+            alt="StockFit 로고"
+            width={44}
+            height={44}
+            decoding="async"
+          />
+        </picture>
         {isOpen ? (
           <div className="brand-copy">
             <strong>StockFit</strong>

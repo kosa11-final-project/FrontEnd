@@ -27,7 +27,8 @@
 
 :root {
   /* Dashboard Filter Foundations palette */
-  --color-main: #27b06e;
+  /* Keep the brand green dark enough for white text on active controls. */
+  --color-main: #1e8251;
   --color-sub-mint: #11c6ab;
   --color-sub-cyan: #00b0d7;
   --color-sub-orange: #fda643;
@@ -73,7 +74,9 @@
   --danger: var(--color-danger);
   --warning: var(--color-sub-orange);
   --good: var(--color-main);
-  --info: var(--color-sub-cyan);
+  /* Use a darker semantic info foreground for text/icons; keep the bright
+   * cyan in --color-sub-cyan for decorative/chart surfaces. */
+  --info: #00627f;
   --danger-soft: var(--color-danger-soft);
   --warning-soft: var(--color-sub-orange-soft);
   --good-soft: var(--color-sub-mint-soft);
@@ -753,6 +756,15 @@ a:focus-visible {
 /* PAGE: inventory readability scale. Keep the dense table usable without changing
  * typography on the other operational screens. */
 .inventory-page {
+  /* Lighthouse/WCAG 대비 기준을 만족하는 업무 화면용 녹색입니다. */
+  --primary: #1e8251;
+  --primary-strong: #146c44;
+  --ring: #1e8251;
+  --good: #1e8251;
+  --color-gray-700: #666666;
+  --text-muted: var(--color-gray-700);
+  --text-placeholder: var(--color-gray-700);
+  --muted-foreground: var(--color-gray-700);
   --font-size-body: 0.9375rem;
   --font-size-body1: 0.9375rem;
   --font-size-body-sm: 0.8125rem;
@@ -766,6 +778,21 @@ a:focus-visible {
   --line-height-body2: 1.5;
   --line-height-description: 1.5;
   --line-height-meta: 1.5;
+}
+
+/* Inventory labels historically used gray-400/500, which is too faint on white
+ * for normal-sized text. Keep the visual hierarchy while meeting AA contrast. */
+.inventory-page .text-gray-400,
+.inventory-page .text-gray-500,
+.inventory-page input::placeholder {
+  color: var(--color-gray-700);
+}
+
+/* Native checkboxes are the actual interactive target Lighthouse measures;
+ * their surrounding labels do not increase the input's hit area in the audit. */
+.inventory-page input[type='checkbox'] {
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .inventory-page .text-\[10px\],
@@ -1132,6 +1159,36 @@ code {
   .setup-card .ui-button,
   .setup-card-meta {
     grid-column: 2;
+  }
+}
+
+/* ACCESSIBILITY: controls need a comfortable hit area on touch devices. Keep
+ * the compact desktop density, but reserve at least 44px on coarse pointers. */
+@media (pointer: coarse) {
+  .sidebar-toggle,
+  .notification-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .inventory-page .ui-button,
+  .inventory-page .inventory-pagination button,
+  .inventory-page .inventory-pagination select {
+    min-height: 44px;
+  }
+
+  .inventory-page .inventory-pagination button {
+    min-width: 44px;
+  }
+
+  .inventory-page .inventory-filter-bar > div:first-child button,
+  .inventory-page .inventory-filter-bar > div:first-child input,
+  .inventory-page .inventory-filter-bar > div:first-child select {
+    min-height: 44px;
+  }
+
+  .inventory-page .inventory-filter-bar > div:first-child button {
+    min-width: 44px;
   }
 }
 

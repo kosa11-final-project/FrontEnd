@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowRight } from 'reicon-react';
-import { getUrgentSkuInventoryUrl, InventoryRiskBadge } from '@/entities/inventory';
+import { getUrgentSkuInventoryUrl } from '@/entities/inventory/model/dashboardLinks.js';
+import { InventoryRiskBadge } from '@/entities/inventory/ui/InventoryRiskBadge.jsx';
 import { cn } from '@/shared/lib/cn';
 import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
-import { Card, CardDescription, CardHeader, CardTitle, Icon, StateView } from '@/shared/ui';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/shared/ui/Card.jsx';
+import { Icon } from '@/shared/ui/Icon.jsx';
+import { StateView } from '@/shared/ui/StateView.jsx';
 
 function CompactUrgentSkuList({
   skus,
