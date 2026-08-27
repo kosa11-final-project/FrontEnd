@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { notificationKeys } from '@/entities/notification';
 import { aiStrategyKeys } from '@/entities/strategy';
+import { env } from '@/shared/config/env.js';
 import {
   AI_STRATEGY_EVENT_NAMES,
   RecentEventIds,
@@ -167,7 +168,7 @@ describe('AI strategy SSE subscription', () => {
     });
     const source = FakeEventSource.instances[0];
 
-    expect(source.url).toBe(`/api/v1/ai-strategies/events?clientId=${clientId}`);
+    expect(source.url).toBe(`${env.apiBaseUrl}v1/ai-strategies/events?clientId=${clientId}`);
     expect(source.options).toEqual({ withCredentials: true });
     expect([...source.listeners.keys()]).toEqual([...Object.values(AI_STRATEGY_EVENT_NAMES), 'error']);
 
