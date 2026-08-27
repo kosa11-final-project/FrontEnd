@@ -4,9 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { inventoryKeys } from '@/entities/inventory/api/inventoryQueries.js';
 import { forecastQueryKeys } from '@/entities/forecast/api/forecastQueries.js';
 import { riskQueryKeys } from '@/entities/risk/api/riskQueries.js';
+import { TooltipProvider } from '@/shared/ui';
 import { InventoryDetailDrawer } from './InventoryDetailDrawer.jsx';
 
-function renderDrawer({ detailExpectedDisposalQuantity }) {
+function renderDrawer({ detailExpectedDisposalQuantity, riskOverrides = {}, lots = [] }) {
   const skuCode = 'SKU-TEST';
   const salesPointCode = 'STORE-A';
   const salesPoint = {
@@ -43,7 +44,7 @@ function renderDrawer({ detailExpectedDisposalQuantity }) {
     ...salesPoint,
     expectedDisposalQuantity: detailExpectedDisposalQuantity,
   });
-  client.setQueryData(inventoryKeys.lot(skuCode, salesPointCode), { items: [], totalCount: 0 });
+  client.setQueryData(inventoryKeys.lot(skuCode, salesPointCode), { items: lots, totalCount: lots.length });
   client.setQueryData(riskQueryKeys.detail(skuCode, salesPointCode), {
     assessmentStatus: 'ASSESSED',
     riskGrade: 'DANGER',
@@ -53,21 +54,24 @@ function renderDrawer({ detailExpectedDisposalQuantity }) {
     shortageYn: 'N',
     reasonMessage: '판매처별 위험 판정',
     reasons: [],
+    ...riskOverrides,
   });
   client.setQueryData(forecastQueryKeys.detail(skuCode, salesPointCode), null);
 
   render(
-    <QueryClientProvider client={client}>
-      <InventoryDetailDrawer
-        item={initialItem}
-        open
-        activeTab="OVERVIEW"
-        selectedSalesPointCode={salesPointCode}
-        onSalesPointChange={vi.fn()}
-        onTabChange={vi.fn()}
-        onClose={vi.fn()}
-      />
-    </QueryClientProvider>,
+    <TooltipProvider>
+      <QueryClientProvider client={client}>
+        <InventoryDetailDrawer
+          item={initialItem}
+          open
+          activeTab="OVERVIEW"
+          selectedSalesPointCode={salesPointCode}
+          onSalesPointChange={vi.fn()}
+          onTabChange={vi.fn()}
+          onClose={vi.fn()}
+        />
+      </QueryClientProvider>
+    </TooltipProvider>,
   );
 }
 
@@ -85,5 +89,30 @@ describe('InventoryDetailDrawer', () => {
 
     expect(screen.getByText('4개')).toBeInTheDocument();
     expect(screen.queryByText('91개')).not.toBeInTheDocument();
+  });
+
+  it('uses the risk assessment timestamp as the LOT D-day reference date', () => {
+    renderDrawer({
+      detailExpectedDisposalQuantity: 4,
+      riskOverrides: {
+        assessedAt: '2026-08-26T00:00:00Z',
+        baseDate: '2026-08-26',
+      },
+      lots: [
+        {
+          id: 1,
+          lotNumber: 'LOT-SKU002593-01',
+          quantity: 11,
+          availableQuantity: 10,
+          reservedQuantity: 1,
+          expiryDate: '2026-10-06',
+          expiryDays: 40,
+          fefoPriority: 1,
+        },
+      ],
+    });
+
+    expect(screen.getByText('D-41')).toBeInTheDocument();
+    expect(screen.queryByText('D-40')).not.toBeInTheDocument();
   });
 });

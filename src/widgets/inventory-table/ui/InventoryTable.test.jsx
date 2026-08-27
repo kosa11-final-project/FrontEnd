@@ -517,7 +517,7 @@ describe('InventoryTable pagination', () => {
     expect(screen.queryByText('판정 완료')).not.toBeInTheDocument();
   });
 
-  it('shows safety-stock shortage in the risk column without adding a separate column', () => {
+  it('shows inventory shortage in the risk column without adding a separate column', () => {
     const { rerender } = render(
       <InventoryTable
         items={[
@@ -535,16 +535,16 @@ describe('InventoryTable pagination', () => {
     );
 
     expect(screen.queryByRole('columnheader', { name: '안전재고' })).not.toBeInTheDocument();
-    expect(screen.getAllByText('안전재고 미달 상품 포함')).toHaveLength(2);
+    expect(screen.getAllByText('재고 부족 상품 포함')).toHaveLength(2);
 
     rerender(
       <InventoryTable items={[{ ...item, shortageYn: 'N' }]} totalCount={1} page={1} size={20} totalPages={1} />,
     );
     expect(screen.queryByText('안전재고 충족')).not.toBeInTheDocument();
-    expect(screen.queryByText('안전재고 미달 상품 포함')).not.toBeInTheDocument();
+    expect(screen.queryByText('재고 부족 상품 포함')).not.toBeInTheDocument();
   });
 
-  it('shows safety-stock shortage when only center-only inventory is below safety stock', () => {
+  it('shows inventory shortage when only center-only inventory is below safety stock', () => {
     render(
       <InventoryTable
         items={[
@@ -566,7 +566,7 @@ describe('InventoryTable pagination', () => {
       />,
     );
 
-    expect(screen.getAllByText('안전재고 미달 상품 포함')).toHaveLength(2);
+    expect(screen.getAllByText('재고 부족 상품 포함')).toHaveLength(2);
   });
 
   it('renders selection checkboxes and enforces max 5 selection limit', () => {

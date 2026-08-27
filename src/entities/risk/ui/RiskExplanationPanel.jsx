@@ -1,21 +1,55 @@
 import { useState } from 'react';
 import { Danger, HelpCircle } from 'reicon-react';
-import { parseInventoryRiskReason } from '@/entities/inventory';
+import { getCalculationCriteria, parseInventoryRiskReason } from '@/entities/inventory';
 import { getRiskReasonSeverityLabel } from '@/entities/risk';
 import { formatDateTime, formatNumber } from '@/shared/lib/format';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui';
 import { RiskGradeBadge } from './RiskGradeBadge.jsx';
 
 /**
- * 판정 메시지 및 증거 내 소수점 숫자를 정수 단위로 가독성 높게 정돈합니다.
- * 예: 171.464개 -> 171개, projectedD7=28.72 -> projectedD7=29
+ * 판정 메시지와 서버 저장 문자열의 소수점 숫자를 정수 단위로 정돈합니다.
+ * 사용자가 보는 핵심 사유의 수량 가독성을 유지하고, 내부 문자열 호환도 보장합니다.
  */
 function cleanDecimalsInText(text) {
   if (!text || typeof text !== 'string') return text;
-  return text.replace(/(\d+)\.(\d+)/g, (match) => {
+  return text.replace(/(\d+)\.(\d+)/g, (match, _integer, _fraction, offset, source) => {
     const num = parseFloat(match);
+    const suffix = source.slice(offset + match.length);
+    if (/^\s*%/.test(suffix)) {
+      return Number.isFinite(num) ? num.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : match;
+    }
     return isNaN(num) ? match : Math.round(num).toLocaleString();
   });
+}
+
+function getLiveAssessmentCriteria({
+  availableQty,
+  shortageQty30,
+  projectedD7,
+  safetyStockQty,
+  expectedDisposalQty30,
+  expectedDisposalRate30,
+  nearestSaleEndDays,
+}) {
+  const criteria = [];
+
+  if (availableQty != null) {
+    criteria.push('현재 판매 가능 재고');
+  }
+  if (shortageQty30 != null || projectedD7 != null) {
+    criteria.push('D+7·D+14·D+30 누적 수요예측');
+  }
+  if (expectedDisposalQty30 != null || expectedDisposalRate30 != null) {
+    criteria.push('30일 예상 폐기수량·폐기율');
+  }
+  if (safetyStockQty != null) {
+    criteria.push('안전재고 기준');
+  }
+  if (expectedDisposalQty30 != null || nearestSaleEndDays != null) {
+    criteria.push('소비기한·판매중지·소진 로트');
+  }
+
+  return criteria;
 }
 
 /**
@@ -39,12 +73,29 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
     safetyStockQty,
     stockCoverageDays,
     shortageYn,
+    expectedDisposalQty30,
+    expectedDisposalRate30,
+    nearestSaleEndDays,
     reasons = [],
   } = data;
+  const resolvedExpectedDisposalQuantity =
+    expectedDisposalQty30 != null ? expectedDisposalQty30 : expectedDisposalQuantity;
 
   const parsedReason = parseInventoryRiskReason(reasonMessage);
   const primaryReason = cleanDecimalsInText(parsedReason?.primaryReason || reasonMessage);
   const calculationEvidence = cleanDecimalsInText(parsedReason?.calculationEvidence);
+  const storedCalculationCriteria = parsedReason?.calculationCriteria ?? getCalculationCriteria(calculationEvidence);
+  const liveCalculationCriteria = getLiveAssessmentCriteria({
+    availableQty,
+    shortageQty30: data.shortageQty30,
+    projectedD7: data.projectedD7,
+    safetyStockQty,
+    expectedDisposalQty30,
+    expectedDisposalRate30,
+    nearestSaleEndDays,
+  });
+  const calculationCriteria =
+    storedCalculationCriteria.length > 0 ? storedCalculationCriteria : liveCalculationCriteria;
   const resolvedShortageYn =
     shortageYn ??
     (availableQty == null || availableQty === 0
@@ -64,12 +115,12 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-800">서버 위험 판정 결과</span>
-          {calculationEvidence && (
+          {calculationCriteria.length > 0 && (
             <Tooltip open={calculationOpen} onOpenChange={setCalculationOpen}>
               <TooltipTrigger>
                 <button
                   type="button"
-                  aria-label="계산 근거 보기"
+                  aria-label="판정 기준 보기"
                   aria-expanded={calculationOpen}
                   onClick={() => setCalculationOpen((current) => !current)}
                   className="inline-flex size-5 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
@@ -83,8 +134,12 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
                 align="start"
                 className="w-[min(24rem,calc(100vw-2rem))] max-w-none text-left"
               >
-                <span className="block text-[10px] font-semibold text-slate-500">계산 근거</span>
-                <p className="mt-0.5 break-words text-[11px] leading-4 text-slate-700">{calculationEvidence}</p>
+                <span className="block text-[10px] font-semibold text-slate-500">판정 기준</span>
+                <p className="mt-0.5 text-[11px] leading-4 text-slate-700">
+                  {calculationCriteria.length > 0
+                    ? `사용 기준 데이터: ${calculationCriteria.join(', ')}`
+                    : '서버에 저장된 판정 기준을 확인할 수 있습니다.'}
+                </p>
               </TooltipContent>
             </Tooltip>
           )}
@@ -165,9 +220,19 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
         <div className="min-w-0 rounded-lg border border-amber-100 bg-amber-50/40 px-2 py-1.5">
           <div className="whitespace-nowrap text-[10px] text-amber-700">30일 예상 폐기수량</div>
           <div className="mt-1 whitespace-nowrap text-xs font-bold tabular-nums text-amber-800">
-            {expectedDisposalQuantity != null ? `${formatNumber(expectedDisposalQuantity)}개` : '산정 불가'}
+            {resolvedExpectedDisposalQuantity != null
+              ? `${formatNumber(resolvedExpectedDisposalQuantity)}개`
+              : '산정 불가'}
           </div>
-          <div className="mt-0.5 whitespace-nowrap text-[9px] text-amber-600">향후 30일 기준</div>
+          <div className="mt-0.5 whitespace-nowrap text-[9px] text-amber-600">
+            {expectedDisposalRate30 != null && nearestSaleEndDays != null
+              ? `폐기율 ${formatNumber(expectedDisposalRate30, { maximumFractionDigits: 2 })}% · 종료까지 ${formatNumber(nearestSaleEndDays)}일`
+              : expectedDisposalRate30 != null
+                ? `폐기율 ${formatNumber(expectedDisposalRate30, { maximumFractionDigits: 2 })}%`
+                : nearestSaleEndDays != null
+                  ? `판매 종료까지 ${formatNumber(nearestSaleEndDays)}일`
+                  : '향후 30일 기준'}
+          </div>
         </div>
       </div>
 

@@ -302,7 +302,7 @@ export function InventoryTableDesktop({
                     )}
                     {hasSafetyShortage && (
                       <span className="text-[10px] font-medium text-amber-700 whitespace-nowrap">
-                        안전재고 미달 상품 포함
+                        재고 부족 상품 포함
                       </span>
                     )}
                   </div>

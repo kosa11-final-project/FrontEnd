@@ -11,7 +11,7 @@ const DemandForecastChart = lazy(() =>
 );
 import { inventoryRiskQueryOptions } from '@/entities/risk/api/riskQueries.js';
 import { RiskExplanationPanel } from '@/entities/risk/ui/RiskExplanationPanel.jsx';
-import { formatQuantity } from '@/shared/lib/format';
+import { formatDate, formatQuantity } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/Button.jsx';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/Tabs.jsx';
 import { InventoryDetailHeader } from './InventoryDetailHeader.jsx';
@@ -131,6 +131,15 @@ export function InventoryDetailDrawer({
     ...inventoryRiskQueryOptions(skuCode, effectiveOverviewSalesPointCode),
     enabled: Boolean(open && activeTab === 'OVERVIEW' && skuCode && effectiveOverviewSalesPointCode),
   });
+
+  // 위험 판정 스냅샷과 LOT D-day가 같은 날짜를 기준으로 보이도록 판정 시각의 서울 날짜를 공유합니다.
+  const riskReferenceDate = useMemo(() => {
+    if (riskQuery.data?.assessedAt) {
+      const formatted = formatDate(riskQuery.data.assessedAt, { fallback: '' });
+      if (formatted) return formatted.replaceAll('.', '-');
+    }
+    return riskQuery.data?.baseDate || null;
+  }, [riskQuery.data]);
 
   const isForecastUnassigned = effectiveForecastSalesPointCode === 'UNASSIGNED';
 
@@ -385,6 +394,7 @@ export function InventoryDetailDrawer({
                     <InventoryLotsSection
                       selectedSalesPoint={selectedOverviewSalesPoint}
                       selectedSalesPointCode={effectiveOverviewSalesPointCode}
+                      referenceDate={riskReferenceDate}
                       lotsQuery={lotsQuery}
                       onNavigateToOverview={() => onTabChange?.('OVERVIEW')}
                     />

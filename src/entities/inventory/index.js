@@ -45,6 +45,7 @@ export {
 export { InventoryScopeCard } from './ui/InventoryScopeCard.jsx';
 export { InventoryRiskBadge } from './ui/InventoryRiskBadge.jsx';
 export {
+  getCalculationCriteria,
   InventoryRiskReasonTooltip,
   parseInventoryRiskReason,
   translateCalculationEvidence,
