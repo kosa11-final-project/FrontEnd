@@ -148,6 +148,7 @@ export function StrategyExecutionListContent({
   return (
     <ExecutionPageShell>
       <div className="space-y-3">
+        <StrategySituationSummary strategies={strategies} filters={filters} onFiltersChange={onFiltersChange} />
         <StrategyExecutionSummary strategies={strategies} />
         <StrategyExecutionFilters filters={filters} resultCount={pagination.totalElements} onChange={onFiltersChange} />
         <StrategyPerformanceSyncControl isPending={isSyncing} onSync={onSync} />
