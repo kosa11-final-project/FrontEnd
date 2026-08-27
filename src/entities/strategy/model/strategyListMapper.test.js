@@ -9,6 +9,7 @@ describe('AI strategy list mapper', () => {
         caseName: '재고 재할당 전략',
         caseStatus: 'GENERATION_FAILED',
         generationStage: 'STRATEGY_GENERATING',
+        recommendationOutcome: null,
         sku: {
           skuId: 7,
           skuCode: 'SKU-7',
@@ -28,6 +29,7 @@ describe('AI strategy list mapper', () => {
       strategyName: '재고 재할당 전략',
       caseStatus: 'GENERATION_FAILED',
       generationStage: 'STRATEGY_GENERATING',
+      recommendationOutcome: null,
       category: { id: 3, name: '두부', level: 3 },
       product: { skuId: 7, skuCode: 'SKU-7', name: '국산콩 두부', imageUrl: null },
       requester: { userId: 9, userName: '요청자' },
@@ -36,6 +38,17 @@ describe('AI strategy list mapper', () => {
       resultExpiresAt: null,
       failure: { code: 'FORECAST_UNAVAILABLE', summary: '수요예측 실패', failedAt: '2026-08-24T10:01:00' },
     });
+  });
+
+  it('maps only supported recommendation outcomes and keeps legacy values null', () => {
+    expect(mapAiStrategyListItem({ recommendationOutcome: 'MAINTAIN_CURRENT_STATE' }).recommendationOutcome).toBe(
+      'MAINTAIN_CURRENT_STATE',
+    );
+    expect(mapAiStrategyListItem({ recommendationOutcome: 'OPTIONS_GENERATED' }).recommendationOutcome).toBe(
+      'OPTIONS_GENERATED',
+    );
+    expect(mapAiStrategyListItem({ recommendationOutcome: 'UNKNOWN' }).recommendationOutcome).toBeNull();
+    expect(mapAiStrategyListItem({}).recommendationOutcome).toBeNull();
   });
 
   it('keeps server status counts instead of recalculating them from content', () => {
