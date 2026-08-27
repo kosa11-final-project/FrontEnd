@@ -13,6 +13,7 @@ import { formatDate, formatDateTime } from '@/shared/lib/format';
 import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, StateView } from '@/shared/ui';
 
 const PAGE_SIZE = 10;
+const EMPTY_STRATEGIES = Object.freeze([]);
 const statusTabs = Object.freeze([
   { value: 'ALL', label: '전체' },
   { value: 'GENERATED', label: '생성완료' },
@@ -220,7 +221,6 @@ function StrategyFilterBar({ status, counts, query, from, to, onFilterChange, on
 export function StrategyGenerationList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedStrategy, setSelectedStrategy] = useState(null);
   const actionButtonRefs = useRef(new Map());
   const drawerTriggerStrategyIdRef = useRef(null);
 
@@ -245,7 +245,7 @@ export function StrategyGenerationList() {
     [from, query, requestedPage, status, to],
   );
   const listQuery = useQuery(aiStrategyListQueryOptions(apiParams));
-  const strategies = listQuery.data?.content ?? [];
+  const strategies = listQuery.data?.content ?? EMPTY_STRATEGIES;
   const totalElements = listQuery.data?.totalElements ?? 0;
   const totalPages = Math.max(listQuery.data?.totalPages ?? 0, 1);
   const counts = useMemo(
@@ -257,6 +257,12 @@ export function StrategyGenerationList() {
     }),
     [listQuery.data?.statusCounts],
   );
+  const selectedStrategy = useMemo(() => {
+    if (!Number.isInteger(drawerStrategyId) || drawerStrategyId <= 0) return null;
+
+    const strategy = strategies.find((item) => item.id === drawerStrategyId);
+    return strategy?.caseStatus === 'GENERATED' ? null : (strategy ?? null);
+  }, [drawerStrategyId, strategies]);
 
   const updateFilter = useCallback(
     (key, value, { resetPage = true } = {}) => {
@@ -288,18 +294,8 @@ export function StrategyGenerationList() {
     updateFilter('page', safePage, { resetPage: false });
   }, [listQuery.data, listQuery.isPlaceholderData, requestedPage, updateFilter]);
 
-  useEffect(() => {
-    if (!Number.isInteger(drawerStrategyId) || drawerStrategyId <= 0) return;
-    const strategy = strategies.find((item) => item.id === drawerStrategyId);
-    if (!strategy || strategy.caseStatus === 'GENERATED') return;
-
-    drawerTriggerStrategyIdRef.current = strategy.id;
-    setSelectedStrategy((current) => (current?.id === strategy.id ? current : strategy));
-  }, [drawerStrategyId, strategies]);
-
   function closeDrawer() {
     const triggerStrategyId = drawerTriggerStrategyIdRef.current;
-    setSelectedStrategy(null);
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);
@@ -319,7 +315,6 @@ export function StrategyGenerationList() {
         return;
       }
       drawerTriggerStrategyIdRef.current = strategy.id;
-      setSelectedStrategy(strategy);
       setSearchParams(
         (current) => {
           const next = new URLSearchParams(current);

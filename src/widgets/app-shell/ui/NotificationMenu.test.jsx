@@ -140,7 +140,7 @@ describe('NotificationMenu', () => {
     expect(screen.getByRole('dialog', { name: '최근 알림' })).toBeInTheDocument();
     expect(screen.getByText('AI 전략 생성 완료')).toBeInTheDocument();
     expect(screen.getByText('수요예측 완료')).toBeInTheDocument();
-    expect(screen.getAllByLabelText('미확인 알림')).toHaveLength(2);
+    expect(screen.getAllByText('미확인 알림')).toHaveLength(2);
   });
 
   it('marks an unread AI strategy notification and moves to the existing detail route', async () => {

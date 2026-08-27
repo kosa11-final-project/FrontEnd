@@ -44,9 +44,10 @@ function NotificationItem({ notification, disabled, onSelect }) {
             {notification.title}
           </strong>
           {!notification.read ? (
-            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--danger)]" aria-label="미확인 알림" />
+            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--danger)]" aria-hidden="true" />
           ) : null}
         </span>
+        {!notification.read ? <span className="sr-only">미확인 알림</span> : null}
         <span className="mt-1 block text-[length:var(--font-size-meta)] leading-5 text-[color:var(--text-body)]">
           {notification.message}
         </span>
