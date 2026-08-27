@@ -64,6 +64,7 @@ export function StrategyGenerationRetry({ strategyCaseId, caseStatus, onSucceede
         return;
       }
 
+      setDialog(null);
       if (['AI_STRATEGY_RETRY_NOT_ALLOWED', 'AI_STRATEGY_CASE_NOT_FOUND'].includes(error?.code)) {
         void queryClient.invalidateQueries({ queryKey: aiStrategyKeys.lists() });
         void queryClient.invalidateQueries({ queryKey: aiStrategyKeys.detail(strategyCaseId), exact: true });

@@ -160,6 +160,30 @@ describe('StrategyGenerationRetry', () => {
     expect(await screen.findByText(/판매 시작일을 오늘 날짜로 변경하여/)).toBeInTheDocument();
   });
 
+  it('closes the date adjustment dialog when the confirmed request ends in a terminal error', async () => {
+    const adjustmentError = new ApiError('날짜 보정 필요', {
+      status: 409,
+      code: 'AI_STRATEGY_RETRY_DATE_ADJUSTMENT_REQUIRED',
+      details: {
+        details: {
+          originalPreferredStartDate: '2026-08-24',
+          adjustedPreferredStartDate: '2026-08-27',
+        },
+      },
+    });
+    strategyApiMock.retryAiStrategyGeneration
+      .mockRejectedValueOnce(adjustmentError)
+      .mockRejectedValueOnce(new ApiError('SQLException: secret table name', { status: 500, code: 'COMMON-500' }));
+    renderRetry();
+
+    fireEvent.click(screen.getByRole('button', { name: '전략 생성 재시도' }));
+    fireEvent.click(await screen.findByRole('button', { name: '확인' }));
+
+    expect(await screen.findByText('AI 전략을 재시도할 수 없습니다.')).toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(strategyApiMock.retryAiStrategyGeneration).toHaveBeenCalledTimes(2);
+  });
+
   it('does not retry an expired period and sends the user to new strategy creation', async () => {
     strategyApiMock.retryAiStrategyGeneration.mockRejectedValue(
       new ApiError('판매 기간 만료', { status: 409, code: 'AI_STRATEGY_RETRY_PERIOD_EXPIRED' }),

@@ -17,6 +17,24 @@ vi.mock('@/shared/api', () => ({
   postJson: vi.fn(),
 }));
 
+const retrySuccessData = {
+  originalStrategyCaseId: 100,
+  strategyCaseId: 101,
+  retryParentStrategyCaseId: 100,
+  caseName: '테스트 전략',
+  caseStatus: 'GENERATING',
+  generationStage: null,
+  createdAt: '2026-08-27T14:30:00+09:00',
+  reusedExistingRetry: false,
+  dateAdjustment: {
+    applied: false,
+    originalPreferredStartDate: null,
+    originalPreferredEndDate: null,
+    adjustedPreferredStartDate: null,
+    adjustedPreferredEndDate: null,
+  },
+};
+
 describe('AI strategy API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,25 +79,7 @@ describe('AI strategy API', () => {
   });
 
   it('retries a failed strategy with only the server date-adjustment policy', async () => {
-    postJson.mockResolvedValue({
-      data: {
-        originalStrategyCaseId: 100,
-        strategyCaseId: 101,
-        retryParentStrategyCaseId: 100,
-        caseName: '테스트 전략',
-        caseStatus: 'GENERATING',
-        generationStage: null,
-        createdAt: '2026-08-27T14:30:00+09:00',
-        reusedExistingRetry: false,
-        dateAdjustment: {
-          applied: false,
-          originalPreferredStartDate: null,
-          originalPreferredEndDate: null,
-          adjustedPreferredStartDate: null,
-          adjustedPreferredEndDate: null,
-        },
-      },
-    });
+    postJson.mockResolvedValue({ data: retrySuccessData });
 
     await expect(
       retryAiStrategyGeneration({ strategyCaseId: 100, dateAdjustmentPolicy: 'REJECT' }),
@@ -89,6 +89,49 @@ describe('AI strategy API', () => {
       body: { dateAdjustmentPolicy: 'REJECT' },
       signal: undefined,
     });
+  });
+
+  it('retries with ADJUST_TO_TODAY without sending adjusted dates from the client', async () => {
+    postJson.mockResolvedValue({
+      data: {
+        ...retrySuccessData,
+        dateAdjustment: { ...retrySuccessData.dateAdjustment, applied: true },
+      },
+    });
+
+    await retryAiStrategyGeneration({ strategyCaseId: 100, dateAdjustmentPolicy: 'ADJUST_TO_TODAY' });
+
+    expect(postJson).toHaveBeenCalledWith({
+      path: 'v1/ai-strategies/100/retries',
+      body: { dateAdjustmentPolicy: 'ADJUST_TO_TODAY' },
+      signal: undefined,
+    });
+  });
+
+  it.each([undefined, null, '', 0])(
+    'rejects invalid retry strategyCaseId %p before making a request',
+    async (strategyCaseId) => {
+      await expect(retryAiStrategyGeneration({ strategyCaseId, dateAdjustmentPolicy: 'REJECT' })).rejects.toThrow(
+        '재시도할 AI 전략 정보를 확인할 수 없습니다.',
+      );
+      expect(postJson).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['strategyCaseId', { ...retrySuccessData, strategyCaseId: undefined }],
+    ['caseName', { ...retrySuccessData, caseName: '' }],
+    ['dateAdjustment', { ...retrySuccessData, dateAdjustment: null }],
+    [
+      'dateAdjustment.applied',
+      { ...retrySuccessData, dateAdjustment: { ...retrySuccessData.dateAdjustment, applied: undefined } },
+    ],
+  ])('rejects a retry response missing %s', async (_field, data) => {
+    postJson.mockResolvedValue({ data });
+
+    await expect(retryAiStrategyGeneration({ strategyCaseId: 100, dateAdjustmentPolicy: 'REJECT' })).rejects.toThrow(
+      'AI 전략 재시도 요청 결과를 확인할 수 없습니다.',
+    );
   });
 
   it('rejects an unsupported retry date policy before making a request', async () => {
