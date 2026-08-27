@@ -11,6 +11,7 @@ import {
   StrategyGenerationStatus,
   strategyGenerationStageMeta,
 } from '@/entities/strategy';
+import { StrategyGenerationRetry } from '@/features/strategy-generation-retry';
 import { formatDate, formatDateTime } from '@/shared/lib/format';
 import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, StateView } from '@/shared/ui';
 
@@ -28,6 +29,28 @@ const MAINTAIN_CURRENT_STATE = 'MAINTAIN_CURRENT_STATE';
 
 function shouldOpenStrategyDrawer(strategy) {
   return strategy?.caseStatus !== 'GENERATED' || strategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE;
+}
+
+function mapDetailToDrawerStrategy(detail) {
+  if (!detail) return null;
+  return {
+    id: detail.strategyCaseId,
+    strategyNumber: detail.caseCode,
+    strategyName: detail.caseName,
+    caseStatus: detail.caseStatus,
+    generationStage: detail.generationStage,
+    recommendationOutcome: detail.recommendationOutcome,
+    product: {
+      skuId: detail.sku?.skuId ?? null,
+      skuCode: detail.sku?.skuCode || '-',
+      name: detail.sku?.skuName || '상품 정보 없음',
+      imageUrl: detail.sku?.imageUrl ?? null,
+    },
+    createdAt: detail.requestedAt,
+    completedAt: detail.completedAt,
+    resultExpiresAt: detail.resultExpiresAt,
+    failure: detail.failure,
+  };
 }
 
 function ProductThumbnail({ product }) {
@@ -70,7 +93,7 @@ function StrategyProductCell({ product }) {
   );
 }
 
-function DrawerDetails({ strategy }) {
+function DrawerDetails({ strategy, onRetrySucceeded, onNavigateInventory }) {
   const isFailed = strategy.caseStatus === 'GENERATION_FAILED';
   const stageLabel = strategyGenerationStageMeta[strategy.generationStage]?.label ?? '수요예측';
 
@@ -112,12 +135,12 @@ function DrawerDetails({ strategy }) {
           <Alert variant="danger" title="전략 생성에 실패했습니다.">
             {strategy.failure?.summary ?? '실패 사유를 확인하지 못했습니다. 담당자에게 문의해 주세요.'}
           </Alert>
-          <Button type="button" variant="secondary" disabled>
-            다시 생성
-          </Button>
-          <p className="m-0 text-center text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-            재시도 API 연결 후 사용할 수 있습니다.
-          </p>
+          <StrategyGenerationRetry
+            strategyCaseId={strategy.id}
+            caseStatus={strategy.caseStatus}
+            onSucceeded={onRetrySucceeded}
+            onNavigateInventory={onNavigateInventory}
+          />
         </div>
       ) : (
         <Alert variant="info" title={`${stageLabel} 단계가 진행 중입니다.`}>
@@ -361,12 +384,23 @@ export function StrategyGenerationList() {
     }),
     [listQuery.data?.statusCounts],
   );
+  const hasDrawerStrategyId = Number.isInteger(drawerStrategyId) && drawerStrategyId > 0;
+  const pageStrategy = useMemo(() => {
+    if (!hasDrawerStrategyId) return null;
+    return strategies.find((item) => item.id === drawerStrategyId) ?? null;
+  }, [drawerStrategyId, hasDrawerStrategyId, strategies]);
+  const shouldLoadFallbackDetail = hasDrawerStrategyId && !pageStrategy;
+  const fallbackDetailQuery = useQuery({
+    ...aiStrategyDetailQueryOptions(drawerStrategyId),
+    enabled: shouldLoadFallbackDetail,
+  });
   const selectedStrategy = useMemo(() => {
-    if (!Number.isInteger(drawerStrategyId) || drawerStrategyId <= 0) return null;
-
-    const strategy = strategies.find((item) => item.id === drawerStrategyId);
-    return shouldOpenStrategyDrawer(strategy) ? (strategy ?? null) : null;
-  }, [drawerStrategyId, strategies]);
+    const strategy = pageStrategy ?? mapDetailToDrawerStrategy(fallbackDetailQuery.data);
+    return shouldOpenStrategyDrawer(strategy) ? strategy : null;
+  }, [fallbackDetailQuery.data, pageStrategy]);
+  const isFallbackDrawerLoading = shouldLoadFallbackDetail && fallbackDetailQuery.isPending;
+  const isFallbackDrawerError = shouldLoadFallbackDetail && fallbackDetailQuery.isError;
+  const isDrawerOpen = Boolean(selectedStrategy) || isFallbackDrawerLoading || isFallbackDrawerError;
   const shouldLoadMaintainDetail = selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE;
   const maintainDetailQuery = useQuery({
     ...aiStrategyDetailQueryOptions(selectedStrategy?.id),
@@ -435,6 +469,19 @@ export function StrategyGenerationList() {
     },
     [listPath, navigate, setSearchParams],
   );
+
+  const handleRetrySucceeded = useCallback(
+    (result) => {
+      if (!shouldOpenStrategyDrawer(result)) {
+        navigate(`/ai-strategy/${result.strategyCaseId}`, { replace: true });
+        return;
+      }
+      navigate(`/ai-strategy?drawer=${result.strategyCaseId}`, { replace: true });
+    },
+    [navigate],
+  );
+
+  const handleNavigateInventory = useCallback(() => navigate('/inventory'), [navigate]);
 
   const columns = useMemo(
     () => [
@@ -622,7 +669,7 @@ export function StrategyGenerationList() {
       )}
 
       <Drawer
-        open={Boolean(selectedStrategy)}
+        open={isDrawerOpen}
         onClose={closeDrawer}
         title={
           selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE
@@ -635,7 +682,18 @@ export function StrategyGenerationList() {
           selectedStrategy ? `${selectedStrategy.strategyNumber} · ${formatDate(selectedStrategy.createdAt)}` : ''
         }
       >
-        {selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE ? (
+        {isFallbackDrawerLoading ? (
+          <StateView state="loading" title="AI 전략 생성 상태를 불러오고 있습니다." />
+        ) : isFallbackDrawerError ? (
+          <Alert variant="danger" title="AI 전략 생성 상태를 불러오지 못했습니다.">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+              <span>서버 연결 상태를 확인한 뒤 다시 시도해 주세요.</span>
+              <Button type="button" variant="secondary" size="sm" onClick={() => fallbackDetailQuery.refetch()}>
+                다시 시도
+              </Button>
+            </div>
+          </Alert>
+        ) : selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE ? (
           maintainDetailQuery.isPending ? (
             <StateView state="loading" title="현상 유지 권장 결과를 불러오고 있습니다." />
           ) : maintainDetailQuery.isError ? (
@@ -651,7 +709,11 @@ export function StrategyGenerationList() {
             <MaintainCurrentStateDrawerDetails strategy={selectedStrategy} detail={maintainDetailQuery.data} />
           )
         ) : selectedStrategy ? (
-          <DrawerDetails strategy={selectedStrategy} />
+          <DrawerDetails
+            strategy={selectedStrategy}
+            onRetrySucceeded={handleRetrySucceeded}
+            onNavigateInventory={handleNavigateInventory}
+          />
         ) : null}
       </Drawer>
     </div>
