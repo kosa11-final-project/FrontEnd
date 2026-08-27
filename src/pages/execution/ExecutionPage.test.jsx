@@ -16,6 +16,12 @@ function StrategyExecutionListHarness({ strategies = strategyExecutionFixtures, 
   return (
     <StrategyExecutionListContent
       strategies={filtered}
+      summary={{
+        executionStrategyCount: 281,
+        inProgressStrategyCount: 24,
+        attentionStrategyCount: 7,
+        totalStrategyCount: 362,
+      }}
       filters={filters}
       pagination={{
         page: 1,
@@ -39,6 +45,11 @@ describe('strategy execution pages', () => {
     expect(screen.getByText('진행 중 전략 수')).toBeInTheDocument();
     expect(screen.getByText('확인 필요 전략 수')).toBeInTheDocument();
     expect(screen.getByText('전체 전략 수')).toBeInTheDocument();
+    expect(screen.getByText('281건')).toBeInTheDocument();
+    expect(screen.getByText('24건')).toBeInTheDocument();
+    expect(screen.getByText('7건')).toBeInTheDocument();
+    expect(screen.getByText('362건')).toBeInTheDocument();
+    expect(screen.getByText('부분 실행 결과')).toBeInTheDocument();
   });
 
   it('filters strategies by action type and search', async () => {
