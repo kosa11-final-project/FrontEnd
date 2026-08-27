@@ -1,3 +1,5 @@
+import { inventoryStatisticsFixture } from './statisticsFixtures.js';
+
 const DAY_IN_MILLISECONDS = 86_400_000;
 
 function cycle(value, size) {
@@ -37,6 +39,35 @@ function buildCompletedStrategyTrend() {
       riskStockReductionQty,
       avoidedDisposalQty,
       estimatedLossSavingsAmount,
+    };
+  });
+}
+
+function buildLocationPerformance() {
+  const reductionRates = {
+    WAREHOUSE: [32.5, 28.9, 27.4, 21.8, 25.2, 23.6, 17.4, 19.7],
+    OFFLINE_STORE: [29.7, 26.8, 24.9, 23.4, 20.8, 18.9],
+    ONLINE_STORE: [34.6, 27.8],
+  };
+  const scopeIndexes = { WAREHOUSE: 0, OFFLINE_STORE: 0, ONLINE_STORE: 0 };
+
+  return inventoryStatisticsFixture.locations.map((location, index) => {
+    const scopeIndex = scopeIndexes[location.scopeType]++;
+    const riskStockReductionRate = reductionRates[location.scopeType][scopeIndex];
+    const baselineRiskStockQty = Math.max(620, Math.round(location.criticalStockQty * 0.27));
+    const riskStockReductionQty = Math.round(baselineRiskStockQty * (riskStockReductionRate / 100));
+
+    return {
+      id: location.id,
+      code: location.code,
+      name: location.name,
+      scopeType: location.scopeType,
+      completedCount: Math.max(3, 14 - index),
+      goalAchievementRate: Math.max(72, 92 - index * 1.15),
+      baselineRiskStockQty,
+      riskStockReductionQty,
+      riskStockReductionRate,
+      estimatedLossSavingsAmount: riskStockReductionQty * (3_100 + (index % 4) * 280),
     };
   });
 }
@@ -91,4 +122,5 @@ export const strategyStatisticsFixture = Object.freeze({
       estimatedLossSavingsAmount: 3_910_000,
     },
   ]),
+  locationPerformance: Object.freeze(buildLocationPerformance()),
 });

@@ -1,6 +1,6 @@
 import { AlertTriangle, Clock, Danger, InfoCircle, Package, Warning } from 'reicon-react';
 import { formatDate, formatNumber, formatPercent, formatQuantity } from '@/shared/lib/format';
-import { Alert, Icon, MetricCard, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui';
+import { Icon, MetricCard, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui';
 
 function MetricLabel({ label, calculation }) {
   return (
@@ -46,25 +46,6 @@ function getRiskSkuCount(point) {
   return (point?.criticalSkuCount ?? 0) + (point?.warningSkuCount ?? 0);
 }
 
-function buildRiskInsight(firstPoint, lastPoint) {
-  const totalChange = lastPoint.riskStockQty - firstPoint.riskStockQty;
-  const startRatio = getRiskRatio(firstPoint);
-  const endRatio = getRiskRatio(lastPoint);
-  const changeText =
-    totalChange === 0
-      ? '기간 시작과 동일합니다.'
-      : `기간 시작보다 ${formatQuantity(Math.abs(totalChange))} ${totalChange < 0 ? '순감했습니다.' : '순증했습니다.'}`;
-  const ratioText =
-    Number.isFinite(startRatio) && Number.isFinite(endRatio)
-      ? `위험재고 비율은 ${formatPercent(startRatio)}에서 ${formatPercent(endRatio)}로 변했습니다.`
-      : '위험재고 비율은 API 연결 후 함께 표시됩니다.';
-
-  return {
-    title: `기간 종료 위험재고는 ${formatQuantity(lastPoint.riskStockQty)}로, ${changeText}`,
-    description: `${ratioText} 신규 입고·판매·이동·폐기가 모두 반영된 전체 재고 상태이며 AI 전략만의 성과를 의미하지 않습니다.`,
-  };
-}
-
 export function InventoryStatisticsSummary({ trend, scopeName = '전체' }) {
   const firstPoint = trend[0] ?? {};
   const lastPoint = trend.at(-1) ?? {};
@@ -80,8 +61,6 @@ export function InventoryStatisticsSummary({ trend, scopeName = '전체' }) {
     riskSkuDifference === 0
       ? '변화 없음'
       : `${formatNumber(Math.abs(riskSkuDifference))}종 ${riskSkuDifference < 0 ? '감소' : '증가'}`;
-  const insight = buildRiskInsight(firstPoint, lastPoint);
-
   const metrics = [
     {
       label: (
@@ -157,9 +136,6 @@ export function InventoryStatisticsSummary({ trend, scopeName = '전체' }) {
 
   return (
     <section aria-label={`${scopeName} 위험재고 핵심 변화`}>
-      <Alert variant="info" title={insight.title} className="mb-3">
-        {insight.description}
-      </Alert>
       <div className="grid grid-cols-1 gap-[var(--spacing-card-gap)] sm:grid-cols-2 lg:grid-cols-5">
         {metrics.map((metric) => (
           <MetricCard key={metric.id} {...metric} className="h-full" />

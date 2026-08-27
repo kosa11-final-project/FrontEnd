@@ -104,8 +104,36 @@ describe('statisticsMapper', () => {
       summary: {
         completedCount: '82',
         goalAchievedStrategyRate: '44.5',
+        baselineRiskStockQty: '300',
+        endRiskStockQty: '200',
         riskStockReductionQty: '23050.25',
+        baselineExpectedDisposalQty: '40',
+        endExpectedDisposalQty: '10',
+        avoidedDisposalQty: '30',
+        baselineEstimatedLossAmount: '400000',
+        endEstimatedLossAmount: '100000',
+        estimatedLossSavingsAmount: '300000',
       },
+      locationPerformance: [
+        {
+          id: 'WH-1',
+          code: 'WH-1',
+          name: '경인1센터',
+          scopeType: 'WAREHOUSE',
+          completedCount: '7',
+          goalAchievementRate: '85.7',
+          riskStockReductionRate: '33.3',
+        },
+      ],
+      scopePerformance: [
+        {
+          id: 'WAREHOUSE',
+          name: '물류센터',
+          scopeType: 'WAREHOUSE',
+          completedCount: '12',
+          riskStockReductionRate: '31.1',
+        },
+      ],
       dailyTrend: [{ date: '2026-08-23', completedCount: '3', achievementRate: '97.2' }],
       actionCombinationBreakdown: [
         {
@@ -123,6 +151,20 @@ describe('statisticsMapper', () => {
       riskStockReductionQty: 23050.25,
     });
     expect(result.dailyTrend[0]).toMatchObject({ completedCount: 3, achievementRate: 97.2 });
+    expect(result.beforeAfterComparison).toEqual([
+      expect.objectContaining({ key: 'risk-stock', before: 300, after: 200 }),
+      expect.objectContaining({ key: 'disposal-risk', before: 40, after: 10 }),
+      expect.objectContaining({ key: 'estimated-loss', before: 400000, after: 100000 }),
+    ]);
+    expect(result.locationPerformance[0]).toMatchObject({
+      id: 'WH-1',
+      name: '경인1센터',
+      completedCount: 7,
+    });
+    expect(result.scopePerformance[0]).toMatchObject({
+      scopeType: 'WAREHOUSE',
+      riskStockReductionRate: 31.1,
+    });
     expect(result.actionCombinationBreakdown[0]).toMatchObject({
       completedCount: 12,
       riskReductionRate: 48.1,

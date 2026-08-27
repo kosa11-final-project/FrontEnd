@@ -6,9 +6,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ComposedChart,
   Line,
   LineChart,
+  LabelList,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -31,6 +31,8 @@ import {
   TooltipProvider as UiTooltipProvider,
   TooltipTrigger as UiTooltipTrigger,
 } from '@/shared/ui';
+import { StrategyBeforeAfterComparison } from './StrategyBeforeAfterComparison.jsx';
+import { StrategyLocationPerformance } from './StrategyLocationPerformance.jsx';
 
 function MetricLabel({ label, calculation }) {
   return (
@@ -57,6 +59,7 @@ function MetricLabel({ label, calculation }) {
 }
 
 function StrategySummary({ current, isPreview = false }) {
+  const endingRiskStockQty = Math.max(0, current.baselineRiskStockQty - current.riskStockReductionQty);
   const metrics = [
     {
       id: 'completed-strategy',
@@ -80,7 +83,7 @@ function StrategySummary({ current, isPreview = false }) {
         />
       ),
       value: formatQuantity(current.riskStockReductionQty),
-      helper: `전략 시작 시점 위험재고의 ${formatPercent(current.riskStockReductionRate)} 감소`,
+      helper: `시작 ${formatQuantity(current.baselineRiskStockQty)} → 종료 ${formatQuantity(endingRiskStockQty)} · ${formatPercent(current.riskStockReductionRate)} 감소`,
       icon: Package,
       tone: 'good',
     },
@@ -167,8 +170,8 @@ const TREND_METRICS = Object.freeze({
     label: '추정 손실 절감',
     color: 'var(--info)',
     format: formatCurrency,
-    chartLabel: '일별 및 누적 추정 손실 절감 복합 차트',
-    description: '일별 절감액과 조회 기간 누적 절감액을 함께 확인합니다.',
+    chartLabel: '일별 추정 손실 절감 막대 차트',
+    description: '전략 실행으로 줄인 추정 손실액을 일자별로 비교합니다.',
   },
 });
 
@@ -187,11 +190,6 @@ function TrendTooltip({ active, payload, metric }) {
       <span className="mt-1 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
         종료 전략 {formatQuantity(point.completedCount, { unit: '건' })}
       </span>
-      {metric === 'estimatedLossSavingsAmount' ? (
-        <span className="mt-1 block text-[length:var(--font-size-meta)] font-[var(--font-weight-semibold)] text-[color:var(--primary)]">
-          누적 {formatCurrency(point.cumulativeEstimatedLossSavingsAmount)}
-        </span>
-      ) : null}
     </div>
   );
 }
@@ -219,11 +217,7 @@ function StrategyPerformanceTrend({ trend }) {
   const meta = TREND_METRICS[metric];
   const values = trend.map((point) => point[metric]).filter(Number.isFinite);
   const max = Math.max(...values, 1);
-  const chartData = trend.reduce((points, point) => {
-    const cumulativeEstimatedLossSavingsAmount =
-      (points.at(-1)?.cumulativeEstimatedLossSavingsAmount ?? 0) + point.estimatedLossSavingsAmount;
-    return [...points, { ...point, cumulativeEstimatedLossSavingsAmount }];
-  }, []);
+  const chartData = trend;
 
   function renderChart() {
     if (metric === 'achievementRate') {
@@ -274,19 +268,26 @@ function StrategyPerformanceTrend({ trend }) {
             tickLine={false}
           />
           <Tooltip content={<TrendTooltip metric={metric} />} cursor={{ fill: 'var(--primary-soft)', opacity: 0.45 }} />
-          <Bar dataKey={metric} fill={meta.color} fillOpacity={0.82} radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar dataKey={metric} fill={meta.color} fillOpacity={0.82} radius={[4, 4, 0, 0]} maxBarSize={28}>
+            <LabelList
+              dataKey={metric}
+              position="top"
+              formatter={(value) => (value > 0 ? formatNumber(value) : '')}
+              fill="var(--text-heading)"
+              fontSize={10}
+              fontWeight={600}
+            />
+          </Bar>
         </BarChart>
       );
     }
 
     if (metric === 'estimatedLossSavingsAmount') {
-      const cumulativeMax = chartData.at(-1)?.cumulativeEstimatedLossSavingsAmount ?? 1;
       return (
-        <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: 4, bottom: 0 }}>
+        <BarChart data={chartData} margin={{ top: 12, right: 8, left: 4, bottom: 0 }} barCategoryGap="24%">
           <Grid />
           <DateAxis />
           <YAxis
-            yAxisId="daily"
             width={64}
             domain={[0, Math.ceil(max * 1.12)]}
             tickFormatter={(value) => `${Math.round(value / 10_000)}만`}
@@ -294,35 +295,9 @@ function StrategyPerformanceTrend({ trend }) {
             axisLine={false}
             tickLine={false}
           />
-          <YAxis
-            yAxisId="cumulative"
-            orientation="right"
-            width={68}
-            domain={[0, Math.ceil(cumulativeMax * 1.08)]}
-            tickFormatter={(value) => `${Math.round(value / 1_000_000)}백만`}
-            tick={{ fill: 'var(--primary)', fontSize: 11 }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip content={<TrendTooltip metric={metric} />} />
-          <Bar
-            yAxisId="daily"
-            dataKey={metric}
-            fill={meta.color}
-            fillOpacity={0.48}
-            radius={[4, 4, 0, 0]}
-            maxBarSize={24}
-          />
-          <Line
-            yAxisId="cumulative"
-            type="monotone"
-            dataKey="cumulativeEstimatedLossSavingsAmount"
-            stroke="var(--primary)"
-            strokeWidth={2.5}
-            dot={false}
-            activeDot={{ r: 4, fill: 'var(--card)', strokeWidth: 2 }}
-          />
-        </ComposedChart>
+          <Tooltip content={<TrendTooltip metric={metric} />} cursor={{ fill: 'var(--info-soft)', opacity: 0.4 }} />
+          <Bar dataKey={metric} fill={meta.color} fillOpacity={0.72} radius={[4, 4, 0, 0]} maxBarSize={24} />
+        </BarChart>
       );
     }
 
@@ -450,6 +425,13 @@ export function StrategyStatisticsPanel({ view, isPreview = false }) {
   return (
     <div className="space-y-4">
       <StrategySummary current={view.current} isPreview={isPreview} />
+      <StrategyBeforeAfterComparison comparison={view.beforeAfterComparison} isPreview={view.enhancementsPreview} />
+      <StrategyLocationPerformance
+        locations={view.locationPerformance}
+        scopePerformance={view.scopePerformance}
+        scopeType={view.scopeType}
+        selectedLocationId={view.locationId}
+      />
       <StrategyPerformanceTrend trend={view.trend} />
       <ActionCombinationTable combinations={view.actionCombinationBreakdown} />
     </div>
