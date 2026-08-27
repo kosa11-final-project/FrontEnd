@@ -125,14 +125,15 @@ describe('strategy execution pages', () => {
     expect(screen.queryByText('0%')).not.toBeInTheDocument();
   });
 
-  it('rounds the achievement rate in the overall result to one decimal place', () => {
+  it('rounds the overall sales result to whole numbers', () => {
     const strategy = {
       ...strategyExecutionFixtures[0],
-      resultSummary: '실제 판매 200 / 목표 180 (달성률 111.111111%)',
+      resultSummary: '실제 판매 200 / 목표 180.4 (달성률 111.111111%)',
     };
     renderRoute(<StrategyExecutionDetailContent strategy={strategy} />, '/execution/101');
 
-    expect(screen.getByText('실제 판매 200 / 목표 180 (달성률 111.1%)')).toBeInTheDocument();
+    expect(screen.getByText('실제 판매 200 / 목표 180 (달성률 111%)')).toBeInTheDocument();
+    expect(screen.queryByText(/180\.4/)).not.toBeInTheDocument();
     expect(screen.queryByText(/111\.111111%/)).not.toBeInTheDocument();
   });
 });
