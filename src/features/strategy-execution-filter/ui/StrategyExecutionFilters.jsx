@@ -1,31 +1,22 @@
 import { useEffect, useRef } from 'react';
 import { CloseCircle, Refresh, SearchNormal } from 'reicon-react';
 import { actionTypeMeta, strategyStatusMeta } from '@/entities/strategy';
-import { Icon, SelectMenu } from '@/shared/ui';
+import { Button, Icon, SelectMenu } from '@/shared/ui';
 import {
   defaultStrategyExecutionFilters,
   STRATEGY_EXECUTION_FILTER_ACTION_TYPES,
   STRATEGY_EXECUTION_FILTER_STATUSES,
 } from '../model/filterState.js';
 
-function ActiveFilterChip({ label, value, onRemove, tone = 'neutral' }) {
-  const toneClasses = {
-    neutral: 'border-gray-200 bg-gray-50 text-gray-700',
-    primary: 'border-emerald-200 bg-emerald-50 text-[color:var(--primary-strong)]',
-    info: 'border-blue-200 bg-blue-50 text-blue-800',
-    warning: 'border-amber-200 bg-amber-50 text-amber-800',
-  };
-
+function ActiveFilterChip({ label, value, onRemove }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[length:var(--font-size-meta)] font-medium ${toneClasses[tone]}`}
-    >
-      <span className="opacity-70">{label}:</span>
-      <strong className="font-[var(--font-weight-semibold)]">{value}</strong>
+    <span className="inline-flex items-center gap-1 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-subtle)] px-2 py-1 text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-body)]">
+      <span className="text-[color:var(--text-muted)]">{label}</span>
+      <strong className="font-[var(--font-weight-semibold)] text-[color:var(--text-heading)]">{value}</strong>
       <button
         type="button"
         onClick={onRemove}
-        className="ml-0.5 rounded text-current opacity-60 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        className="ml-0.5 rounded text-[color:var(--text-muted)] hover:text-[color:var(--danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         aria-label={`${label} 필터 해제`}
       >
         <Icon icon={CloseCircle} size={13} aria-hidden="true" />
@@ -43,11 +34,14 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
     }
   }, [filters.query]);
 
-  const setFilter = (key, value) => onChange({ ...filters, [key]: value });
   const selectedActionType = STRATEGY_EXECUTION_FILTER_ACTION_TYPES.includes(filters.actionType)
     ? filters.actionType
     : 'ALL';
-  const hasActiveFilter = Boolean(filters.query) || filters.strategyStatus !== 'ALL' || selectedActionType !== 'ALL';
+  const selectedStatus = STRATEGY_EXECUTION_FILTER_STATUSES.includes(filters.strategyStatus)
+    ? filters.strategyStatus
+    : 'ALL';
+  const hasActiveFilter = Boolean(filters.query) || selectedStatus !== 'ALL' || selectedActionType !== 'ALL';
+  const setFilter = (key, value) => onChange({ ...filters, [key]: value });
 
   const handleReset = () => {
     if (searchInputRef.current) searchInputRef.current.value = '';
@@ -63,101 +57,88 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
   return (
     <section
       aria-label="전략 실행 관제 조회 조건"
-      className="flex flex-col gap-3.5 rounded-2xl border border-gray-200/90 bg-white p-4.5 shadow-2xs"
+      className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-soft)]"
     >
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <form onSubmit={handleSearch} className="relative min-w-0 flex-1 sm:min-w-[280px] xl:max-w-md">
-          <label htmlFor="strategy-execution-search" className="sr-only">
-            전략 번호 또는 상품명 검색
+      <form onSubmit={handleSearch} className="flex flex-wrap items-end gap-2">
+        <div className="min-w-[220px] flex-[1_1_320px]">
+          <label
+            htmlFor="strategy-execution-search"
+            className="mb-1 block text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-body)]"
+          >
+            검색어
           </label>
-          <input
-            ref={searchInputRef}
-            id="strategy-execution-search"
-            type="search"
-            maxLength={100}
-            defaultValue={filters.query}
-            placeholder="전략 번호 또는 상품명으로 빠른 검색..."
-            className="h-10 w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] pl-10 pr-20 text-sm text-gray-900 placeholder:text-gray-400 transition-colors focus:border-[#27B06E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#27B06E]/20"
-          />
-          <Icon
-            icon={SearchNormal}
-            size={17}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-            aria-hidden="true"
-          />
-          <button
-            type="submit"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-[#27B06E] px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#20945C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#27B06E]/40"
-          >
-            검색
-          </button>
-        </form>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            className="flex flex-wrap items-center gap-1 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-1"
-            role="group"
-            aria-label="전략 유형"
-          >
-            <button
-              type="button"
-              aria-pressed={selectedActionType === 'ALL'}
-              onClick={() => setFilter('actionType', 'ALL')}
-              className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all ${
-                selectedActionType === 'ALL' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              전체 전략
-            </button>
-            {STRATEGY_EXECUTION_FILTER_ACTION_TYPES.map((type) => {
-              const selected = selectedActionType === type;
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setFilter('actionType', selected ? 'ALL' : type)}
-                  className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all ${
-                    selected ? 'bg-[#27B06E] text-white shadow-xs' : 'text-gray-500 hover:text-gray-900'
-                  }`}
-                >
-                  {actionTypeMeta[type].shortLabel}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="w-[132px]">
-            <SelectMenu
-              value={filters.strategyStatus}
-              onValueChange={(value) => setFilter('strategyStatus', value)}
-              aria-label="전략 전체 상태"
-              options={[
-                { value: 'ALL', label: '전체 상태' },
-                ...STRATEGY_EXECUTION_FILTER_STATUSES.map((status) => ({
-                  value: status,
-                  label: strategyStatusMeta[status].label,
-                })),
-              ]}
+          <div className="relative">
+            <input
+              ref={searchInputRef}
+              id="strategy-execution-search"
+              aria-label="전략 번호 또는 상품명 검색"
+              type="search"
+              maxLength={100}
+              defaultValue={filters.query}
+              placeholder="전략 번호, 상품명 또는 SKU"
+              className="h-9 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] pl-9 pr-3 text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)] placeholder:text-[color:var(--text-muted)] focus:border-[var(--primary)] focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring-soft)]"
+            />
+            <Icon
+              icon={SearchNormal}
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)]"
+              aria-hidden="true"
             />
           </div>
-
-          <button
-            type="button"
-            onClick={handleReset}
-            title="모든 필터 초기화"
-            className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-          >
-            <Icon icon={Refresh} size={14} aria-hidden="true" />
-            초기화
-          </button>
         </div>
-      </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-3">
+        <div className="w-full min-w-40 flex-1 sm:w-44 sm:flex-none">
+          <span className="mb-1 block text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-body)]">
+            전략 유형
+          </span>
+          <SelectMenu
+            value={selectedActionType}
+            onValueChange={(value) => setFilter('actionType', value)}
+            aria-label="전략 유형"
+            options={[
+              { value: 'ALL', label: '전체 전략 유형' },
+              ...STRATEGY_EXECUTION_FILTER_ACTION_TYPES.map((type) => ({
+                value: type,
+                label: actionTypeMeta[type].label,
+              })),
+            ]}
+          />
+        </div>
+
+        <div className="w-full min-w-36 flex-1 sm:w-40 sm:flex-none">
+          <span className="mb-1 block text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-body)]">
+            상태
+          </span>
+          <SelectMenu
+            value={selectedStatus}
+            onValueChange={(value) => setFilter('strategyStatus', value)}
+            aria-label="전략 전체 상태"
+            options={[
+              { value: 'ALL', label: '전체 상태' },
+              ...STRATEGY_EXECUTION_FILTER_STATUSES.map((status) => ({
+                value: status,
+                label: strategyStatusMeta[status].label,
+              })),
+            ]}
+          />
+        </div>
+
+        <Button type="button" variant="secondary" size="md" onClick={handleReset} title="검색어와 필터 초기화">
+          <Icon icon={Refresh} size={14} aria-hidden="true" />
+          초기화
+        </Button>
+        <Button type="submit" size="md">
+          <Icon icon={SearchNormal} size={14} aria-hidden="true" />
+          검색
+        </Button>
+      </form>
+
+      <div className="mt-2 flex min-h-7 flex-wrap items-center gap-1.5 border-t border-[var(--border)] pt-2">
         {hasActiveFilter ? (
           <>
-            <span className="mr-1 text-[11px] font-bold text-gray-400">적용된 조건:</span>
+            <span className="mr-1 text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-muted)]">
+              적용된 조건
+            </span>
             {filters.query ? (
               <ActiveFilterChip
                 label="검색"
@@ -170,34 +151,23 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
             ) : null}
             {selectedActionType !== 'ALL' ? (
               <ActiveFilterChip
-                label="전략"
-                value={actionTypeMeta[selectedActionType].label}
-                tone="primary"
+                label="유형"
+                value={actionTypeMeta[selectedActionType].shortLabel}
                 onRemove={() => setFilter('actionType', 'ALL')}
               />
             ) : null}
-            {filters.strategyStatus !== 'ALL' ? (
+            {selectedStatus !== 'ALL' ? (
               <ActiveFilterChip
-                label="전략 상태"
-                value={strategyStatusMeta[filters.strategyStatus].label}
-                tone="info"
+                label="상태"
+                value={strategyStatusMeta[selectedStatus].label}
                 onRemove={() => setFilter('strategyStatus', 'ALL')}
               />
             ) : null}
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-[11px] font-semibold text-gray-400 transition-colors hover:text-rose-600"
-            >
-              모든 조건 지우기
-            </button>
           </>
         ) : (
-          <span className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-            모든 전략을 표시하고 있습니다.
-          </span>
+          <span className="text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">적용된 필터 없음</span>
         )}
-        <span className="ml-auto text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+        <span className="ml-auto text-[length:var(--font-size-meta)] text-[color:var(--text-body)]" aria-live="polite">
           검색 결과 <strong className="text-[color:var(--text-heading)]">{resultCount}건</strong>
         </span>
       </div>

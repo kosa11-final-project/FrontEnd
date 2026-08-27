@@ -18,6 +18,14 @@ export function AllStates() {
         <StrategyGenerationProgress status="GENERATED" currentStage="COMPARISON_READY" />
       </div>
       <div className="grid gap-2">
+        <StrategyGenerationStatus status="GENERATED" />
+        <StrategyGenerationProgress
+          status="GENERATED"
+          currentStage="COMPARISON_READY"
+          finalStageNotice="실행 대안 없음"
+        />
+      </div>
+      <div className="grid gap-2">
         <StrategyGenerationStatus status="GENERATION_FAILED" />
         <StrategyGenerationProgress status="GENERATION_FAILED" currentStage="FORECASTING" />
       </div>

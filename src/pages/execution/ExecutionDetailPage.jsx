@@ -6,6 +6,7 @@ import {
   formatAchievementRateText,
   getCompletedActionCount,
   getStrategyExecution,
+  isDisplayableStrategyNumber,
   StrategyActionCard,
   StrategyActionProgress,
   StrategyChannelPerformanceReport,
@@ -78,9 +79,11 @@ export function StrategyExecutionDetailContent({ strategy }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <StrategyStatusBadge status={strategy.status} />
-                  <span className="text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-muted)]">
-                    {strategy.number}
-                  </span>
+                  {isDisplayableStrategyNumber(strategy.number) ? (
+                    <span className="text-[length:var(--font-size-meta)] font-semibold text-[color:var(--text-muted)]">
+                      {strategy.number}
+                    </span>
+                  ) : null}
                 </div>
                 <h1
                   id="strategy-detail-title"

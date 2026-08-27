@@ -88,6 +88,12 @@ export const relationshipMeta = Object.freeze({
   CONDITIONAL: { label: '조건부', description: '조건 충족 시 실행' },
 });
 
+const internalStrategyCaseCodePattern = /^SC-[0-9a-f]{32}$/i;
+
+export function isDisplayableStrategyNumber(value) {
+  return typeof value === 'string' && value.trim() !== '' && !internalStrategyCaseCodePattern.test(value.trim());
+}
+
 export const getCompletedActionCount = (actions = []) =>
   actions.filter((action) => action.status === 'COMPLETED').length;
 export const getBlockedActionCount = (actions = []) => actions.filter((action) => action.status === 'BLOCKED').length;

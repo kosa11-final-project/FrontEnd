@@ -18,9 +18,23 @@ const meta = {
   args: { strategy: strategyExecutionFixtures[0] },
   argTypes: { strategy: { control: 'object' } },
 };
+
 export default meta;
-export const Default = {};
-export const MultipleActions = { args: { strategy: strategyExecutionFixtures[1] } };
+
+export const CompactProgressList = {};
+
+export const AttentionStates = {
+  args: { strategy: strategyExecutionFixtures[1] },
+};
+
+export const Ready = {
+  args: { strategy: strategyExecutionFixtures[2] },
+};
+
+export const Completed = {
+  args: { strategy: strategyExecutionFixtures[3] },
+};
+
 export const SingleAction = {
   args: {
     strategy: {
@@ -29,8 +43,9 @@ export const SingleAction = {
     },
   },
 };
-export const NoPerformanceData = { args: { strategy: strategyExecutionFixtures[2] } };
-export const Mobile = {
+
+export const MobileList = {
+  args: { strategy: strategyExecutionFixtures[1] },
   parameters: { viewport: { defaultViewport: 'mobile1' } },
   decorators: [
     (Story) => (

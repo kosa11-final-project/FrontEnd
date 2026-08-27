@@ -67,3 +67,12 @@ export async function getCurrentUser(signal) {
   });
   return mapAuthUser(response.data);
 }
+
+/** 로그인 중인 사용자의 Session이 여전히 유효한지 전역 만료 처리와 함께 확인함 */
+export async function verifyCurrentSession(signal) {
+  const response = await getJson({
+    path: `${authPath}/me`,
+    signal,
+  });
+  return mapAuthUser(response.data);
+}

@@ -34,24 +34,33 @@ const metricValueVariants = cva(
 );
 
 export const MetricCard = forwardRef(function MetricCard(
-  { className, label, value, helper, icon, tone = 'neutral', selected = false, onClick, ...props },
+  { className, label, value, helper, icon, tone = 'neutral', selected = false, compact = false, onClick, ...props },
   ref,
 ) {
   const content = (
     <>
       <div className="flex items-center gap-2">
         {icon && (
-          <span className={metricIconVariants({ tone })}>
-            <Icon icon={icon} size={16} />
+          <span className={cn(metricIconVariants({ tone }), compact && 'size-7')}>
+            <Icon icon={icon} size={compact ? 14 : 16} />
           </span>
         )}
         <span className="text-[length:var(--font-size-body-sm)] font-[var(--font-weight-medium)] text-[color:var(--text-muted)]">
           {label}
         </span>
       </div>
-      <strong className={metricValueVariants({ tone })}>{value}</strong>
+      <strong className={cn(metricValueVariants({ tone }), compact && 'mt-2 text-[length:var(--font-size-headline2)]')}>
+        {value}
+      </strong>
       {helper && (
-        <span className="mt-2 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">{helper}</span>
+        <span
+          className={cn(
+            'mt-2 block text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]',
+            compact && 'mt-1',
+          )}
+        >
+          {helper}
+        </span>
       )}
     </>
   );
@@ -62,7 +71,7 @@ export const MetricCard = forwardRef(function MetricCard(
         ref={ref}
         asChild
         variant={selected ? 'selected' : 'default'}
-        padding="md"
+        padding={compact ? 'sm' : 'md'}
         className={cn(
           'transition-[border-color,box-shadow,transform] duration-[var(--motion-fast)] hover:-translate-y-px hover:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--ring)]',
           className,
@@ -77,7 +86,13 @@ export const MetricCard = forwardRef(function MetricCard(
   }
 
   return (
-    <Card ref={ref} variant={selected ? 'selected' : 'default'} padding="md" className={className} {...props}>
+    <Card
+      ref={ref}
+      variant={selected ? 'selected' : 'default'}
+      padding={compact ? 'sm' : 'md'}
+      className={className}
+      {...props}
+    >
       {content}
     </Card>
   );

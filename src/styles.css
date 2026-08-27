@@ -27,8 +27,7 @@
 
 :root {
   /* Dashboard Filter Foundations palette */
-  /* Keep the brand green dark enough for white text on active controls. */
-  --color-main: #1e8251;
+  --color-main: #27b06e;
   --color-sub-mint: #11c6ab;
   --color-sub-cyan: #00b0d7;
   --color-sub-orange: #fda643;
@@ -472,6 +471,8 @@ a:focus-visible {
 }
 
 .topbar {
+  position: relative;
+  z-index: 30;
   display: flex;
   min-height: 70px;
   align-items: center;

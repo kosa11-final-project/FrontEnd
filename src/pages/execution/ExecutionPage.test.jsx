@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { filterStrategies, strategyExecutionFixtures } from '@/entities/strategy';
 import { defaultStrategyExecutionFilters, STRATEGY_EXECUTION_PAGE_SIZE } from '@/features/strategy-execution-filter';
@@ -29,12 +30,31 @@ function StrategyExecutionListHarness({ strategies = strategyExecutionFixtures }
 }
 
 describe('strategy execution pages', () => {
-  it('filters strategies by action type and search', () => {
+  it('summarizes attention actions and filters the related strategy status', () => {
+    renderRoute(<StrategyExecutionListHarness />);
+
+    expect(screen.getByText('확인이 필요한 액션이 3건 있습니다.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'RT 이동 확인 1건' }));
+
+    expect(screen.getByText('프리미엄 오피스 체어 에어')).toBeInTheDocument();
+    expect(screen.queryByText('비비고 왕교자 1.05kg')).not.toBeInTheDocument();
+  });
+
+  it('summarizes the completed strategies when no action needs attention', () => {
+    renderRoute(<StrategyExecutionListHarness strategies={[strategyExecutionFixtures[3]]} />);
+
+    expect(screen.getByText('현재 실행 중이거나 확인이 필요한 액션이 없습니다.')).toBeInTheDocument();
+    expect(screen.getByText('현재 페이지에서 완료 전략 1건을 확인할 수 있습니다.')).toBeInTheDocument();
+  });
+
+  it('filters strategies by action type and search', async () => {
+    const user = userEvent.setup();
     renderRoute(<StrategyExecutionListHarness />);
     expect(screen.getByText('비비고 왕교자 1.05kg')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: '비비고 왕교자 1.05kg 상품 이미지' })).toBeInTheDocument();
     expect(screen.queryByLabelText('계열사')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'RT 이동' }));
+    await user.click(screen.getByRole('combobox', { name: '전략 유형' }));
+    await user.click(screen.getByRole('option', { name: 'RT 이동' }));
     expect(screen.getByText('프리미엄 오피스 체어 에어')).toBeInTheDocument();
     expect(screen.queryByText('비비고 왕교자 1.05kg')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('전략 번호 또는 상품명 검색'), { target: { value: '없는 전략' } });
@@ -43,8 +63,9 @@ describe('strategy execution pages', () => {
   });
   it('keeps synchronization disabled until the backend API is available', () => {
     renderRoute(<StrategyExecutionListHarness />);
-    expect(screen.getByRole('button', { name: '성과 동기화 API 준비 중' })).toBeDisabled();
-    expect(screen.getByText(/백엔드 API 연동 후 제공됩니다/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /성과 동기화/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('status', { name: '성과 동기화 기능 준비 중' })).toBeInTheDocument();
+    expect(screen.getByText(/수동 동기화는 API 연동 후 제공됩니다/)).toBeInTheDocument();
     expect(screen.queryByLabelText('동기화 상태')).not.toBeInTheDocument();
   });
   it('renders multi-action dependency, missing data and required detail sections', () => {
