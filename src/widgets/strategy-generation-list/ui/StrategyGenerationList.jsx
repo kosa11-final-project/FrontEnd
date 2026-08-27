@@ -13,6 +13,7 @@ import { formatDate, formatDateTime } from '@/shared/lib/format';
 import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, StateView } from '@/shared/ui';
 
 const PAGE_SIZE = 10;
+const EMPTY_STRATEGIES = Object.freeze([]);
 const statusTabs = Object.freeze([
   { value: 'ALL', label: '전체' },
   { value: 'GENERATED', label: '생성완료' },
@@ -220,7 +221,6 @@ function StrategyFilterBar({ status, counts, query, from, to, onFilterChange, on
 export function StrategyGenerationList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedStrategy, setSelectedStrategy] = useState(null);
   const actionButtonRefs = useRef(new Map());
   const drawerTriggerStrategyIdRef = useRef(null);
 
@@ -229,6 +229,7 @@ export function StrategyGenerationList() {
   const query = searchParams.get('q') ?? '';
   const from = searchParams.get('from') ?? '';
   const to = searchParams.get('to') ?? '';
+  const drawerStrategyId = Number.parseInt(searchParams.get('drawer') ?? '', 10);
   const parsedPage = Number.parseInt(searchParams.get('page') ?? '1', 10);
   const requestedPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const apiParams = useMemo(
@@ -244,7 +245,7 @@ export function StrategyGenerationList() {
     [from, query, requestedPage, status, to],
   );
   const listQuery = useQuery(aiStrategyListQueryOptions(apiParams));
-  const strategies = listQuery.data?.content ?? [];
+  const strategies = listQuery.data?.content ?? EMPTY_STRATEGIES;
   const totalElements = listQuery.data?.totalElements ?? 0;
   const totalPages = Math.max(listQuery.data?.totalPages ?? 0, 1);
   const counts = useMemo(
@@ -256,6 +257,12 @@ export function StrategyGenerationList() {
     }),
     [listQuery.data?.statusCounts],
   );
+  const selectedStrategy = useMemo(() => {
+    if (!Number.isInteger(drawerStrategyId) || drawerStrategyId <= 0) return null;
+
+    const strategy = strategies.find((item) => item.id === drawerStrategyId);
+    return strategy?.caseStatus === 'GENERATED' ? null : (strategy ?? null);
+  }, [drawerStrategyId, strategies]);
 
   const updateFilter = useCallback(
     (key, value, { resetPage = true } = {}) => {
@@ -289,7 +296,14 @@ export function StrategyGenerationList() {
 
   function closeDrawer() {
     const triggerStrategyId = drawerTriggerStrategyIdRef.current;
-    setSelectedStrategy(null);
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete('drawer');
+        return next;
+      },
+      { replace: true },
+    );
     window.requestAnimationFrame(() => actionButtonRefs.current.get(triggerStrategyId)?.focus());
   }
 
@@ -301,9 +315,16 @@ export function StrategyGenerationList() {
         return;
       }
       drawerTriggerStrategyIdRef.current = strategy.id;
-      setSelectedStrategy(strategy);
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set('drawer', String(strategy.id));
+          return next;
+        },
+        { replace: true },
+      );
     },
-    [listPath, navigate],
+    [listPath, navigate, setSearchParams],
   );
 
   const columns = useMemo(
