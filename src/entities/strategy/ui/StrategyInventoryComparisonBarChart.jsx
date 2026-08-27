@@ -15,7 +15,7 @@ export function buildInventoryComparisonChartData(results = []) {
       before: toFiniteNumber(result.before),
       after: toFiniteNumber(result.after),
       moved: toFiniteNumber(result.moved),
-      guardrail: result.guardrail || '가드레일 미수집',
+      guardrail: result.guardrail || '안전 기준 미수집',
     }))
     .filter((result) => result.before !== null || result.after !== null);
 }

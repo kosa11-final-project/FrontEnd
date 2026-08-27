@@ -20,6 +20,12 @@ describe('StrategyInventoryComparisonBarChart', () => {
     ]);
   });
 
+  it('uses a user-facing safety criterion label when the guardrail is missing', () => {
+    expect(buildInventoryComparisonChartData([{ location: '동부센터', before: 34, after: 34 }])[0].guardrail).toBe(
+      '안전 기준 미수집',
+    );
+  });
+
   it('renders an accessible horizontal comparison chart and text alternative', () => {
     render(<StrategyInventoryComparisonBarChart results={results} />);
 
