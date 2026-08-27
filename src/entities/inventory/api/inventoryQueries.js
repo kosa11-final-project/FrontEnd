@@ -1,7 +1,5 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query';
-import { mapDashboardResponse } from '../model/dashboardMapper.js';
 import {
-  getDashboard,
   getInventories,
   getInventoryDetail,
   getInventoryFilterOptions,
@@ -47,11 +45,6 @@ export const inventoryKeys = Object.freeze({
   lots: () => [...inventoryKeys.all, 'lots'],
   lot: (skuCode, salesPointCode) => [...inventoryKeys.lots(), skuCode, salesPointCode],
   filterOptions: () => [...inventoryKeys.all, 'filter-options'],
-});
-
-export const dashboardKeys = Object.freeze({
-  all: ['dashboard'],
-  snapshot: () => [...dashboardKeys.all, 'snapshot'],
 });
 
 const retryServerErrorOnly = (failureCount, error) => error?.status >= 500 && failureCount < 1;
@@ -109,14 +102,5 @@ export function inventoryLotsQueryOptions(skuCode, salesPointCode) {
     enabled: Boolean(skuCode && salesPointCode),
     staleTime: 60 * 1000,
     retry: retryServerErrorOnly,
-  });
-}
-
-export function dashboardQueryOptions() {
-  return queryOptions({
-    queryKey: dashboardKeys.snapshot(),
-    queryFn: ({ signal }) => getDashboard(signal),
-    select: mapDashboardResponse,
-    staleTime: 60_000,
   });
 }

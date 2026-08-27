@@ -14,6 +14,12 @@ describe('getImageThumbnailUrl', () => {
     expect(getImageThumbnailUrl(source)).toBe('https://shop-phinf.pstatic.net/example/product.jpg?type=f100&foo=bar');
   });
 
+  it('returns Greating originals directly without failing', () => {
+    const source = 'https://image.greating.co.kr/IL/item/202312/29/product.jpg';
+
+    expect(getImageThumbnailUrl(source)).toBe(source);
+  });
+
   it('leaves non-Naver, relative, and data URLs unchanged', () => {
     expect(getImageThumbnailUrl('https://images.example.com/product.jpg')).toBe(
       'https://images.example.com/product.jpg',

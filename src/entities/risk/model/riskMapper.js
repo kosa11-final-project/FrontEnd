@@ -37,6 +37,9 @@ export function mapRiskAssessmentResponse(response) {
   const safetyGapQty = nullableNumber(dto.safetyGapQty, dto.safety_gap_qty);
   const projectedD7 = nullableNumber(dto.projectedD7, dto.projected_d7);
   const safetyStockQty = nullableNumber(dto.safetyStockQty, dto.safety_stock_qty);
+  const expectedDisposalQty30 = nullableNumber(dto.expectedDisposalQty30, dto.expected_disposal_qty_30);
+  const expectedDisposalRate30 = nullableNumber(dto.expectedDisposalRate30, dto.expected_disposal_rate_30);
+  const nearestSaleEndDays = nullableNumber(dto.nearestSaleEndDays, dto.nearest_sale_end_days);
   const nearestExpiryDays = nullableNumber(dto.nearestExpiryDays, dto.nearest_expiry_days);
   const maxHoldingDays = nullableNumber(dto.maxHoldingDays, dto.max_holding_days);
   const stockCoverageDays = nullableNumber(
@@ -80,6 +83,9 @@ export function mapRiskAssessmentResponse(response) {
     safetyGapQty,
     projectedD7,
     safetyStockQty,
+    expectedDisposalQty30,
+    expectedDisposalRate30,
+    nearestSaleEndDays,
     nearestExpiryDays,
     maxHoldingDays,
     stockCoverageDays,

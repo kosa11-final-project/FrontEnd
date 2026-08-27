@@ -86,6 +86,27 @@ test.describe('세션 로그인과 보호 라우팅', () => {
     await expect(page.getByText('로그인 세션이 만료되었습니다.')).not.toBeVisible();
   });
 
+  test('로그인 페이지를 새로고침해도 전역 데이터 로딩 화면을 표시하지 않는다', async ({ page }) => {
+    await mockAnonymousSession(page);
+    let loginChunkRequested = false;
+    let releaseLoginChunk;
+    const loginChunkReleased = new Promise((resolve) => {
+      releaseLoginChunk = resolve;
+    });
+    await page.route('**/*LoginPage.jsx*', async (route) => {
+      loginChunkRequested = true;
+      await loginChunkReleased;
+      await route.continue();
+    });
+
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await expect.poll(() => loginChunkRequested).toBe(true);
+
+    await expect(page.getByText('데이터를 불러오는 중입니다.')).not.toBeVisible();
+    releaseLoginChunk();
+    await expect(page.getByRole('heading', { name: '로그인' })).toBeVisible();
+  });
+
   test('로그인 성공 후 대시보드로 이동한다', async ({ page }) => {
     await mockAnonymousSession(page);
     await mockSuccessfulLogin(page);

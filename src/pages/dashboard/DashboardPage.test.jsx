@@ -91,7 +91,6 @@ describe('DashboardPageContent', () => {
 
     expect(screen.getByText('수지 긴급 SKU')).toBeInTheDocument();
     expect(screen.queryByText('판교 긴급 SKU')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /위험재고 보유 판매처 TOP 10/ }));
     expect(screen.getByRole('link', { name: '판교점 재고 보기' })).toBeInTheDocument();
   });
 

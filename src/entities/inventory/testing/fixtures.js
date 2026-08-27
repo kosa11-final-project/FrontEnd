@@ -38,6 +38,7 @@ export const mockRawInventoryItems = [
     current_qty: 2450,
     available_qty: 2180,
     reserved_qty: 270,
+    expected_disposal_qty: 18,
     safety_qty: 500,
     inventory_fact_state: 'AVAILABLE',
     risk: {

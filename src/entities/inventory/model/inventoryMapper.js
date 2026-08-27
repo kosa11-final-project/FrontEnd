@@ -184,6 +184,12 @@ export function mapInventoryItem(response = {}) {
   const currentQuantity = nullableNumber(dto.currentQuantity, dto.current_qty, dto.on_hand_qty);
   const availableQuantity = nullableNumber(dto.availableQuantity, dto.available_qty);
   const reservedQuantity = nullableNumber(dto.reservedQuantity, dto.reserved_qty);
+  const expectedDisposalQuantity = nullableNumber(
+    dto.expectedDisposalQuantity,
+    dto.expected_disposal_quantity,
+    dto.expectedDisposalQty,
+    dto.expected_disposal_qty,
+  );
   const safetyQuantity = nullableNumber(dto.safetyQuantity, dto.safety_qty);
 
   // 판매처별 현재 가격 정보만 상세에서 사용합니다. 판매량은 ML 파이프라인의 입력이며
@@ -423,6 +429,7 @@ export function mapInventoryItem(response = {}) {
     currentQuantity,
     availableQuantity,
     reservedQuantity,
+    expectedDisposalQuantity,
     safetyQuantity,
     shortageYn: resolvedShortageYn,
     inventoryFactState,

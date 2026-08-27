@@ -72,7 +72,7 @@ describe('ExecutionListPage server pagination', () => {
     renderPage('/execution?page=2');
     await screen.findByText('2 / 3 페이지');
 
-    fireEvent.change(screen.getByLabelText('전략 번호 또는 상품명 검색'), {
+    fireEvent.change(screen.getByLabelText('전략 코드, 상품명 또는 SKU 코드 검색'), {
       target: { value: '  왕교자  ' },
     });
     fireEvent.click(screen.getByRole('button', { name: '검색' }));
