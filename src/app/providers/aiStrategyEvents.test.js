@@ -53,6 +53,13 @@ function deferred() {
   return { promise, reject, resolve };
 }
 
+async function flushMicrotasks() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 describe('AI strategy SSE event handlers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -234,7 +241,11 @@ describe('AI strategy SSE subscription', () => {
 
   it('verifies the session once for repeated errors inside ten seconds', async () => {
     let currentTime = 1_000;
-    const verifyCurrentSessionFn = vi.fn().mockResolvedValue({ userId: 1 });
+    const firstVerification = deferred();
+    const verifyCurrentSessionFn = vi
+      .fn()
+      .mockReturnValueOnce(firstVerification.promise)
+      .mockResolvedValueOnce({ userId: 1 });
     subscribeAiStrategyEvents({
       queryClient: { invalidateQueries: vi.fn() },
       EventSourceImpl: FakeEventSource,
@@ -246,16 +257,21 @@ describe('AI strategy SSE subscription', () => {
 
     source.emit('error');
     source.emit('error');
-    await vi.waitFor(() => expect(verifyCurrentSessionFn).toHaveBeenCalledOnce());
-
-    currentTime += 9_999;
-    source.emit('error');
     await Promise.resolve();
     expect(verifyCurrentSessionFn).toHaveBeenCalledOnce();
 
+    currentTime += 9_999;
+    source.emit('error');
+    expect(verifyCurrentSessionFn).toHaveBeenCalledOnce();
+
+    firstVerification.resolve({ userId: 1 });
+    await firstVerification.promise;
+    await flushMicrotasks();
+
     currentTime += 1;
     source.emit('error');
-    await vi.waitFor(() => expect(verifyCurrentSessionFn).toHaveBeenCalledTimes(2));
+    await Promise.resolve();
+    expect(verifyCurrentSessionFn).toHaveBeenCalledTimes(2);
     expect(source.close).not.toHaveBeenCalled();
   });
 
@@ -272,7 +288,8 @@ describe('AI strategy SSE subscription', () => {
     const source = FakeEventSource.instances[0];
 
     source.emit('error');
-    await vi.waitFor(() => expect(verifyCurrentSessionFn).toHaveBeenCalledOnce());
+    await Promise.resolve();
+    expect(verifyCurrentSessionFn).toHaveBeenCalledOnce();
     source.emit('error');
     expect(verifyCurrentSessionFn).toHaveBeenCalledOnce();
 
@@ -295,7 +312,8 @@ describe('AI strategy SSE subscription', () => {
     const source = FakeEventSource.instances[0];
 
     source.emit('error');
-    await vi.waitFor(() => expect(verifyCurrentSessionFn).toHaveBeenCalledOnce());
+    await Promise.resolve();
+    expect(verifyCurrentSessionFn).toHaveBeenCalledOnce();
 
     expect(source.close).not.toHaveBeenCalled();
   });
@@ -317,7 +335,8 @@ describe('AI strategy SSE subscription', () => {
     const progressHandler = source.listeners.get(AI_STRATEGY_EVENT_NAMES.progress);
 
     source.emit('error');
-    await vi.waitFor(() => expect(verificationSignal).toBeDefined());
+    await Promise.resolve();
+    expect(verificationSignal).toBeDefined();
     cleanup();
     progressHandler(event({ strategyCaseId: 123 }));
     pending.reject(new DOMException('Aborted', 'AbortError'));
