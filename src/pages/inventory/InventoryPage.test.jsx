@@ -191,8 +191,8 @@ describe('InventoryPage Integration', () => {
     expect(screen.queryByText('개 SKU')).not.toBeInTheDocument();
 
     // 필터바 컨트롤 확인
-    expect(screen.getByPlaceholderText(/상품명, SKU 코드, 판매처명/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /검색/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/상품명, SKU 코드/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '검색' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '필터 초기화' })).toBeInTheDocument();
 
     // 목록의 주 식별자는 상품명이 아니라 SKU 규격입니다.
@@ -228,6 +228,23 @@ describe('InventoryPage Integration', () => {
     expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
   });
 
+  it('passes the inventory shortage filter from the modal to list and summary requests', async () => {
+    renderWithProviders(<InventoryPage />);
+
+    expect((await screen.findAllByText(/1\.05kg 단품팩/)).length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /상세 필터/ }));
+    const shortageCheckbox = await screen.findByRole('checkbox', { name: '재고 부족 상품 포함여부' });
+    fireEvent.click(shortageCheckbox);
+    fireEvent.click(screen.getByRole('button', { name: /필터 적용하기/ }));
+
+    await waitFor(() => {
+      expect(inventoryApiMock.getInventories.mock.calls.at(-1)?.[0]).toMatchObject({ shortageYn: 'Y' });
+      expect(inventoryApiMock.getInventorySummary.mock.calls.at(-1)?.[0]).toMatchObject({ shortageYn: 'Y' });
+    });
+    expect(screen.getByRole('button', { name: '재고 부족 상품 포함 필터 해제' })).toBeInTheDocument();
+  });
+
   it('keeps the current table visible while a filter refetch is still pending', async () => {
     renderWithProviders(<InventoryPage />);
 
@@ -241,9 +258,9 @@ describe('InventoryPage Integration', () => {
         }),
     );
 
-    const searchInput = screen.getByPlaceholderText(/상품명, SKU 코드, 판매처명/);
+    const searchInput = screen.getByPlaceholderText(/상품명, SKU 코드/);
     fireEvent.change(searchInput, { target: { value: '비비고' } });
-    fireEvent.click(screen.getByRole('button', { name: /검색/i }));
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
 
     await waitFor(() => {
       expect(inventoryApiMock.getInventories.mock.calls.at(-1)?.[0]).toMatchObject({ q: '비비고' });
@@ -268,7 +285,7 @@ describe('InventoryPage Integration', () => {
     await waitFor(() => expect(screen.getByRole('table')).not.toHaveAttribute('aria-busy'));
   });
 
-  it('clears persisted filter query parameters when the inventory page opens', async () => {
+  it('restores persisted filter query parameters on page entry or refresh', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: [
         '/inventory?q=비비고&filterOperator=OR&storageType=FROZEN&riskGrade=DANGER&categoryId=12&shortageYn=Y',
@@ -279,24 +296,28 @@ describe('InventoryPage Integration', () => {
       const latestListParams = inventoryApiMock.getInventories.mock.calls.at(-1)?.[0];
       const latestSummaryParams = inventoryApiMock.getInventorySummary.mock.calls.at(-1)?.[0];
 
-      expect(latestListParams).not.toHaveProperty('q');
-      expect(latestListParams).not.toHaveProperty('filterOperator');
-      expect(latestListParams).not.toHaveProperty('storageType');
-      expect(latestListParams).not.toHaveProperty('riskGrade');
-      expect(latestListParams).not.toHaveProperty('categoryId');
-      expect(latestListParams).not.toHaveProperty('shortageYn');
-      expect(latestSummaryParams).not.toHaveProperty('q');
-      expect(latestSummaryParams).not.toHaveProperty('filterOperator');
-      expect(latestSummaryParams).not.toHaveProperty('storageType');
-      expect(latestSummaryParams).not.toHaveProperty('riskGrade');
-      expect(latestSummaryParams).not.toHaveProperty('categoryId');
-      expect(latestSummaryParams).not.toHaveProperty('shortageYn');
+      expect(latestListParams).toMatchObject({
+        q: '비비고',
+        filterOperator: 'OR',
+        storageType: ['FROZEN'],
+        riskGrade: ['DANGER'],
+        categoryId: '12',
+        shortageYn: 'Y',
+      });
+      expect(latestSummaryParams).toMatchObject({
+        q: '비비고',
+        filterOperator: 'OR',
+        storageType: ['FROZEN'],
+        riskGrade: ['DANGER'],
+        categoryId: '12',
+        shortageYn: 'Y',
+      });
     });
 
-    expect(screen.getByPlaceholderText(/상품명, SKU 코드, 판매처명/)).toHaveValue('');
+    expect(screen.getByPlaceholderText(/상품명, SKU 코드/)).toHaveValue('비비고');
   });
 
-  it('does not restore a persisted OR operator or detailed filters on page entry', async () => {
+  it('restores a persisted OR operator and detailed filters on page entry', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: ['/inventory?filterOperator=OR&storageType=FROZEN&riskGrade=DANGER'],
     });
@@ -304,12 +325,16 @@ describe('InventoryPage Integration', () => {
     await vi.waitFor(() => {
       const listParams = inventoryApiMock.getInventories.mock.calls.at(-1)?.[0];
       const summaryParams = inventoryApiMock.getInventorySummary.mock.calls.at(-1)?.[0];
-      expect(listParams).not.toHaveProperty('filterOperator');
-      expect(listParams).not.toHaveProperty('storageType');
-      expect(listParams).not.toHaveProperty('riskGrade');
-      expect(summaryParams).not.toHaveProperty('filterOperator');
-      expect(summaryParams).not.toHaveProperty('storageType');
-      expect(summaryParams).not.toHaveProperty('riskGrade');
+      expect(listParams).toMatchObject({
+        filterOperator: 'OR',
+        storageType: ['FROZEN'],
+        riskGrade: ['DANGER'],
+      });
+      expect(summaryParams).toMatchObject({
+        filterOperator: 'OR',
+        storageType: ['FROZEN'],
+        riskGrade: ['DANGER'],
+      });
     });
   });
 
@@ -338,10 +363,14 @@ describe('InventoryPage Integration', () => {
     const listParams = inventoryApiMock.getInventories.mock.calls.at(-1)[0];
     const summaryParams = inventoryApiMock.getInventorySummary.mock.calls.at(-1)[0];
 
-    expect(listParams).not.toHaveProperty('filterOperator');
-    expect(listParams).not.toHaveProperty('storageType');
-    expect(summaryParams).not.toHaveProperty('filterOperator');
-    expect(summaryParams).not.toHaveProperty('storageType');
+    expect(listParams).toMatchObject({
+      filterOperator: 'OR',
+      storageType: ['FROZEN'],
+    });
+    expect(summaryParams).toMatchObject({
+      filterOperator: 'OR',
+      storageType: ['FROZEN'],
+    });
     expect(listParams).not.toHaveProperty('regionCode');
     expect(listParams).not.toHaveProperty('assessmentStatus');
     expect(summaryParams).not.toHaveProperty('regionCode');
@@ -509,9 +538,9 @@ describe('InventoryPage Integration', () => {
   it('renders filter empty state when no items match search query', async () => {
     renderWithProviders(<InventoryPage />);
 
-    const searchInput = await screen.findByPlaceholderText(/상품명, SKU 코드, 판매처명/);
+    const searchInput = await screen.findByPlaceholderText(/상품명, SKU 코드/);
     fireEvent.change(searchInput, { target: { value: '존재하지않는상품검색어xyz' } });
-    fireEvent.click(screen.getByRole('button', { name: /검색/i }));
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
 
     expect(await screen.findByText('일치하는 재고가 없습니다')).toBeInTheDocument();
   });

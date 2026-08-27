@@ -8,7 +8,6 @@ import {
 } from '@/entities/inventory/api/inventoryQueries.js';
 import { RESULT_STATE } from '@/entities/inventory/model/inventory.js';
 import {
-  DEFAULT_INVENTORY_FILTERS,
   applyFilterChanges,
   parseInventoryFilters,
   serializeInventoryFilters,
@@ -31,49 +30,16 @@ const LazyStrategyRequestModal = lazy(() =>
   })),
 );
 
-const FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY = Object.freeze([
-  'q',
-  'filterOperator',
-  'channelType',
-  'salesPointCode',
-  'warehouseCode',
-  'regionCode',
-  'categoryId',
-  'categoryIds',
-  'storageType',
-  'riskGrade',
-  'assessmentStatus',
-  'shortageYn',
-]);
-
-const hasPersistedFilterQuery = (searchParams) =>
-  FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY.some((key) => searchParams.has(key));
-
 export default function InventoryPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [initialFilterQuery] = useState(() => (hasPersistedFilterQuery(searchParams) ? searchParams.toString() : null));
   const [selectedSkuItems, setSelectedSkuItems] = useState([]);
   const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
   const selectedSkuCodes = useMemo(() => selectedSkuItems.map((item) => item.skuCode), [selectedSkuItems]);
 
-  // 페이지에 처음 진입할 때만 이전 잔여 필터 query를 1회 정리합니다.
-  useEffect(() => {
-    if (initialFilterQuery == null) return;
-
-    const nextSearchParams = new URLSearchParams(initialFilterQuery);
-    FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY.forEach((key) => nextSearchParams.delete(key));
-
-    setSearchParams(nextSearchParams, { replace: true });
-  }, [initialFilterQuery, setSearchParams]);
-
-  // 1. URL searchParams로부터 필터 상태 파싱 (SSOT)
-  const isInitialResetPending = initialFilterQuery != null && searchParams.toString() === initialFilterQuery;
-  const filters = useMemo(
-    () => (isInitialResetPending ? DEFAULT_INVENTORY_FILTERS : parseInventoryFilters(searchParams)),
-    [isInitialResetPending, searchParams],
-  );
+  // 1. URL searchParams로부터 필터 상태 파싱 (SSOT: 새로고침·뒤로가기·링크공유 시 조건 유지)
+  const filters = useMemo(() => parseInventoryFilters(searchParams), [searchParams]);
   const queryParams = useMemo(() => toInventoryQueryParams(filters), [filters]);
   const listFetchKey = useMemo(() => JSON.stringify(queryParams), [queryParams]);
 

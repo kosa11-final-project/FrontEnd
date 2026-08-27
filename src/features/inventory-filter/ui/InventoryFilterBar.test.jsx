@@ -135,4 +135,58 @@ describe('InventoryFilterBar', () => {
     expect(screen.getByRole('button', { name: '필터 초기화' })).toBeInTheDocument();
     expect(screen.queryByText('모든 조건 지우기')).not.toBeInTheDocument();
   });
+
+  it('shows and clears the inventory shortage filter chip', () => {
+    const onFilterChange = vi.fn();
+
+    render(
+      <InventoryFilterBar
+        filters={{ ...DEFAULT_INVENTORY_FILTERS, shortageYn: 'Y' }}
+        filterOptions={{ channels: [] }}
+        onFilterChange={onFilterChange}
+        onReset={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('재고 부족 상품 포함')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '재고 부족 상품 포함 필터 해제' }));
+
+    expect(onFilterChange).toHaveBeenCalledWith({ shortageYn: '' });
+  });
+
+  it('renders filter preset button and shows "현재 필터 저장하기" when filters are active', () => {
+    const { rerender } = render(
+      <InventoryFilterBar
+        filters={DEFAULT_INVENTORY_FILTERS}
+        filterOptions={{ channels: [] }}
+        onFilterChange={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    // 1층: 최근/저장 필터 버튼 항상 렌더링
+    expect(screen.getByRole('button', { name: /저장된 필터 및 최근 검색 기록 보기/ })).toBeInTheDocument();
+    // 2층: 조건이 없을 때는 현재 필터 저장하기 버튼 없음
+    expect(screen.queryByRole('button', { name: '현재 선택된 필터 조건 저장하기' })).not.toBeInTheDocument();
+
+    // 조건 활성화 (예: 검색어 입력)
+    rerender(
+      <InventoryFilterBar
+        filters={{ ...DEFAULT_INVENTORY_FILTERS, q: '비비고' }}
+        filterOptions={{ channels: [] }}
+        onFilterChange={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    // 2층: 우측 여백에 현재 필터 저장하기 버튼 노출
+    const saveButton = screen.getByRole('button', { name: '현재 선택된 필터 조건 저장하기' });
+    expect(saveButton).toBeInTheDocument();
+
+    // 클릭 시 저장 다이얼로그 모달 오픈
+    fireEvent.click(saveButton);
+    const dialog = screen.getByRole('dialog', { name: /현재 필터 조건 저장/ });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/매일 아침 냉동 결품 모니터링/)).toBeInTheDocument();
+  });
 });
