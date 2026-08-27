@@ -8,7 +8,7 @@ const { getJson, postJson } = vi.hoisted(() => ({
 
 vi.mock('@/shared/api', () => ({ getJson, postJson }));
 
-import { getCurrentUser, login, logout } from './authApi.js';
+import { getCurrentUser, login, logout, verifyCurrentSession } from './authApi.js';
 
 // API 호출과 응답 매핑 검증에만 사용하는 테스트 전용 사용자
 const userResponse = {
@@ -63,6 +63,16 @@ describe('auth API', () => {
       path: 'v1/auth/me',
       signal: undefined,
       skipSessionExpirationHandling: true,
+    });
+  });
+
+  it('verifies the current session without skipping global expiration handling', async () => {
+    getJson.mockResolvedValueOnce(userResponse);
+
+    await expect(verifyCurrentSession()).resolves.toEqual(mappedUser);
+    expect(getJson).toHaveBeenCalledWith({
+      path: 'v1/auth/me',
+      signal: undefined,
     });
   });
 

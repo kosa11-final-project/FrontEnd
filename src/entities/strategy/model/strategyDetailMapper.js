@@ -183,6 +183,9 @@ export function mapAiStrategyDetailResponse(response) {
     caseCode: `#${data.strategyCaseId}`,
     caseName: data.caseName || '이름 없는 AI 전략',
     caseStatus: data.caseStatus,
+    recommendationOutcome: ['OPTIONS_GENERATED', 'MAINTAIN_CURRENT_STATE'].includes(data.recommendationOutcome)
+      ? data.recommendationOutcome
+      : null,
     selectedOptionId: data.selectedOptionId ?? null,
     generationStage: data.generationStage,
     sku: data.sku ?? {

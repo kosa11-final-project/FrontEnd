@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { ArrowRight, ChevronLeft, ChevronRight, Package, SearchNormal } from 'reicon-react';
+import { ArrowRight, ChevronLeft, ChevronRight, InfoCircle, Package, SearchNormal } from 'reicon-react';
 import {
+  aiStrategyDetailQueryOptions,
   aiStrategyListQueryOptions,
+  actionTypeMeta,
   StrategyGenerationProgress,
   StrategyGenerationStatus,
   strategyGenerationStageMeta,
 } from '@/entities/strategy';
+import { StrategyGenerationRetry } from '@/features/strategy-generation-retry';
 import { formatDate, formatDateTime } from '@/shared/lib/format';
 import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, StateView } from '@/shared/ui';
 
@@ -22,6 +25,33 @@ const statusTabs = Object.freeze([
 ]);
 const validStatuses = new Set(statusTabs.map(({ value }) => value));
 const columnHelper = createColumnHelper();
+const MAINTAIN_CURRENT_STATE = 'MAINTAIN_CURRENT_STATE';
+
+function shouldOpenStrategyDrawer(strategy) {
+  return strategy?.caseStatus !== 'GENERATED' || strategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE;
+}
+
+function mapDetailToDrawerStrategy(detail) {
+  if (!detail) return null;
+  return {
+    id: detail.strategyCaseId,
+    strategyNumber: detail.caseCode,
+    strategyName: detail.caseName,
+    caseStatus: detail.caseStatus,
+    generationStage: detail.generationStage,
+    recommendationOutcome: detail.recommendationOutcome,
+    product: {
+      skuId: detail.sku?.skuId ?? null,
+      skuCode: detail.sku?.skuCode || '-',
+      name: detail.sku?.skuName || '상품 정보 없음',
+      imageUrl: detail.sku?.imageUrl ?? null,
+    },
+    createdAt: detail.requestedAt,
+    completedAt: detail.completedAt,
+    resultExpiresAt: detail.resultExpiresAt,
+    failure: detail.failure,
+  };
+}
 
 function ProductThumbnail({ product }) {
   const [failedSrc, setFailedSrc] = useState(null);
@@ -63,7 +93,7 @@ function StrategyProductCell({ product }) {
   );
 }
 
-function DrawerDetails({ strategy }) {
+function DrawerDetails({ strategy, onRetrySucceeded, onNavigateInventory }) {
   const isFailed = strategy.caseStatus === 'GENERATION_FAILED';
   const stageLabel = strategyGenerationStageMeta[strategy.generationStage]?.label ?? '수요예측';
 
@@ -105,18 +135,115 @@ function DrawerDetails({ strategy }) {
           <Alert variant="danger" title="전략 생성에 실패했습니다.">
             {strategy.failure?.summary ?? '실패 사유를 확인하지 못했습니다. 담당자에게 문의해 주세요.'}
           </Alert>
-          <Button type="button" variant="secondary" disabled>
-            다시 생성
-          </Button>
-          <p className="m-0 text-center text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-            재시도 API 연결 후 사용할 수 있습니다.
-          </p>
+          <StrategyGenerationRetry
+            strategyCaseId={strategy.id}
+            caseStatus={strategy.caseStatus}
+            onSucceeded={onRetrySucceeded}
+            onNavigateInventory={onNavigateInventory}
+          />
         </div>
       ) : (
         <Alert variant="info" title={`${stageLabel} 단계가 진행 중입니다.`}>
           현재 진행 상태만 제공하며 예상 완료 시간은 표시하지 않습니다.
         </Alert>
       )}
+    </div>
+  );
+}
+
+function displayList(values, emptyMessage) {
+  return values?.length ? values.join(', ') : emptyMessage;
+}
+
+function displayPeriod(startDate, endDate) {
+  if (!startDate && !endDate) return '미선택 · 전체 예측 기간';
+  return `${startDate ? formatDate(startDate) : '시작일 미지정'} ~ ${endDate ? formatDate(endDate) : '종료일 미지정'}`;
+}
+
+function MaintainCurrentStateDrawerDetails({ strategy, detail }) {
+  const conditions = detail.requestConditions;
+  const strategyTypeLabels = conditions.strategyTypes.map((type) => actionTypeMeta[type]?.label ?? type);
+
+  return (
+    <div className="grid gap-6">
+      <StrategyProductCell product={strategy.product} />
+
+      <div className="flex items-start gap-3 rounded-[var(--radius-panel)] border border-[var(--good-soft)] bg-[var(--good-soft)] p-4">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--card)] text-[color:var(--good)] shadow-sm">
+          <Icon icon={InfoCircle} size={20} aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <Badge variant="good">현상 유지 권장</Badge>
+          <h3 className="mt-3 text-[length:var(--font-size-subtitle2)] font-bold text-[color:var(--text-heading)]">
+            현재 운영 상태를 유지하는 것이 유리합니다.
+          </h3>
+          <p className="mt-2 text-[length:var(--font-size-body-sm)] leading-6 text-[color:var(--text-body)]">
+            {detail.noRecommendation?.message ??
+              '현재 수요예측과 재고 상태에서는 새로운 전략을 실행하는 것보다 현재 운영 상태를 유지하는 편이 유리합니다.'}
+          </p>
+        </div>
+      </div>
+
+      <dl className="grid grid-cols-[112px_1fr] gap-x-4 gap-y-3 rounded-[var(--radius-panel)] bg-[var(--surface-subtle)] p-4 text-[length:var(--font-size-body-sm)]">
+        <dt className="text-[color:var(--text-muted)]">전략 번호</dt>
+        <dd className="m-0 font-mono font-bold text-[color:var(--text-heading)]">{strategy.strategyNumber}</dd>
+        <dt className="text-[color:var(--text-muted)]">생성 완료</dt>
+        <dd className="m-0 text-[color:var(--text-body)]">
+          {formatDateTime(detail.completedAt ?? detail.requestedAt)}
+        </dd>
+        <dt className="text-[color:var(--text-muted)]">결과 만료</dt>
+        <dd className="m-0 text-[color:var(--text-body)]">{formatDateTime(detail.resultExpiresAt)}</dd>
+      </dl>
+
+      {conditions ? (
+        <section aria-labelledby="maintain-request-conditions-title">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3
+              id="maintain-request-conditions-title"
+              className="text-[length:var(--font-size-subtitle2)] font-bold text-[color:var(--text-heading)]"
+            >
+              사용자 요청 조건
+            </h3>
+            <Badge variant="outline">읽기 전용</Badge>
+          </div>
+          <dl className="grid gap-2 rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-[length:var(--font-size-body-sm)]">
+            <div className="grid grid-cols-[112px_1fr] gap-4">
+              <dt className="text-[color:var(--text-muted)]">출발 판매처</dt>
+              <dd className="m-0 font-semibold text-[color:var(--text-heading)]">
+                {conditions.sourceSalesPointName ?? '미선택 · 전체 판매처'}
+              </dd>
+            </div>
+            <div className="grid grid-cols-[112px_1fr] gap-4">
+              <dt className="text-[color:var(--text-muted)]">대상 LOT</dt>
+              <dd className="m-0 text-[color:var(--text-body)]">
+                {displayList(conditions.lotLabels, '미선택 · 전체 LOT')}
+              </dd>
+            </div>
+            <div className="grid grid-cols-[112px_1fr] gap-4">
+              <dt className="text-[color:var(--text-muted)]">후보 판매처</dt>
+              <dd className="m-0 text-[color:var(--text-body)]">
+                {displayList(conditions.candidateSalesPointNames, '미선택 · 전체 판매처')}
+              </dd>
+            </div>
+            <div className="grid grid-cols-[112px_1fr] gap-4">
+              <dt className="text-[color:var(--text-muted)]">전략 범위</dt>
+              <dd className="m-0 text-[color:var(--text-body)]">
+                {displayList(strategyTypeLabels, '미선택 · 전체 전략')}
+              </dd>
+            </div>
+            <div className="grid grid-cols-[112px_1fr] gap-4">
+              <dt className="text-[color:var(--text-muted)]">희망 기간</dt>
+              <dd className="m-0 text-[color:var(--text-body)]">
+                {displayPeriod(conditions.preferredStartDate, conditions.preferredEndDate)}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
+
+      <Alert variant="info" title="실행할 전략 대안이 생성되지 않았습니다.">
+        재고나 판매 조건이 달라진 뒤 필요하면 새로운 AI 전략을 생성해 주세요.
+      </Alert>
     </div>
   );
 }
@@ -257,12 +384,28 @@ export function StrategyGenerationList() {
     }),
     [listQuery.data?.statusCounts],
   );
+  const hasDrawerStrategyId = Number.isInteger(drawerStrategyId) && drawerStrategyId > 0;
+  const pageStrategy = useMemo(() => {
+    if (!hasDrawerStrategyId) return null;
+    return strategies.find((item) => item.id === drawerStrategyId) ?? null;
+  }, [drawerStrategyId, hasDrawerStrategyId, strategies]);
+  const shouldLoadFallbackDetail = hasDrawerStrategyId && !pageStrategy;
+  const fallbackDetailQuery = useQuery({
+    ...aiStrategyDetailQueryOptions(drawerStrategyId),
+    enabled: shouldLoadFallbackDetail,
+  });
   const selectedStrategy = useMemo(() => {
-    if (!Number.isInteger(drawerStrategyId) || drawerStrategyId <= 0) return null;
-
-    const strategy = strategies.find((item) => item.id === drawerStrategyId);
-    return strategy?.caseStatus === 'GENERATED' ? null : (strategy ?? null);
-  }, [drawerStrategyId, strategies]);
+    const strategy = pageStrategy ?? mapDetailToDrawerStrategy(fallbackDetailQuery.data);
+    return shouldOpenStrategyDrawer(strategy) ? strategy : null;
+  }, [fallbackDetailQuery.data, pageStrategy]);
+  const isFallbackDrawerLoading = shouldLoadFallbackDetail && fallbackDetailQuery.isPending;
+  const isFallbackDrawerError = shouldLoadFallbackDetail && fallbackDetailQuery.isError;
+  const isDrawerOpen = Boolean(selectedStrategy) || isFallbackDrawerLoading || isFallbackDrawerError;
+  const shouldLoadMaintainDetail = selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE;
+  const maintainDetailQuery = useQuery({
+    ...aiStrategyDetailQueryOptions(selectedStrategy?.id),
+    enabled: shouldLoadMaintainDetail,
+  });
 
   const updateFilter = useCallback(
     (key, value, { resetPage = true } = {}) => {
@@ -310,7 +453,7 @@ export function StrategyGenerationList() {
   const listPath = `/ai-strategy${searchParams.size ? `?${searchParams.toString()}` : ''}`;
   const handleStrategyAction = useCallback(
     (strategy) => {
-      if (strategy.caseStatus === 'GENERATED') {
+      if (!shouldOpenStrategyDrawer(strategy)) {
         navigate(`/ai-strategy/${strategy.id}`, { state: { from: listPath } });
         return;
       }
@@ -326,6 +469,19 @@ export function StrategyGenerationList() {
     },
     [listPath, navigate, setSearchParams],
   );
+
+  const handleRetrySucceeded = useCallback(
+    (result) => {
+      if (!shouldOpenStrategyDrawer(result)) {
+        navigate(`/ai-strategy/${result.strategyCaseId}`, { replace: true });
+        return;
+      }
+      navigate(`/ai-strategy?drawer=${result.strategyCaseId}`, { replace: true });
+    },
+    [navigate],
+  );
+
+  const handleNavigateInventory = useCallback(() => navigate('/inventory'), [navigate]);
 
   const columns = useMemo(
     () => [
@@ -363,12 +519,30 @@ export function StrategyGenerationList() {
       columnHelper.accessor('caseStatus', {
         header: '상태',
         enableSorting: false,
-        cell: ({ row, getValue }) => (
-          <div className="grid gap-3">
-            <StrategyGenerationStatus status={getValue()} className="w-fit" />
-            <StrategyGenerationProgress status={getValue()} currentStage={row.original.generationStage} />
-          </div>
-        ),
+        cell: ({ row, getValue }) => {
+          if (row.original.recommendationOutcome === MAINTAIN_CURRENT_STATE) {
+            return (
+              <div className="grid gap-3">
+                <Badge variant="good" className="w-fit">
+                  <Icon icon={InfoCircle} size={12} aria-hidden="true" />
+                  현상 유지 권장
+                </Badge>
+                <StrategyGenerationProgress
+                  status={getValue()}
+                  currentStage={row.original.generationStage}
+                  finalStageNotice="실행 대안 없음"
+                />
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid gap-3">
+              <StrategyGenerationStatus status={getValue()} className="w-fit" />
+              <StrategyGenerationProgress status={getValue()} currentStage={row.original.generationStage} />
+            </div>
+          );
+        },
         meta: { width: '250px' },
       }),
       columnHelper.accessor('createdAt', {
@@ -395,9 +569,11 @@ export function StrategyGenerationList() {
         cell: ({ row }) => {
           const strategy = row.original;
           const actionLabel =
-            strategy.caseStatus === 'GENERATED'
-              ? `${strategy.strategyNumber} 비교·시뮬레이션으로 이동`
-              : `${strategy.strategyNumber} 생성 상태 상세 보기`;
+            strategy.recommendationOutcome === MAINTAIN_CURRENT_STATE
+              ? `${strategy.strategyNumber} 현상 유지 권장 결과 보기`
+              : strategy.caseStatus === 'GENERATED'
+                ? `${strategy.strategyNumber} 비교·시뮬레이션으로 이동`
+                : `${strategy.strategyNumber} 생성 상태 상세 보기`;
           return (
             <IconButton
               ref={(node) => {
@@ -493,14 +669,52 @@ export function StrategyGenerationList() {
       )}
 
       <Drawer
-        open={Boolean(selectedStrategy)}
+        open={isDrawerOpen}
         onClose={closeDrawer}
-        title={selectedStrategy?.caseStatus === 'GENERATION_FAILED' ? '생성 실패 상세' : '생성 진행 상세'}
+        title={
+          selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE
+            ? '현상 유지 권장'
+            : selectedStrategy?.caseStatus === 'GENERATION_FAILED'
+              ? '생성 실패 상세'
+              : '생성 진행 상세'
+        }
         description={
           selectedStrategy ? `${selectedStrategy.strategyNumber} · ${formatDate(selectedStrategy.createdAt)}` : ''
         }
       >
-        {selectedStrategy ? <DrawerDetails strategy={selectedStrategy} /> : null}
+        {isFallbackDrawerLoading ? (
+          <StateView state="loading" title="AI 전략 생성 상태를 불러오고 있습니다." />
+        ) : isFallbackDrawerError ? (
+          <Alert variant="danger" title="AI 전략 생성 상태를 불러오지 못했습니다.">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+              <span>서버 연결 상태를 확인한 뒤 다시 시도해 주세요.</span>
+              <Button type="button" variant="secondary" size="sm" onClick={() => fallbackDetailQuery.refetch()}>
+                다시 시도
+              </Button>
+            </div>
+          </Alert>
+        ) : selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE ? (
+          maintainDetailQuery.isPending ? (
+            <StateView state="loading" title="현상 유지 권장 결과를 불러오고 있습니다." />
+          ) : maintainDetailQuery.isError ? (
+            <Alert variant="danger" title="현상 유지 권장 결과를 불러오지 못했습니다.">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                <span>서버 연결 상태를 확인한 뒤 다시 시도해 주세요.</span>
+                <Button type="button" variant="secondary" size="sm" onClick={() => maintainDetailQuery.refetch()}>
+                  다시 시도
+                </Button>
+              </div>
+            </Alert>
+          ) : (
+            <MaintainCurrentStateDrawerDetails strategy={selectedStrategy} detail={maintainDetailQuery.data} />
+          )
+        ) : selectedStrategy ? (
+          <DrawerDetails
+            strategy={selectedStrategy}
+            onRetrySucceeded={handleRetrySucceeded}
+            onNavigateInventory={handleNavigateInventory}
+          />
+        ) : null}
       </Drawer>
     </div>
   );
