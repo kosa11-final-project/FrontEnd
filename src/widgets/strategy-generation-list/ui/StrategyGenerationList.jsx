@@ -4,7 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
 import { ArrowRight, ChevronLeft, ChevronRight, InfoCircle, Package, SearchNormal } from 'reicon-react';
 import {
+  aiStrategyDetailQueryOptions,
   aiStrategyListQueryOptions,
+  actionTypeMeta,
   StrategyGenerationProgress,
   StrategyGenerationStatus,
   strategyGenerationStageMeta,
@@ -23,27 +25,9 @@ const statusTabs = Object.freeze([
 const validStatuses = new Set(statusTabs.map(({ value }) => value));
 const columnHelper = createColumnHelper();
 const MAINTAIN_CURRENT_STATE = 'MAINTAIN_CURRENT_STATE';
-const MAINTAIN_CURRENT_STATE_PREVIEW_CASE_ID = 3961;
 
-function withMaintainCurrentStatePreview(strategies) {
-  return strategies.map((strategy) =>
-    strategy.id === MAINTAIN_CURRENT_STATE_PREVIEW_CASE_ID && strategy.caseStatus === 'GENERATED'
-      ? {
-          ...strategy,
-          recommendationOutcome: MAINTAIN_CURRENT_STATE,
-          recommendationMessage:
-            '현재 수요예측과 재고 상태에서는 새로운 전략을 실행하는 것보다 현재 운영 상태를 유지하는 편이 유리합니다.',
-          requestConditions: {
-            sourceSalesPointName: '더현대 서울 식품관',
-            lotLabels: ['LOT-260826-A'],
-            candidateSalesPointNames: ['그리팅몰', '판교점'],
-            strategyTypeLabels: ['재고 이동', '가격 할인'],
-            preferredStartDate: '2026-08-27',
-            preferredEndDate: '2026-09-10',
-          },
-        }
-      : strategy,
-  );
+function shouldOpenStrategyDrawer(strategy) {
+  return strategy?.caseStatus !== 'GENERATED' || strategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE;
 }
 
 function ProductThumbnail({ product }) {
@@ -144,8 +128,18 @@ function DrawerDetails({ strategy }) {
   );
 }
 
-function MaintainCurrentStateDrawerDetails({ strategy }) {
-  const conditions = strategy.requestConditions;
+function displayList(values, emptyMessage) {
+  return values?.length ? values.join(', ') : emptyMessage;
+}
+
+function displayPeriod(startDate, endDate) {
+  if (!startDate && !endDate) return '미선택 · 전체 예측 기간';
+  return `${startDate ? formatDate(startDate) : '시작일 미지정'} ~ ${endDate ? formatDate(endDate) : '종료일 미지정'}`;
+}
+
+function MaintainCurrentStateDrawerDetails({ strategy, detail }) {
+  const conditions = detail.requestConditions;
+  const strategyTypeLabels = conditions.strategyTypes.map((type) => actionTypeMeta[type]?.label ?? type);
 
   return (
     <div className="grid gap-6">
@@ -161,7 +155,8 @@ function MaintainCurrentStateDrawerDetails({ strategy }) {
             현재 운영 상태를 유지하는 것이 유리합니다.
           </h3>
           <p className="mt-2 text-[length:var(--font-size-body-sm)] leading-6 text-[color:var(--text-body)]">
-            {strategy.recommendationMessage}
+            {detail.noRecommendation?.message ??
+              '현재 수요예측과 재고 상태에서는 새로운 전략을 실행하는 것보다 현재 운영 상태를 유지하는 편이 유리합니다.'}
           </p>
         </div>
       </div>
@@ -171,10 +166,10 @@ function MaintainCurrentStateDrawerDetails({ strategy }) {
         <dd className="m-0 font-mono font-bold text-[color:var(--text-heading)]">{strategy.strategyNumber}</dd>
         <dt className="text-[color:var(--text-muted)]">생성 완료</dt>
         <dd className="m-0 text-[color:var(--text-body)]">
-          {formatDateTime(strategy.completedAt ?? strategy.createdAt)}
+          {formatDateTime(detail.completedAt ?? detail.requestedAt)}
         </dd>
         <dt className="text-[color:var(--text-muted)]">결과 만료</dt>
-        <dd className="m-0 text-[color:var(--text-body)]">{formatDateTime(strategy.resultExpiresAt)}</dd>
+        <dd className="m-0 text-[color:var(--text-body)]">{formatDateTime(detail.resultExpiresAt)}</dd>
       </dl>
 
       {conditions ? (
@@ -191,24 +186,32 @@ function MaintainCurrentStateDrawerDetails({ strategy }) {
           <dl className="grid gap-2 rounded-[var(--radius-panel)] border border-[var(--border)] p-4 text-[length:var(--font-size-body-sm)]">
             <div className="grid grid-cols-[112px_1fr] gap-4">
               <dt className="text-[color:var(--text-muted)]">출발 판매처</dt>
-              <dd className="m-0 font-semibold text-[color:var(--text-heading)]">{conditions.sourceSalesPointName}</dd>
+              <dd className="m-0 font-semibold text-[color:var(--text-heading)]">
+                {conditions.sourceSalesPointName ?? '미선택 · 전체 판매처'}
+              </dd>
             </div>
             <div className="grid grid-cols-[112px_1fr] gap-4">
               <dt className="text-[color:var(--text-muted)]">대상 LOT</dt>
-              <dd className="m-0 text-[color:var(--text-body)]">{conditions.lotLabels.join(', ')}</dd>
+              <dd className="m-0 text-[color:var(--text-body)]">
+                {displayList(conditions.lotLabels, '미선택 · 전체 LOT')}
+              </dd>
             </div>
             <div className="grid grid-cols-[112px_1fr] gap-4">
               <dt className="text-[color:var(--text-muted)]">후보 판매처</dt>
-              <dd className="m-0 text-[color:var(--text-body)]">{conditions.candidateSalesPointNames.join(', ')}</dd>
+              <dd className="m-0 text-[color:var(--text-body)]">
+                {displayList(conditions.candidateSalesPointNames, '미선택 · 전체 판매처')}
+              </dd>
             </div>
             <div className="grid grid-cols-[112px_1fr] gap-4">
               <dt className="text-[color:var(--text-muted)]">전략 범위</dt>
-              <dd className="m-0 text-[color:var(--text-body)]">{conditions.strategyTypeLabels.join(', ')}</dd>
+              <dd className="m-0 text-[color:var(--text-body)]">
+                {displayList(strategyTypeLabels, '미선택 · 전체 전략')}
+              </dd>
             </div>
             <div className="grid grid-cols-[112px_1fr] gap-4">
               <dt className="text-[color:var(--text-muted)]">희망 기간</dt>
               <dd className="m-0 text-[color:var(--text-body)]">
-                {formatDate(conditions.preferredStartDate)} ~ {formatDate(conditions.preferredEndDate)}
+                {displayPeriod(conditions.preferredStartDate, conditions.preferredEndDate)}
               </dd>
             </div>
           </dl>
@@ -346,10 +349,7 @@ export function StrategyGenerationList() {
     [from, query, requestedPage, status, to],
   );
   const listQuery = useQuery(aiStrategyListQueryOptions(apiParams));
-  const strategies = useMemo(
-    () => withMaintainCurrentStatePreview(listQuery.data?.content ?? EMPTY_STRATEGIES),
-    [listQuery.data?.content],
-  );
+  const strategies = listQuery.data?.content ?? EMPTY_STRATEGIES;
   const totalElements = listQuery.data?.totalElements ?? 0;
   const totalPages = Math.max(listQuery.data?.totalPages ?? 0, 1);
   const counts = useMemo(
@@ -365,8 +365,13 @@ export function StrategyGenerationList() {
     if (!Number.isInteger(drawerStrategyId) || drawerStrategyId <= 0) return null;
 
     const strategy = strategies.find((item) => item.id === drawerStrategyId);
-    return strategy?.caseStatus === 'GENERATED' ? null : (strategy ?? null);
+    return shouldOpenStrategyDrawer(strategy) ? (strategy ?? null) : null;
   }, [drawerStrategyId, strategies]);
+  const shouldLoadMaintainDetail = selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE;
+  const maintainDetailQuery = useQuery({
+    ...aiStrategyDetailQueryOptions(selectedStrategy?.id),
+    enabled: shouldLoadMaintainDetail,
+  });
 
   const updateFilter = useCallback(
     (key, value, { resetPage = true } = {}) => {
@@ -414,7 +419,7 @@ export function StrategyGenerationList() {
   const listPath = `/ai-strategy${searchParams.size ? `?${searchParams.toString()}` : ''}`;
   const handleStrategyAction = useCallback(
     (strategy) => {
-      if (strategy.caseStatus === 'GENERATED' && strategy.recommendationOutcome !== MAINTAIN_CURRENT_STATE) {
+      if (!shouldOpenStrategyDrawer(strategy)) {
         navigate(`/ai-strategy/${strategy.id}`, { state: { from: listPath } });
         return;
       }
@@ -631,7 +636,20 @@ export function StrategyGenerationList() {
         }
       >
         {selectedStrategy?.recommendationOutcome === MAINTAIN_CURRENT_STATE ? (
-          <MaintainCurrentStateDrawerDetails strategy={selectedStrategy} />
+          maintainDetailQuery.isPending ? (
+            <StateView state="loading" title="현상 유지 권장 결과를 불러오고 있습니다." />
+          ) : maintainDetailQuery.isError ? (
+            <Alert variant="danger" title="현상 유지 권장 결과를 불러오지 못했습니다.">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                <span>서버 연결 상태를 확인한 뒤 다시 시도해 주세요.</span>
+                <Button type="button" variant="secondary" size="sm" onClick={() => maintainDetailQuery.refetch()}>
+                  다시 시도
+                </Button>
+              </div>
+            </Alert>
+          ) : (
+            <MaintainCurrentStateDrawerDetails strategy={selectedStrategy} detail={maintainDetailQuery.data} />
+          )
         ) : selectedStrategy ? (
           <DrawerDetails strategy={selectedStrategy} />
         ) : null}
