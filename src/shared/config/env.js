@@ -12,4 +12,5 @@ export const env = Object.freeze({
   csrfHeaderName: runtimeEnv.VITE_CSRF_HEADER_NAME || 'X-XSRF-TOKEN',
   requestTimeoutMs: Number(runtimeEnv.VITE_API_TIMEOUT_MS) || 10_000,
   inventoryRequestTimeoutMs: Number(runtimeEnv.VITE_INVENTORY_API_TIMEOUT_MS) || 30_000,
+  strategyPerformanceSyncRequestTimeoutMs: Number(runtimeEnv.VITE_STRATEGY_PERFORMANCE_SYNC_API_TIMEOUT_MS) || 120_000,
 });

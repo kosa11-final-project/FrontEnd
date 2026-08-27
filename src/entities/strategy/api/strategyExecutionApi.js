@@ -1,4 +1,5 @@
-import { getJson } from '@/shared/api';
+import { getJson, postJson, unwrapApiResponse } from '@/shared/api';
+import { env } from '@/shared/config/env.js';
 import { SUPPORTED_ACTION_TYPES } from '../model/strategy.js';
 
 const strategyExecutionPath = 'v1/strategy-executions';
@@ -48,6 +49,14 @@ const normalizeInventoryTransfer = (transfer = {}) => ({
 
 export function mapStrategyExecutionResponse(value = {}) {
   const product = value.product ?? {};
+  const performance = value.performance
+    ? {
+        actualSalesQuantity: value.performance.actualSalesQuantity ?? null,
+        actualRevenue: value.performance.actualRevenue ?? null,
+        actualContributionMargin: value.performance.actualContributionMargin ?? null,
+        actualRemainingQuantity: value.performance.actualRemainingQuantity ?? null,
+      }
+    : null;
   return {
     id: value.id ?? null,
     number: value.number ?? '',
@@ -72,7 +81,7 @@ export function mapStrategyExecutionResponse(value = {}) {
     channelResults: Array.isArray(value.channelResults) ? value.channelResults : [],
     salesDaily: Array.isArray(value.salesDaily) ? value.salesDaily : [],
     salesPointComparison: Array.isArray(value.salesPointComparison) ? value.salesPointComparison : [],
-    performance: value.performance ?? null,
+    performance,
     lastSyncedAt: value.lastSyncedAt ?? null,
   };
 }
@@ -105,4 +114,13 @@ export async function getStrategyExecution(strategyCaseId, signal) {
   const response = await getJson({ path: `${strategyExecutionPath}/${strategyCaseId}`, signal });
   if (!response?.data) throw new Error('전략 실행 정보를 찾을 수 없습니다.');
   return mapStrategyExecutionResponse(response.data);
+}
+
+export async function synchronizeStrategyPerformances(signal) {
+  const response = await postJson({
+    path: `${strategyExecutionPath}/sync`,
+    signal,
+    timeout: env.strategyPerformanceSyncRequestTimeoutMs,
+  });
+  return unwrapApiResponse(response);
 }
