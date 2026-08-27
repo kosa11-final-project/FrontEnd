@@ -20,6 +20,26 @@ describe('strategyStatisticsModel', () => {
     expect(view.current.riskStockReductionQty).toBeGreaterThan(0);
     expect(view.current.avoidedDisposalQty).toBeGreaterThan(0);
     expect(view.current.estimatedLossSavingsAmount).toBeGreaterThan(0);
+    expect(view.beforeAfterComparison).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'risk-stock', label: '위험재고' }),
+        expect.objectContaining({ key: 'disposal-risk', label: '폐기위험 재고' }),
+        expect.objectContaining({ key: 'estimated-loss', label: '추정 손실액' }),
+      ]),
+    );
+    expect(view.locationPerformance).toHaveLength(16);
+    expect(view.scopePerformance).toHaveLength(3);
+    expect(view.scopePerformance).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ scopeType: 'WAREHOUSE', name: '물류센터' }),
+        expect.objectContaining({ scopeType: 'OFFLINE_STORE', name: '오프라인 매장' }),
+        expect.objectContaining({ scopeType: 'ONLINE_STORE', name: '온라인 판매처' }),
+      ]),
+    );
+    expect(view.locationPerformance[0].riskStockReductionRate).toBeGreaterThanOrEqual(
+      view.locationPerformance[1].riskStockReductionRate,
+    );
+    expect(view.enhancementsPreview).toBe(true);
   });
 
   it('복합 액션을 대표 유형으로 나누지 않고 조합 단위로 유지한다', () => {
