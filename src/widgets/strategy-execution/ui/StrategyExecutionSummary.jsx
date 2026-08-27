@@ -15,7 +15,7 @@ export function StrategyExecutionSummary({ strategies }) {
         compact
       />
       <MetricCard
-        label="진행 중 액션 수"
+        label="진행 중 전략 수"
         value={`${summary.inProgressActionCount}건`}
         helper="요청·진행 중"
         icon={Activity}
@@ -23,7 +23,7 @@ export function StrategyExecutionSummary({ strategies }) {
         compact
       />
       <MetricCard
-        label="확인 필요 액션 수"
+        label="확인 필요 전략 수"
         value={`${summary.attentionActionCount}건`}
         helper="부분·실패·차단"
         icon={AlertCircle}
@@ -31,9 +31,9 @@ export function StrategyExecutionSummary({ strategies }) {
         compact
       />
       <MetricCard
-        label="전체 액션 수"
+        label="전체 전략 수"
         value={`${summary.actionCount}건`}
-        helper="지원 액션 4종"
+        helper="지원 전략 4종"
         icon={Layers}
         tone="neutral"
         compact

@@ -9,9 +9,10 @@ export function InventoryOverviewSkeleton() {
           <Skeleton className="block h-5 w-40" />
         </div>
         <Skeleton className="mt-4 block h-10 w-full" />
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Skeleton className="block h-28 w-full" />
-          <Skeleton className="block h-28 w-full" />
+        <div className="mt-4 grid grid-cols-3 gap-1.5">
+          <Skeleton className="block h-20 w-full" />
+          <Skeleton className="block h-20 w-full" />
+          <Skeleton className="block h-20 w-full" />
         </div>
       </div>
 

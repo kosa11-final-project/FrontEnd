@@ -4,9 +4,6 @@ import { Refresh } from 'reicon-react';
 import { Button } from '@/shared/ui/Button.jsx';
 import { toast } from '@/shared/ui/use-toast.js';
 import { formatDateTime } from '@/shared/lib/format';
-import { dashboardKeys, inventoryKeys } from '@/entities/inventory/api/inventoryQueries.js';
-import { riskQueryKeys } from '@/entities/risk/api/riskQueries.js';
-import { statisticsKeys } from '@/entities/statistics/api/statisticsQueries.js';
 import { getInventorySync, retryAfterSeconds, startInventorySync } from '../api/inventorySyncApi.js';
 import {
   ACTIVE_STATUSES,
@@ -228,11 +225,11 @@ export function InventorySyncControl() {
     }
 
     const refreshTimer = window.setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.lists(), refetchType: 'active' });
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.summaries(), refetchType: 'active' });
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.details(), refetchType: 'active' });
-      queryClient.invalidateQueries({ queryKey: inventoryKeys.lots(), refetchType: 'active' });
-      queryClient.invalidateQueries({ queryKey: riskQueryKeys.all, refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'list'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'summary'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'detail'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['inventory', 'lots'], refetchType: 'active' });
+      queryClient.invalidateQueries({ queryKey: ['inventory-risk'], refetchType: 'active' });
       refreshTimersRef.current.delete(refreshKey);
       markRefreshedScope(refreshedRunIdsRef.current, 'inventory', succeededRunId);
     }, inventoryRefreshDelay());
@@ -255,7 +252,7 @@ export function InventorySyncControl() {
       !hasRefreshedScope(refreshedRunIdsRef.current, 'dashboard', succeededRunId)
     ) {
       markRefreshedScope(refreshedRunIdsRef.current, 'dashboard', succeededRunId);
-      queryClient.invalidateQueries({ queryKey: dashboardKeys.snapshot(), refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'snapshot'], refetchType: 'all' });
     }
 
     if (
@@ -263,7 +260,7 @@ export function InventorySyncControl() {
       !hasRefreshedScope(refreshedRunIdsRef.current, 'inventoryStatistics', succeededRunId)
     ) {
       markRefreshedScope(refreshedRunIdsRef.current, 'inventoryStatistics', succeededRunId);
-      queryClient.invalidateQueries({ queryKey: statisticsKeys.all, refetchType: 'all' });
+      queryClient.invalidateQueries({ queryKey: ['statistics'], refetchType: 'all' });
     }
   }, [queryClient, snapshotRefresh, succeededChangedCount, succeededRunId]);
 

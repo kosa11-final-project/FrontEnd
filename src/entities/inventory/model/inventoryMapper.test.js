@@ -25,6 +25,7 @@ describe('Inventory Mapper', () => {
       current_qty: 450,
       available_qty: 420,
       reserved_qty: 30,
+      expected_disposal_qty: 18,
       safety_qty: 100,
       shortage_yn: 'N',
       inventory_fact_state: 'AVAILABLE',
@@ -54,6 +55,7 @@ describe('Inventory Mapper', () => {
     expect(mapped.currentQuantity).toBe(450);
     expect(mapped.availableQuantity).toBe(420);
     expect(mapped.reservedQuantity).toBe(30);
+    expect(mapped.expectedDisposalQuantity).toBe(18);
     expect(mapped.channelName).toBe('현대백화점');
     expect(mapped.storageName).toBe('냉동');
     expect(mapped.riskGrade).toBe('SAFE');
@@ -73,6 +75,7 @@ describe('Inventory Mapper', () => {
     expect(mapped.currentQuantity).toBeNull();
     expect(mapped.availableQuantity).toBeNull();
     expect(mapped.reservedQuantity).toBeNull();
+    expect(mapped.expectedDisposalQuantity).toBeNull();
     expect(mapped.safetyQuantity).toBeNull();
     expect(mapped.sellingPrice).toBeNull();
     expect(mapped.inventoryFactState).toBeNull();
@@ -86,11 +89,13 @@ describe('Inventory Mapper', () => {
       currentQuantity: 0,
       availableQuantity: 0,
       reservedQuantity: 0,
+      expectedDisposalQuantity: 0,
       safetyQuantity: 0,
     });
     expect(zeroMapped.currentQuantity).toBe(0);
     expect(zeroMapped.availableQuantity).toBe(0);
     expect(zeroMapped.reservedQuantity).toBe(0);
+    expect(zeroMapped.expectedDisposalQuantity).toBe(0);
     expect(zeroMapped.safetyQuantity).toBe(0);
   });
 

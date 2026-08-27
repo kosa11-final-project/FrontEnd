@@ -37,8 +37,8 @@ const stateMeta = Object.freeze({
   loading: {
     tone: 'info',
     icon: Refresh,
-    title: '데이터를 불러오는 중입니다.',
-    description: '잠시만 기다려 주세요.',
+    title: null,
+    description: null,
     role: 'status',
   },
   empty: {
@@ -76,12 +76,16 @@ export function StateView({
 }) {
   const meta = stateMeta[state] ?? stateMeta.empty;
   const isLoading = state === 'loading';
+  const resolvedTitle = title ?? meta.title;
+  const resolvedDescription = description ?? meta.description;
+  const hasMessage = Boolean(resolvedTitle || resolvedDescription);
 
   return (
     <div
       role={meta.role}
       aria-live="polite"
       aria-busy={isLoading || undefined}
+      aria-label={isLoading && !hasMessage ? '로딩 중' : undefined}
       className={cn(stateViewVariants({ tone: meta.tone, compact }), className)}
       {...props}
     >
@@ -89,14 +93,20 @@ export function StateView({
         <span className={cn(stateIconVariants({ tone: meta.tone }))}>
           <Icon icon={meta.icon} size={20} className={isLoading ? 'animate-spin' : undefined} aria-hidden="true" />
         </span>
-        <div>
-          <h2 className="text-[length:var(--font-size-subtitle2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
-            {title ?? meta.title}
-          </h2>
-          <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-            {description ?? meta.description}
-          </p>
-        </div>
+        {hasMessage ? (
+          <div>
+            {resolvedTitle ? (
+              <h2 className="text-[length:var(--font-size-subtitle2)] font-[var(--font-weight-bold)] text-[color:var(--text-heading)]">
+                {resolvedTitle}
+              </h2>
+            ) : null}
+            {resolvedDescription ? (
+              <p className="mt-1 text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
+                {resolvedDescription}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {actionLabel && onAction ? (
           <Button variant={state === 'error' ? 'secondary' : 'primary'} size="sm" onClick={onAction}>
             {actionLabel}

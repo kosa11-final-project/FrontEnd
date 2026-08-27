@@ -12,6 +12,7 @@ export const INVENTORY_SORT_FIELDS = [
   'currentQuantity',
   'availableQuantity',
   'reservedQuantity',
+  'expectedDisposalQuantity',
   'riskGrade',
   'shortageYn',
   'nearestExpiryDays',

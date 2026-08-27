@@ -30,21 +30,14 @@ function StrategyExecutionListHarness({ strategies = strategyExecutionFixtures }
 }
 
 describe('strategy execution pages', () => {
-  it('summarizes attention actions and filters the related strategy status', () => {
+  it('renders strategy execution summary metrics', () => {
     renderRoute(<StrategyExecutionListHarness />);
 
-    expect(screen.getByText('확인이 필요한 액션이 3건 있습니다.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'RT 이동 확인 1건' }));
-
-    expect(screen.getByText('프리미엄 오피스 체어 에어')).toBeInTheDocument();
-    expect(screen.queryByText('비비고 왕교자 1.05kg')).not.toBeInTheDocument();
-  });
-
-  it('summarizes the completed strategies when no action needs attention', () => {
-    renderRoute(<StrategyExecutionListHarness strategies={[strategyExecutionFixtures[3]]} />);
-
-    expect(screen.getByText('현재 실행 중이거나 확인이 필요한 액션이 없습니다.')).toBeInTheDocument();
-    expect(screen.getByText('현재 페이지에서 완료 전략 1건을 확인할 수 있습니다.')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '전략 실행 요약' })).toBeInTheDocument();
+    expect(screen.getByText('실행 전략 수')).toBeInTheDocument();
+    expect(screen.getByText('진행 중 전략 수')).toBeInTheDocument();
+    expect(screen.getByText('확인 필요 전략 수')).toBeInTheDocument();
+    expect(screen.getByText('전체 전략 수')).toBeInTheDocument();
   });
 
   it('filters strategies by action type and search', async () => {
@@ -57,7 +50,7 @@ describe('strategy execution pages', () => {
     await user.click(screen.getByRole('option', { name: 'RT 이동' }));
     expect(screen.getByText('프리미엄 오피스 체어 에어')).toBeInTheDocument();
     expect(screen.queryByText('비비고 왕교자 1.05kg')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('전략 번호 또는 상품명 검색'), { target: { value: '없는 전략' } });
+    fireEvent.change(screen.getByLabelText('전략 코드, 상품명 또는 SKU 코드 검색'), { target: { value: '없는 전략' } });
     fireEvent.click(screen.getByRole('button', { name: '검색' }));
     expect(screen.getByText('조건에 맞는 실행 전략이 없습니다.')).toBeInTheDocument();
   });

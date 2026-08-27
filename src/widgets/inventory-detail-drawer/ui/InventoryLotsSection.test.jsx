@@ -37,4 +37,36 @@ describe('InventoryLotsSection', () => {
     expect(screen.getByText('FEFO 1순위')).toBeInTheDocument();
     expect(screen.getByText('개별 LOT 및 FEFO 출고 우선순위')).toBeInTheDocument();
   });
+
+  it('위험 판정 시각을 기준으로 LOT 소비기한 D-day를 표시합니다', () => {
+    render(
+      <InventoryLotsSection
+        selectedSalesPointCode="STORE-A"
+        selectedSalesPoint={{ salesPointName: 'A점' }}
+        referenceDate="2026-08-26"
+        lotsQuery={{
+          data: {
+            items: [
+              {
+                id: 2,
+                lotNumber: 'LOT-SKU002593-01',
+                quantity: 11,
+                availableQuantity: 10,
+                reservedQuantity: 1,
+                receivedDate: '2026-04-24',
+                expiryDate: '2026-10-06',
+                expiryDays: 40,
+                fefoPriority: 1,
+              },
+            ],
+          },
+          isLoading: false,
+          isError: false,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('D-41')).toBeInTheDocument();
+    expect(screen.queryByText('D-40')).not.toBeInTheDocument();
+  });
 });

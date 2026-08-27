@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { AlertCircle, Activity, CheckCircle, InfoCircle } from 'reicon-react';
-import { actionTypeMeta, getExecutionSummary, getStrategyExecutions } from '@/entities/strategy';
+import { InfoCircle } from 'reicon-react';
+import { getStrategyExecutions } from '@/entities/strategy';
 import {
   defaultStrategyExecutionFilters,
   parseStrategyExecutionPage,
@@ -10,7 +10,7 @@ import {
   StrategyExecutionFilters,
   toStrategyExecutionQueryParams,
 } from '@/features/strategy-execution-filter';
-import { Button, Icon, StateView } from '@/shared/ui';
+import { Icon, StateView } from '@/shared/ui';
 import {
   StrategyExecutionCard,
   StrategyExecutionPagination,
@@ -20,86 +20,6 @@ import { ExecutionListSkeleton } from './ui/ExecutionListSkeleton.jsx';
 
 export function ExecutionPageShell({ children }) {
   return <main className="page-shell">{children}</main>;
-}
-
-function StrategySituationSummary({ strategies, filters, onFiltersChange }) {
-  const summary = getExecutionSummary(strategies);
-  const completedCount = strategies.filter((strategy) => strategy.status === 'COMPLETED').length;
-  const attentionActions = strategies.flatMap((strategy) =>
-    strategy.actions.filter((action) => ['PARTIAL', 'BLOCKED', 'FAILED'].includes(action.status)),
-  );
-  const attentionTypeCounts = attentionActions.reduce((counts, action) => {
-    if (action.type) counts.set(action.type, (counts.get(action.type) ?? 0) + 1);
-    return counts;
-  }, new Map());
-  const hasAttention = summary.attentionActionCount > 0;
-  const hasInProgress = summary.inProgressActionCount > 0;
-  const SummaryIcon = hasAttention ? AlertCircle : hasInProgress ? Activity : CheckCircle;
-
-  const applyFilter = (nextFilter) => onFiltersChange({ ...filters, ...nextFilter });
-
-  return (
-    <section
-      aria-label="현재 전략 관제 상황"
-      className={
-        hasAttention
-          ? 'flex flex-col gap-3 rounded-[var(--radius-card)] border border-[color:color-mix(in_srgb,var(--warning)_55%,var(--border))] bg-[var(--warning-soft)] p-3 sm:flex-row sm:items-center sm:justify-between'
-          : 'flex flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] p-3 sm:flex-row sm:items-center sm:justify-between'
-      }
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        <span
-          className={
-            hasAttention
-              ? 'grid size-8 shrink-0 place-items-center rounded-full bg-[var(--warning)] text-[color:var(--color-gray-900)]'
-              : hasInProgress
-                ? 'grid size-8 shrink-0 place-items-center rounded-full bg-[var(--info-soft)] text-[color:var(--info)]'
-                : 'grid size-8 shrink-0 place-items-center rounded-full bg-[var(--good-soft)] text-[color:var(--good)]'
-          }
-          aria-hidden="true"
-        >
-          <Icon icon={SummaryIcon} size={17} />
-        </span>
-        <div className="min-w-0">
-          <strong className="block text-[length:var(--font-size-body)] text-[color:var(--text-heading)]">
-            {hasAttention
-              ? `확인이 필요한 액션이 ${summary.attentionActionCount}건 있습니다.`
-              : hasInProgress
-                ? `현재 진행 중인 액션이 ${summary.inProgressActionCount}건 있습니다.`
-                : '현재 실행 중이거나 확인이 필요한 액션이 없습니다.'}
-          </strong>
-          <p className="mt-0.5 text-[length:var(--font-size-body-sm)] text-[color:var(--text-body)]">
-            {hasAttention || hasInProgress
-              ? `현재 페이지의 전략 ${strategies.length}건을 기준으로 집계했습니다.`
-              : `현재 페이지에서 완료 전략 ${completedCount}건을 확인할 수 있습니다.`}
-          </p>
-        </div>
-      </div>
-      <div className="flex shrink-0 flex-wrap gap-2">
-        {[...attentionTypeCounts].map(([type, count]) => (
-          <Button
-            key={type}
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={() => applyFilter({ actionType: type })}
-          >
-            {actionTypeMeta[type]?.shortLabel ?? '액션'} 확인 {count}건
-          </Button>
-        ))}
-        {!hasAttention && hasInProgress ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            onClick={() => applyFilter({ strategyStatus: 'EXECUTING' })}
-          >
-            실행 중 전략 보기
-          </Button>
-        ) : null}
-      </div>
-    </section>
-  );
 }
 
 function StrategySyncAvailabilityNotice() {
@@ -138,7 +58,6 @@ export function StrategyExecutionListContent({
   return (
     <ExecutionPageShell>
       <div className="space-y-3">
-        <StrategySituationSummary strategies={strategies} filters={filters} onFiltersChange={onFiltersChange} />
         <StrategyExecutionSummary strategies={strategies} />
         <StrategyExecutionFilters filters={filters} resultCount={pagination.totalElements} onChange={onFiltersChange} />
         <StrategySyncAvailabilityNotice />

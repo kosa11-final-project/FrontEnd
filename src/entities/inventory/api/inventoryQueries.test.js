@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  dashboardKeys,
-  dashboardQueryOptions,
   inventoryDetailQueryOptions,
   inventoryFilterOptionsQueryOptions,
   inventoryKeys,
@@ -9,6 +7,7 @@ import {
   inventoryLotsQueryOptions,
   inventorySummaryQueryOptions,
 } from './inventoryQueries.js';
+import { dashboardKeys, dashboardQueryOptions } from './dashboardQueries.js';
 
 describe('inventoryQueries', () => {
   it('builds canonical query keys with list params and detail identifiers', () => {

@@ -1,9 +1,9 @@
 import { getInventoryRisk } from './riskApi.js';
 
-export const riskQueryKeys = {
+export const riskQueryKeys = Object.freeze({
   all: ['inventory-risk'],
-  detail: (skuCode, salesPointCode) => ['inventory-risk', 'detail', skuCode, salesPointCode],
-};
+  detail: (skuCode, salesPointCode) => [...riskQueryKeys.all, 'detail', skuCode, salesPointCode],
+});
 
 /**
  * SKU × 판매처 위험 평가 쿼리 옵션
