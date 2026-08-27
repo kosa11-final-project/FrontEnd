@@ -11,6 +11,7 @@ import {
   StrategyGenerationStatus,
   strategyGenerationStageMeta,
 } from '@/entities/strategy';
+import { StrategyGenerationRetry } from '@/features/strategy-generation-retry';
 import { formatDate, formatDateTime } from '@/shared/lib/format';
 import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, StateView } from '@/shared/ui';
 
@@ -70,7 +71,7 @@ function StrategyProductCell({ product }) {
   );
 }
 
-function DrawerDetails({ strategy }) {
+function DrawerDetails({ strategy, onRetrySucceeded, onNavigateInventory }) {
   const isFailed = strategy.caseStatus === 'GENERATION_FAILED';
   const stageLabel = strategyGenerationStageMeta[strategy.generationStage]?.label ?? '수요예측';
 
@@ -112,12 +113,12 @@ function DrawerDetails({ strategy }) {
           <Alert variant="danger" title="전략 생성에 실패했습니다.">
             {strategy.failure?.summary ?? '실패 사유를 확인하지 못했습니다. 담당자에게 문의해 주세요.'}
           </Alert>
-          <Button type="button" variant="secondary" disabled>
-            다시 생성
-          </Button>
-          <p className="m-0 text-center text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
-            재시도 API 연결 후 사용할 수 있습니다.
-          </p>
+          <StrategyGenerationRetry
+            strategyCaseId={strategy.id}
+            caseStatus={strategy.caseStatus}
+            onSucceeded={onRetrySucceeded}
+            onNavigateInventory={onNavigateInventory}
+          />
         </div>
       ) : (
         <Alert variant="info" title={`${stageLabel} 단계가 진행 중입니다.`}>
@@ -436,6 +437,15 @@ export function StrategyGenerationList() {
     [listPath, navigate, setSearchParams],
   );
 
+  const handleRetrySucceeded = useCallback(
+    (result) => {
+      navigate(`/ai-strategy?drawer=${result.strategyCaseId}`, { replace: true });
+    },
+    [navigate],
+  );
+
+  const handleNavigateInventory = useCallback(() => navigate('/inventory'), [navigate]);
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('strategyNumber', {
@@ -651,7 +661,11 @@ export function StrategyGenerationList() {
             <MaintainCurrentStateDrawerDetails strategy={selectedStrategy} detail={maintainDetailQuery.data} />
           )
         ) : selectedStrategy ? (
-          <DrawerDetails strategy={selectedStrategy} />
+          <DrawerDetails
+            strategy={selectedStrategy}
+            onRetrySucceeded={handleRetrySucceeded}
+            onNavigateInventory={handleNavigateInventory}
+          />
         ) : null}
       </Drawer>
     </div>
