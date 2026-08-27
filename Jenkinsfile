@@ -20,8 +20,8 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         AWS_ACCOUNT_ID = '143924590050'
 
-        FRONTEND_BUCKET = 'stockfit-frontend-prod-7'
-        CLOUDFRONT_DISTRIBUTION_ID = 'E226SCR3XTL2OH'
+        FRONTEND_BUCKET = credentials('stockfit-frontend-s3-bucket')
+        CLOUDFRONT_DISTRIBUTION_ID = credentials('stockfit-cloudfront-distribution-id')
 
         VITE_API_BASE_URL = 'https://api.stockfit.win/api/'
         VITE_API_TIMEOUT_MS = '10000'

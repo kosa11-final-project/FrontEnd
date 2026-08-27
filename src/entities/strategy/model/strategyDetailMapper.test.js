@@ -41,6 +41,7 @@ function detailResponse() {
       caseName: '떡볶이 재고 전략',
       caseStatus: 'GENERATED',
       generationStage: 'COMPARISON_READY',
+      recommendationOutcome: 'OPTIONS_GENERATED',
       sku: {
         skuId: 10,
         skuCode: 'SKU-10',
@@ -159,6 +160,7 @@ describe('AI strategy detail mapper', () => {
     expect(result).toMatchObject({
       strategyCaseId: 123,
       caseCode: '#123',
+      recommendationOutcome: 'OPTIONS_GENERATED',
       requestedBy: { userId: 7, userName: '이주영' },
       requestConditions: {
         sourceSalesPointName: '목동점',
@@ -205,6 +207,25 @@ describe('AI strategy detail mapper', () => {
       advantage: '판교점의 판매 기회를 활용합니다.',
       caution: '목동점 출고 전 재고를 확인해야 합니다.',
       constraints: '전략 시작일까지 대상 재고가 유지되는 것으로 계산했습니다.',
+    });
+  });
+
+  it('maps maintain-current-state detail responses without strategy options', () => {
+    const response = detailResponse();
+    response.data.recommendationOutcome = 'MAINTAIN_CURRENT_STATE';
+    response.data.result.options = [];
+    response.data.result.noRecommendation = {
+      code: 'MAINTAIN_CURRENT_STATE',
+      message: '현재 상태 유지가 유리합니다.',
+    };
+
+    expect(mapAiStrategyDetailResponse(response)).toMatchObject({
+      recommendationOutcome: 'MAINTAIN_CURRENT_STATE',
+      options: [],
+      noRecommendation: {
+        code: 'MAINTAIN_CURRENT_STATE',
+        message: '현재 상태 유지가 유리합니다.',
+      },
     });
   });
 

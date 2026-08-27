@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { authKeys } from '@/entities/auth';
+import { notificationKeys } from '@/entities/notification';
 import { StateView } from '@/shared/ui';
 import { AppHeader } from './AppHeader.jsx';
 import AppSidebar from './AppSidebar.jsx';
@@ -31,6 +32,8 @@ function AuthenticatedStory({ children }) {
       },
     });
     client.setQueryData(authKeys.currentUser(), storyUser);
+    client.setQueryData(notificationKeys.list(), []);
+    client.setQueryData(notificationKeys.unreadCount(), 0);
     return client;
   });
 

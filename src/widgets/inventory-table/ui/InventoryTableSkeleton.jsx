@@ -44,6 +44,12 @@ export function InventoryTableDesktopBodySkeleton({ rowCount = 8 }) {
               <Skeleton className="block h-3 w-12 rounded bg-[#F3F4F6] motion-reduce:animate-none" />
             </div>
           </td>
+          <td className="px-4 py-4 text-right">
+            <div className="ml-auto flex flex-col items-end gap-1">
+              <Skeleton className="block h-5 w-16 rounded bg-[#E5E7EB] motion-reduce:animate-none" />
+              <Skeleton className="block h-3 w-14 rounded bg-[#F3F4F6] motion-reduce:animate-none" />
+            </div>
+          </td>
           <td className="px-4 py-4 text-center">
             <Skeleton className="mx-auto block h-5 w-14 rounded-full bg-[#F3F4F6] motion-reduce:animate-none" />
           </td>
@@ -88,8 +94,10 @@ export function InventoryTableMobileBodySkeleton({ rowCount = 20 }) {
               <Skeleton className="block h-5 w-14 rounded-md bg-[#F3F4F6] motion-reduce:animate-none" />
               <Skeleton className="block h-5 w-14 rounded-md bg-[#F3F4F6] motion-reduce:animate-none" />
             </div>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-baseline gap-1.5">
               <Skeleton className="block h-4 w-16 rounded bg-[#E5E7EB] motion-reduce:animate-none" />
+              <Skeleton className="block h-4 w-16 rounded bg-[#F3F4F6] motion-reduce:animate-none" />
+              <Skeleton className="block h-4 w-16 rounded bg-[#F3F4F6] motion-reduce:animate-none" />
             </div>
           </div>
         </div>

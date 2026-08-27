@@ -7,7 +7,7 @@ import { UrgentSkuList } from '@/widgets/urgent-skus/ui/UrgentSkuList.jsx';
 
 export function DashboardOperationsPanel({ accordionResetKey = 0, selectedSalesPoint, urgentSkus, riskSalesPoints }) {
   const showUrgentSection = Boolean(selectedSalesPoint);
-  const accordionDefaultValue = accordionResetKey > 0 ? [] : showUrgentSection ? ['urgent'] : ['risk'];
+  const accordionDefaultValue = accordionResetKey > 0 ? [] : showUrgentSection ? ['urgent', 'risk'] : ['risk'];
   const urgentDescription = selectedSalesPoint
     ? `${selectedSalesPoint.name} 기준 · 위험등급·예상 폐기수량 기준 우선 조치`
     : '판매처를 선택하면 해당 판매처의 긴급 처리 대상을 표시합니다.';
@@ -60,7 +60,7 @@ export function DashboardOperationsPanel({ accordionResetKey = 0, selectedSalesP
           <AccordionItem value="risk">
             <AccordionTrigger>
               <span className="min-w-0">
-                <span className="flex items-center gap-2 text-[17px] font-[var(--font-weight-bold)] leading-[var(--line-height-heading)] text-[color:var(--text-heading)]">
+                <span className="flex items-center gap-2 whitespace-nowrap text-[15px] font-[var(--font-weight-bold)] leading-tight text-[color:var(--text-heading)] sm:text-[17px] sm:leading-[var(--line-height-heading)]">
                   <Icon icon={Store} size={18} className="shrink-0 text-[color:var(--danger)]" aria-hidden="true" />
                   위험재고 보유 판매처 TOP 10
                 </span>

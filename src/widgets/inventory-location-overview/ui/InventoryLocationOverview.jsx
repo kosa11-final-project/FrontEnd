@@ -67,7 +67,9 @@ function getLocationDetailItems(location, viewMode) {
 
 function LocationMetrics({ className, compact = false, layout = 'default', location, viewMode }) {
   return (
-    <dl className={cn('grid gap-2', layout === 'dock' ? 'grid-cols-5' : 'grid-cols-2', className)}>
+    <dl
+      className={cn('grid gap-2', layout === 'dock' ? 'grid-cols-5' : 'grid-cols-1 min-[360px]:grid-cols-2', className)}
+    >
       {getLocationDetailItems(location, viewMode).map((item) => (
         <div
           key={item.label}
@@ -77,12 +79,22 @@ function LocationMetrics({ className, compact = false, layout = 'default', locat
             compact ? 'min-h-10 px-2.5 py-2' : 'min-h-11 px-3 py-2.5',
           )}
         >
-          <dt className="whitespace-nowrap text-[length:var(--font-size-meta)] font-[var(--font-weight-medium)] text-[color:var(--text-body)]">
+          <dt
+            className={cn(
+              'font-[var(--font-weight-medium)] text-[color:var(--text-body)]',
+              layout === 'dock'
+                ? 'break-keep text-center text-[10px] leading-tight lg:text-[length:var(--font-size-meta)]'
+                : 'whitespace-nowrap text-[length:var(--font-size-meta)]',
+            )}
+          >
             {item.label}
           </dt>
           <dd
             className={cn(
-              'whitespace-nowrap tabular-nums text-[length:var(--font-size-body)] font-[var(--font-weight-bold)]',
+              'whitespace-nowrap tabular-nums font-[var(--font-weight-bold)]',
+              layout === 'dock'
+                ? 'text-[11px] lg:text-[length:var(--font-size-body)]'
+                : 'text-[length:var(--font-size-body)]',
               detailToneClasses[item.tone],
             )}
           >
@@ -94,29 +106,31 @@ function LocationMetrics({ className, compact = false, layout = 'default', locat
   );
 }
 
-function ViewModeButton({ active, count, disabled = false, icon, label, onClick }) {
+function ViewModeButton({ active, count, disabled = false, icon, id, label, onClick }) {
   return (
     <button
       type="button"
       role="tab"
+      id={id}
       aria-selected={active}
+      aria-controls="inventory-location-tabpanel"
       disabled={disabled}
       className={cn(
-        'group inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-control)] px-3 text-[13px] font-[var(--font-weight-bold)] transition-colors',
+        'group inline-flex min-h-10 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-control)] px-1 text-[11px] font-[var(--font-weight-bold)] transition-colors xl:flex-none xl:shrink-0 xl:justify-start xl:gap-2 xl:px-3 xl:text-[13px]',
         active
           ? 'bg-[var(--primary-strong)] text-[color:var(--text-inverse)] shadow-[var(--shadow-soft)]'
           : 'text-[color:var(--text-body)] hover:bg-[var(--primary-soft)] hover:text-[color:var(--primary-strong)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent',
       )}
       onClick={onClick}
     >
-      <Icon icon={icon} size={14} aria-hidden="true" />
+      <Icon icon={icon} size={14} className="hidden shrink-0 xl:block" aria-hidden="true" />
       {label}
       <span
         className={cn(
-          'rounded-full px-1.5 py-0.5 text-[11px]',
+          'rounded-full px-1 py-0.5 text-[10px] xl:px-1.5 xl:text-[11px]',
           active
-            ? 'bg-white/18 text-white'
-            : 'bg-[var(--surface)] text-[color:var(--text-muted)] group-hover:bg-white/70 group-hover:text-[color:var(--primary-strong)]',
+            ? 'bg-white text-[var(--primary-strong)] font-bold'
+            : 'bg-[var(--surface)] text-[color:var(--text-body)] font-medium group-hover:bg-white/90 group-hover:text-[color:var(--primary-strong)]',
         )}
       >
         {count}
@@ -195,7 +209,7 @@ function SceneTotalSummary({ meta, totalAvailableStock, totalNearExpiryStock }) 
   return (
     <aside
       aria-label={meta.totalLabel}
-      className="pointer-events-none absolute right-3 top-3 z-[2000] hidden min-w-[292px] grid-cols-2 items-stretch overflow-hidden rounded-[var(--radius-panel)] border border-white/85 bg-white/95 shadow-[0_12px_28px_rgba(21,70,53,0.13)] backdrop-blur-md md:grid"
+      className="pointer-events-none absolute right-3 top-3 z-20 hidden min-w-[292px] grid-cols-2 items-stretch overflow-hidden rounded-[var(--radius-panel)] border border-white/85 bg-white/95 shadow-[0_12px_28px_rgba(21,70,53,0.13)] backdrop-blur-md md:grid"
     >
       <div className="px-3 py-2.5">
         <span className="block text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">전체 가용수량</span>
@@ -221,7 +235,7 @@ function SceneDock({ location, meta, viewMode }) {
       : location.address || location.description || '주소 정보 없음';
 
   return (
-    <aside className="pointer-events-none absolute bottom-4 left-4 right-4 z-[2000] hidden grid-cols-[minmax(230px,1fr)_minmax(0,3fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/95 p-3 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid">
+    <aside className="pointer-events-none absolute bottom-4 left-4 right-4 z-20 hidden grid-cols-[minmax(230px,1fr)_minmax(0,3fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/95 p-3 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid">
       <div className="flex min-w-0 items-center gap-3 border-r border-[var(--border)] pr-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
           <Icon icon={meta.icon} size={18} aria-hidden="true" />
@@ -383,11 +397,12 @@ export function InventoryLocationOverview({
           <div
             role="tablist"
             aria-label="재고 위치 유형"
-            className="flex w-fit max-w-full flex-nowrap gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1"
+            className="flex w-full max-w-full flex-nowrap gap-1 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface-subtle)] p-1 xl:w-fit"
           >
             {Object.entries(locationGroups).map(([mode, group]) => (
               <ViewModeButton
                 key={mode}
+                id={`tab-${mode}`}
                 active={viewMode === mode}
                 count={group.length}
                 disabled={group.length === 0}
@@ -400,7 +415,12 @@ export function InventoryLocationOverview({
         </CardHeader>
 
         {locations.length > 0 ? (
-          <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
+          <div
+            role="tabpanel"
+            id="inventory-location-tabpanel"
+            aria-labelledby={`tab-${viewMode}`}
+            className="flex min-h-0 flex-1 flex-col p-3 sm:p-4"
+          >
             <MobileLocationList
               activeLocationId={activeLocation?.id}
               locations={locations}
@@ -431,7 +451,7 @@ export function InventoryLocationOverview({
                 />
               )}
 
-              <div className="pointer-events-none absolute left-3 top-3 z-[2000] flex max-w-[calc(100%_-_24px)] items-center rounded-full border border-white/80 bg-white/95 px-3 py-1.5 shadow-[var(--shadow-soft)] backdrop-blur-sm">
+              <div className="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[calc(100%_-_24px)] items-center rounded-full border border-white/80 bg-white/95 px-3 py-1.5 shadow-[var(--shadow-soft)] backdrop-blur-sm">
                 <span className="text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] tracking-[0.04em] text-[color:var(--primary-strong)]">
                   {meta.sceneLabel}
                 </span>
@@ -448,7 +468,7 @@ export function InventoryLocationOverview({
 
               {viewMode === 'stores' ? (
                 <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 z-[1500] h-5 bg-[#edf7f4]"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-5 bg-[#edf7f4]"
                   aria-hidden="true"
                 />
               ) : null}

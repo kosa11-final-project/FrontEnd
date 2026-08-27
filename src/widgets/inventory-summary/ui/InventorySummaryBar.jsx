@@ -49,11 +49,11 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
         : 0;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {/* 1. 총 현재고 */}
-      <div className="group relative flex h-[156px] flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-200">
+      <div className="group relative flex h-[156px] min-w-0 flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">총 현재고</span>
+          <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wider text-gray-500">총 현재고</span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-[#1E8251] ring-1 ring-emerald-100/80 transition-transform duration-200 group-hover:scale-110">
             <Package size={19} />
           </div>
@@ -66,8 +66,8 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
               {formatQuantity(totalCurrentQuantity)}
             </div>
           )}
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100 min-h-[26px]">
-            <span>출고예정 / 예약</span>
+          <div className="mt-2 flex min-w-0 items-center justify-between gap-2 border-t border-gray-100 pt-1.5 text-xs text-gray-500">
+            <span className="whitespace-nowrap">출고예정 / 예약</span>
             {isLoading ? (
               <div className="h-4 w-16 animate-pulse rounded bg-[#F3F4F6]" />
             ) : (
@@ -78,9 +78,11 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
       </div>
 
       {/* 2. 총 가용수량 */}
-      <div className="group relative flex h-[156px] flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-teal-200">
+      <div className="group relative flex h-[156px] min-w-0 flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">총 가용수량</span>
+          <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wider text-gray-500">
+            총 가용수량
+          </span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 ring-1 ring-teal-100/80 transition-transform duration-200 group-hover:scale-110">
             <CheckCircle size={19} />
           </div>
@@ -93,8 +95,8 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
               {formatQuantity(totalAvailableQuantity)}
             </div>
           )}
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100 min-h-[26px]">
-            <span>실 가용률</span>
+          <div className="mt-2 flex min-w-0 items-center justify-between gap-2 border-t border-gray-100 pt-1.5 text-xs text-gray-500">
+            <span className="whitespace-nowrap">실 가용률</span>
             {isLoading ? (
               <div className="h-4 w-20 animate-pulse rounded bg-[#F3F4F6]" />
             ) : (
@@ -115,9 +117,11 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
       </div>
 
       {/* 3. 안전재고 미달 SKU */}
-      <div className="group relative flex h-[156px] flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-amber-200">
+      <div className="group relative flex h-[156px] min-w-0 flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-md">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">안전재고 미달 SKU</span>
+          <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wider text-gray-500">
+            안전재고 미달 SKU
+          </span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-100/80 transition-transform duration-200 group-hover:scale-110">
             <Warning size={19} />
           </div>
@@ -131,21 +135,25 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
               <span className="text-sm font-semibold text-gray-500">개</span>
             </div>
           )}
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-500 pt-1.5 border-t border-gray-100 min-h-[26px]">
-            <span>재고 보충 필요</span>
+          <div className="mt-2 flex min-w-0 items-center justify-between gap-2 border-t border-gray-100 pt-1.5 text-xs text-gray-500">
+            <span className="whitespace-nowrap">재고 보충 필요</span>
             {isLoading ? (
               <div className="h-4 w-20 animate-pulse rounded bg-[#F3F4F6]" />
             ) : (
-              <span className="font-bold text-amber-900">{underSafetyCount > 0 ? '긴급 점검 권고' : '정상 유지'}</span>
+              <span className="whitespace-nowrap font-bold text-amber-900">
+                {underSafetyCount > 0 ? '긴급 점검 권고' : '정상 유지'}
+              </span>
             )}
           </div>
         </div>
       </div>
 
       {/* 4. 위험, 주의 SKU 관제 */}
-      <div className="group relative flex h-[156px] flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-rose-200">
+      <div className="group relative flex h-[156px] min-w-0 flex-col justify-between rounded-2xl border border-gray-200/90 bg-white p-5 shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-md">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">위험, 주의 SKU 관제</span>
+          <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wider text-gray-500">
+            위험, 주의 SKU 관제
+          </span>
           <div className="flex size-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 ring-1 ring-rose-100/80 transition-transform duration-200 group-hover:scale-110">
             <Danger size={19} />
           </div>
@@ -159,7 +167,7 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
               <span className="text-sm font-semibold text-gray-500">건</span>
             </div>
           )}
-          <div className="mt-2 flex items-center justify-between text-xs pt-1.5 border-t border-gray-100 min-h-[26px]">
+          <div className="mt-2 flex min-w-0 flex-nowrap items-center justify-between gap-1.5 border-t border-gray-100 pt-1.5 text-xs">
             {isLoading ? (
               <div className="flex gap-2">
                 <div className="h-5 w-14 animate-pulse rounded-full bg-[#E5E7EB]" />
@@ -167,10 +175,10 @@ export function InventorySummaryBar({ summary, isLoading, isError, error, onRetr
               </div>
             ) : (
               <>
-                <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 font-bold text-rose-800 border border-rose-200/80 tabular-nums">
+                <span className="inline-flex items-center whitespace-nowrap rounded-full border border-rose-200/80 bg-rose-50 px-2 py-0.5 font-bold tabular-nums text-rose-800">
                   위험 {dangerRiskCount}
                 </span>
-                <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 font-bold text-amber-900 border border-amber-200/80 tabular-nums">
+                <span className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-200/80 bg-amber-50 px-2 py-0.5 font-bold tabular-nums text-amber-900">
                   주의 {cautionRiskCount}
                 </span>
               </>

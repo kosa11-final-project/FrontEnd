@@ -16,6 +16,9 @@ describe('riskMapper', () => {
       safetyGapQty: 0,
       projectedD7: 60,
       safetyStockQty: 30,
+      expectedDisposalQty30: 13,
+      expectedDisposalRate30: 11.82,
+      nearestSaleEndDays: 11,
       nearestExpiryDays: 22,
       maxHoldingDays: 14,
       stockCoverageDays: 37.5,
@@ -39,6 +42,9 @@ describe('riskMapper', () => {
     expect(result.dailySalesVelocity).toBeUndefined();
     expect(result.stockCoverageDays).toBe(37.5);
     expect(result.shortageYn).toBe('Y');
+    expect(result.expectedDisposalQty30).toBe(13);
+    expect(result.expectedDisposalRate30).toBe(11.82);
+    expect(result.nearestSaleEndDays).toBe(11);
     expect(result.nearestExpiryDays).toBe(22);
     expect(result.reasons).toHaveLength(1);
   });

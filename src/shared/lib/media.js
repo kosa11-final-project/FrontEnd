@@ -11,10 +11,11 @@ export function getImageThumbnailUrl(src) {
 
   try {
     const url = new URL(src, 'http://localhost');
-    if (url.hostname !== NAVER_PRODUCT_IMAGE_HOST) return src;
-
-    url.searchParams.set('type', 'f100');
-    return url.toString();
+    if (url.hostname === NAVER_PRODUCT_IMAGE_HOST) {
+      url.searchParams.set('type', 'f100');
+      return url.toString();
+    }
+    return src;
   } catch {
     return src;
   }

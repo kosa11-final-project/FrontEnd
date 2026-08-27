@@ -1,18 +1,46 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { currentUserQueryOptions } from '@/entities/auth';
+import { currentUserQueryOptions } from '@/entities/auth/api/authQueries.js';
 import { StateView } from '@/shared/ui/StateView.jsx';
-import { InventoryPageSkeleton } from '@/pages/inventory/ui/InventoryPageSkeleton.jsx';
-import { DashboardSkeleton } from '@/pages/dashboard/ui/DashboardSkeleton.jsx';
-import { StatisticsSkeleton } from '@/pages/statistics/ui/StatisticsSkeleton.jsx';
-import { ExecutionListSkeleton } from '@/pages/execution/ui/ExecutionListSkeleton.jsx';
+
+const LazyInventoryPageSkeleton = lazy(() =>
+  import('@/pages/inventory/ui/InventoryPageSkeleton.jsx').then((module) => ({
+    default: module.InventoryPageSkeleton,
+  })),
+);
+const LazyDashboardSkeleton = lazy(() =>
+  import('@/pages/dashboard/ui/DashboardSkeleton.jsx').then((module) => ({
+    default: module.DashboardSkeleton,
+  })),
+);
+const LazyStatisticsSkeleton = lazy(() =>
+  import('@/pages/statistics/ui/StatisticsSkeleton.jsx').then((module) => ({
+    default: module.StatisticsSkeleton,
+  })),
+);
+const LazyExecutionListSkeleton = lazy(() =>
+  import('@/pages/execution/ui/ExecutionListSkeleton.jsx').then((module) => ({
+    default: module.ExecutionListSkeleton,
+  })),
+);
 
 function getAuthSkeleton(pathname) {
-  if (pathname.startsWith('/inventory')) return <InventoryPageSkeleton />;
-  if (pathname.startsWith('/dashboard')) return <DashboardSkeleton />;
-  if (pathname.startsWith('/statistics')) return <StatisticsSkeleton />;
-  if (pathname.startsWith('/execution')) return <ExecutionListSkeleton />;
-  return <InventoryPageSkeleton />;
+  const Skeleton = pathname.startsWith('/inventory')
+    ? LazyInventoryPageSkeleton
+    : pathname.startsWith('/dashboard')
+      ? LazyDashboardSkeleton
+      : pathname.startsWith('/statistics')
+        ? LazyStatisticsSkeleton
+        : pathname.startsWith('/execution')
+          ? LazyExecutionListSkeleton
+          : LazyInventoryPageSkeleton;
+
+  return (
+    <Suspense fallback={null}>
+      <Skeleton />
+    </Suspense>
+  );
 }
 
 /**

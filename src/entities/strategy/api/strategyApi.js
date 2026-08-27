@@ -41,6 +41,39 @@ export async function createAiStrategyCase(payload, signal) {
   return data;
 }
 
+const retryDateAdjustmentPolicies = new Set(['REJECT', 'ADJUST_TO_TODAY']);
+
+export async function retryAiStrategyGeneration({ strategyCaseId, dateAdjustmentPolicy }, signal) {
+  if (!Number.isInteger(Number(strategyCaseId)) || Number(strategyCaseId) <= 0) {
+    throw new Error('재시도할 AI 전략 정보를 확인할 수 없습니다.');
+  }
+  if (!retryDateAdjustmentPolicies.has(dateAdjustmentPolicy)) {
+    throw new Error('AI 전략 재시도 날짜 정책이 올바르지 않습니다.');
+  }
+
+  const response = await postJson({
+    path: `${aiStrategyPath}/${strategyCaseId}/retries`,
+    body: { dateAdjustmentPolicy },
+    signal,
+  });
+  const data = response?.data;
+
+  if (
+    !Number.isInteger(data?.originalStrategyCaseId) ||
+    !Number.isInteger(data?.strategyCaseId) ||
+    !Number.isInteger(data?.retryParentStrategyCaseId) ||
+    !data?.caseName ||
+    !data?.caseStatus ||
+    typeof data?.reusedExistingRetry !== 'boolean' ||
+    !data?.dateAdjustment ||
+    typeof data.dateAdjustment.applied !== 'boolean'
+  ) {
+    throw new Error('AI 전략 재시도 요청 결과를 확인할 수 없습니다.');
+  }
+
+  return data;
+}
+
 export async function getAiStrategyCase(strategyCaseId, signal) {
   const response = await getJson({
     path: `${aiStrategyPath}/${strategyCaseId}`,

@@ -2,11 +2,6 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout.jsx';
 import AuthGuard from './AuthGuard.jsx';
-import { StateView } from '@/shared/ui/StateView.jsx';
-import { DashboardSkeleton } from '@/pages/dashboard/ui/DashboardSkeleton.jsx';
-import { InventoryPageSkeleton } from '@/pages/inventory/ui/InventoryPageSkeleton.jsx';
-import { ExecutionListSkeleton } from '@/pages/execution/ui/ExecutionListSkeleton.jsx';
-import { StatisticsSkeleton } from '@/pages/statistics/ui/StatisticsSkeleton.jsx';
 
 const LoginPage = lazy(() => import('@/pages/login/LoginPage.jsx'));
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage.jsx'));
@@ -19,7 +14,7 @@ const ExecutionDetailPage = lazy(() => import('@/pages/execution/ExecutionDetail
 const StatisticsPage = lazy(() => import('@/pages/statistics/StatisticsPage.jsx'));
 const HeendiLoaderPage = lazy(() => import('@/pages/heendi-loader/HeendiLoaderPage.jsx'));
 
-function LazyRoute({ children, fallback = <StateView state="loading" /> }) {
+function LazyRoute({ children, fallback = null }) {
   return <Suspense fallback={fallback}>{children}</Suspense>;
 }
 
@@ -42,7 +37,8 @@ export const router = createBrowserRouter([
   {
     path: 'login',
     element: (
-      <LazyRoute>
+      // 로그인 진입 시 업무 화면용 전역 데이터 로딩 메시지를 노출하지 않음
+      <LazyRoute fallback={null}>
         <LoginPage />
       </LazyRoute>
     ),
@@ -66,7 +62,7 @@ export const router = createBrowserRouter([
           {
             path: 'dashboard',
             element: (
-              <LazyRoute fallback={<DashboardSkeleton />}>
+              <LazyRoute>
                 <DashboardPage />
               </LazyRoute>
             ),
@@ -74,7 +70,7 @@ export const router = createBrowserRouter([
           {
             path: 'inventory',
             element: (
-              <LazyRoute fallback={<InventoryPageSkeleton />}>
+              <LazyRoute>
                 <InventoryPage />
               </LazyRoute>
             ),
@@ -106,7 +102,7 @@ export const router = createBrowserRouter([
           {
             path: 'execution',
             element: (
-              <LazyRoute fallback={<ExecutionListSkeleton />}>
+              <LazyRoute>
                 <ExecutionListPage />
               </LazyRoute>
             ),
@@ -122,7 +118,7 @@ export const router = createBrowserRouter([
           {
             path: 'statistics',
             element: (
-              <LazyRoute fallback={<StatisticsSkeleton activeTab="strategy" />}>
+              <LazyRoute>
                 <StatisticsPage />
               </LazyRoute>
             ),

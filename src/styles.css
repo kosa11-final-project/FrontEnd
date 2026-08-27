@@ -2,7 +2,7 @@
 
 /*
  * DESIGN OWNERSHIP MAP
- * GLOBAL      : 토큰, Pretendard, reset, 공통 focus 상태
+ * GLOBAL      : 토큰, 시스템 글꼴, reset, 공통 focus 상태
  * APP SHELL   : AppLayout, AppSidebar, AppHeader의 고정 레이아웃
  * PAGE        : URL 화면의 너비, 제목 계층, 페이지 간격
  * WIDGET      : 여러 feature/entity를 조합하는 업무 블록과 Mesh surface
@@ -14,17 +14,9 @@
  */
 
 /* ========================================================================== */
-/* GLOBAL: local font, semantic colors, typography, radius, and elevation.   */
+/* GLOBAL: system font, semantic colors, typography, radius, and elevation. */
 /* 모든 레이어는 이 토큰을 사용하고 색상·크기 값을 컴포넌트에 재정의하지 않습니다. */
 /* ========================================================================== */
-@font-face {
-  font-family: 'Pretendard';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/PretendardVariable.woff2') format('woff2');
-}
-
 :root {
   /* Dashboard Filter Foundations palette */
   --color-main: #27b06e;
@@ -37,15 +29,17 @@
   /* Semantic extension: the source palette has no separate danger red. */
   --color-danger: #d92d20;
   --color-danger-soft: #fee4e2;
-  --color-gray-900: #282828;
-  --color-gray-700: #747474;
-  --color-gray-500: #8e8e8e;
+  --color-gray-900: #1f2937;
+  --color-gray-700: #4b5563;
+  --color-gray-500: #595959;
   --color-gray-300: #c1c1c1;
   --color-gray-200: #dadada;
   --color-gray-50: #f4f4f4;
   --color-white: #ffffff;
 
-  font-family: Pretendard, sans-serif;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
   color: var(--foreground);
   background: var(--background);
   --background: var(--color-gray-50);
@@ -70,9 +64,9 @@
   --ring: var(--color-main);
   --ring-soft: color-mix(in srgb, var(--color-main) 20%, transparent);
   --muted-foreground: var(--color-gray-500);
-  --danger: var(--color-danger);
-  --warning: var(--color-sub-orange);
-  --good: var(--color-main);
+  --danger: #b91c1c;
+  --warning: #b45309;
+  --good: #15803d;
   /* Use a darker semantic info foreground for text/icons; keep the bright
    * cyan in --color-sub-cyan for decorative/chart surfaces. */
   --info: #00627f;
@@ -124,7 +118,7 @@
   --motion-fast: 160ms;
   --motion-standard: 220ms;
   --easing-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
-  /* Pretendard scale: Headline1 22px, Headline2 20px, Subtitle1 16px, Subtitle2 14px, Body1 14px, Body2/Description 12px. */
+  /* Typography scale: Headline1 22px, Headline2 20px, Subtitle1 16px, Subtitle2 14px, Body1 14px, Body2/Description 12px. */
   --font-size-headline1: 1.375rem;
   --font-size-headline2: 1.25rem;
   --font-size-subtitle1: 1rem;
@@ -188,7 +182,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--text-body);
-  font-family: Pretendard, sans-serif;
+  font-family: var(--font-sans);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
   font-variant-numeric: tabular-nums;
@@ -471,6 +465,8 @@ a:focus-visible {
 }
 
 .topbar {
+  position: relative;
+  z-index: 30;
   display: flex;
   min-height: 70px;
   align-items: center;
@@ -785,13 +781,6 @@ a:focus-visible {
 .inventory-page .text-gray-500,
 .inventory-page input::placeholder {
   color: var(--color-gray-700);
-}
-
-/* Native checkboxes are the actual interactive target Lighthouse measures;
- * their surrounding labels do not increase the input's hit area in the audit. */
-.inventory-page input[type='checkbox'] {
-  min-width: 24px;
-  min-height: 24px;
 }
 
 .inventory-page .text-\[10px\],

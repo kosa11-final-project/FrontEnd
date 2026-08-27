@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { defaultStrategyExecutionFilters } from '../model/filterState.js';
@@ -48,6 +48,25 @@ describe('StrategyExecutionFilters', () => {
     await user.click(screen.getByRole('button', { name: '초기화' }));
 
     expect(onChange).toHaveBeenCalledWith(defaultStrategyExecutionFilters);
-    expect(screen.getByLabelText('전략 번호 또는 상품명 검색')).toHaveValue('');
+    expect(screen.getByLabelText('전략 코드, 상품명 또는 SKU 코드 검색')).toHaveValue('');
+  });
+
+  it('automatically applies search query with 300ms debounce without pressing enter', async () => {
+    vi.useFakeTimers();
+    const onChange = vi.fn();
+    render(<StrategyExecutionFilters filters={defaultStrategyExecutionFilters} resultCount={10} onChange={onChange} />);
+
+    const searchInput = screen.getByLabelText('전략 코드, 상품명 또는 SKU 코드 검색');
+    fireEvent.change(searchInput, { target: { value: '김치' } });
+
+    expect(onChange).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(300);
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...defaultStrategyExecutionFilters,
+      query: '김치',
+    });
+    vi.useRealTimers();
   });
 });

@@ -37,6 +37,21 @@ const listCases = strategyGenerationFixtures.map((fixture) => ({
     : null,
 }));
 
+const maintainCurrentStateFixture = strategyDetailFixtures.find(({ strategyCaseId }) => strategyCaseId === 33);
+listCases.unshift({
+  strategyCaseId: maintainCurrentStateFixture.strategyCaseId,
+  caseName: maintainCurrentStateFixture.caseName,
+  caseStatus: maintainCurrentStateFixture.caseStatus,
+  generationStage: 'COMPARISON_READY',
+  recommendationOutcome: 'MAINTAIN_CURRENT_STATE',
+  sku: maintainCurrentStateFixture.sku,
+  requester: maintainCurrentStateFixture.requestedBy,
+  createdAt: maintainCurrentStateFixture.requestedAt,
+  completedAt: maintainCurrentStateFixture.completedAt,
+  resultExpiresAt: maintainCurrentStateFixture.resultExpiresAt,
+  failure: null,
+});
+
 function filterListCases(searchParams, { includeStatus = true } = {}) {
   const query = (searchParams.get('query') ?? '').trim().toLocaleLowerCase('ko-KR');
   const status = searchParams.get('status');
@@ -124,6 +139,7 @@ function toBackendDetail(strategyCase) {
     caseName: strategyCase.caseName,
     caseStatus: strategyCase.caseStatus,
     generationStage: 'COMPARISON_READY',
+    recommendationOutcome: strategyCase.noRecommendation ? 'MAINTAIN_CURRENT_STATE' : 'OPTIONS_GENERATED',
     sku: strategyCase.sku,
     requester: strategyCase.requestedBy,
     createdAt: strategyCase.requestedAt,
@@ -1022,6 +1038,20 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByRole('button', { name: /Teams/ })).toHaveCount(0);
   });
 
+  test('목록의 현상 유지 권장 결과는 상세 이동 없이 Drawer에서 요청 조건과 사유를 표시한다', async ({ page }) => {
+    await page.goto('/ai-strategy');
+
+    await page.getByRole('button', { name: '#33 현상 유지 권장 결과 보기' }).click();
+
+    await expect(page).toHaveURL(/\/ai-strategy\?drawer=33$/);
+    const drawer = page.getByRole('dialog', { name: '현상 유지 권장' });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText('사용자 요청 조건')).toBeVisible();
+    await expect(drawer.getByText('목동점')).toBeVisible();
+    await expect(drawer.getByText('미선택 · 전체 LOT')).toBeVisible();
+    await expect(drawer.getByText(/추가 전략을 실행하는 것보다 현 상태를 유지/)).toBeVisible();
+  });
+
   test('좁은 화면에서 전략 카드와 조건 패널을 재배치하고 차트 폭을 화면에 맞춘다', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/ai-strategy/32/simulation?option=opt-transfer-discount');
@@ -1071,6 +1101,15 @@ test.describe('AI 전략 생성 목록', () => {
     ).toBeVisible();
     await expect(page.getByRole('button', { name: '다시 생성' })).toBeDisabled();
     await expect(page.getByText('재시도 API 연결 후 사용할 수 있습니다.')).toBeVisible();
+  });
+
+  test('실패 알림 URL로 진입하면 해당 Case를 검색하고 생성실패 Drawer를 연다', async ({ page }) => {
+    await page.goto('/ai-strategy?q=30&drawer=30');
+
+    await expect(page.getByPlaceholder('Case ID, 전략명, SKU·상품명 검색')).toHaveValue('30');
+    const drawer = page.getByRole('dialog', { name: '생성 실패 상세' });
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toContainText('#30');
   });
 
   test('좁은 화면에서도 테이블을 가로로 탐색할 수 있다', async ({ page }) => {

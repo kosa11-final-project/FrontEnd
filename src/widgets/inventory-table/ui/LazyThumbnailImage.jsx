@@ -5,16 +5,28 @@ import { getImageThumbnailUrl } from '@/shared/lib/media';
  * 뷰포트에 실제로 진입했을 때만 썸네일을 로드하여 초기 페이지
  * 네트워크 페이로드를 줄이고 CLS를 방지하는 지연 썸네일 컴포넌트입니다.
  */
-export function LazyThumbnailImage({ src, alt, width = 48, height = 48, className = '', onImageClick, item }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
+export function LazyThumbnailImage({
+  src,
+  alt,
+  width = 48,
+  height = 48,
+  className = '',
+  onImageClick,
+  item,
+  priority = false,
+}) {
+  const [isVisible, setIsVisible] = useState(priority);
+  const [loadedSrc, setLoadedSrc] = useState(null);
+  const [failedThumbnailSrc, setFailedThumbnailSrc] = useState(null);
   const containerRef = useRef(null);
   const thumbnailSrc = getImageThumbnailUrl(src);
+  const resolvedSrc = failedThumbnailSrc === thumbnailSrc ? src : thumbnailSrc;
+  const isLoaded = loadedSrc === resolvedSrc;
   const canObserve = typeof window !== 'undefined' && 'IntersectionObserver' in window;
-  const shouldRenderImage = isVisible || !canObserve;
+  const shouldRenderImage = priority || isVisible || !canObserve;
 
   useEffect(() => {
-    if (!src) return;
+    if (!src || priority) return;
 
     // IntersectionObserver 미지원 환경에서는 렌더 단계에서 바로 이미지를 표시합니다.
     if (!canObserve) return undefined;
@@ -36,7 +48,7 @@ export function LazyThumbnailImage({ src, alt, width = 48, height = 48, classNam
     }
 
     return () => observer.disconnect();
-  }, [canObserve, src]);
+  }, [canObserve, priority, src]);
 
   if (!src) {
     return (
@@ -63,14 +75,19 @@ export function LazyThumbnailImage({ src, alt, width = 48, height = 48, classNam
           onClick={(event) => onImageClick?.(event, item, alt)}
         >
           <img
-            src={thumbnailSrc}
+            src={resolvedSrc}
             alt={alt}
             width={width}
             height={height}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
             decoding="async"
-            fetchPriority="low"
-            onLoad={() => setIsLoaded(true)}
+            fetchPriority={priority ? 'high' : 'low'}
+            onLoad={() => setLoadedSrc(resolvedSrc)}
+            onError={() => {
+              if (resolvedSrc !== src) {
+                setFailedThumbnailSrc(thumbnailSrc);
+              }
+            }}
             className={`size-full object-cover shadow-2xs transition-all duration-200 group-hover/image:scale-105 ${
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}
