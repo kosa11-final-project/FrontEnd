@@ -1,4 +1,4 @@
-export { getCsrfToken, getCurrentUser, login, logout } from './api/authApi.js';
+export { getCsrfToken, getCurrentUser, login, logout, verifyCurrentSession } from './api/authApi.js';
 export {
   authKeys,
   cacheAuthenticatedUser,
