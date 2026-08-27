@@ -28,6 +28,10 @@ function toCount(value) {
   return isNonNegativeInteger(value) ? value : 0;
 }
 
+function mapRecommendationOutcome(value) {
+  return ['OPTIONS_GENERATED', 'MAINTAIN_CURRENT_STATE'].includes(value) ? value : null;
+}
+
 export function mapAiStrategyListItem(item = {}) {
   const strategyCaseId = item.strategyCaseId;
   const category = item.sku?.category;
@@ -38,6 +42,7 @@ export function mapAiStrategyListItem(item = {}) {
     strategyName: item.caseName || '이름 없는 AI 전략',
     caseStatus: item.caseStatus,
     generationStage: item.generationStage,
+    recommendationOutcome: mapRecommendationOutcome(item.recommendationOutcome),
     category: category
       ? {
           id: category.categoryId,
