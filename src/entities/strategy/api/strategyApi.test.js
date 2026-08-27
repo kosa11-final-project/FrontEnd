@@ -6,6 +6,7 @@ import {
   getAiStrategyCase,
   getAiStrategyCases,
   getAiStrategyReviewers,
+  retryAiStrategyGeneration,
   sendAiStrategyTeamsRequest,
   serializeAiStrategyListParams,
   validateAiStrategySelection,
@@ -57,6 +58,44 @@ describe('AI strategy API', () => {
     postJson.mockResolvedValue({ data: {} });
 
     await expect(createAiStrategyCase({ skuId: 1001 })).rejects.toThrow('AI 전략 생성 요청 결과를 확인할 수 없습니다.');
+  });
+
+  it('retries a failed strategy with only the server date-adjustment policy', async () => {
+    postJson.mockResolvedValue({
+      data: {
+        originalStrategyCaseId: 100,
+        strategyCaseId: 101,
+        retryParentStrategyCaseId: 100,
+        caseName: '테스트 전략',
+        caseStatus: 'GENERATING',
+        generationStage: null,
+        createdAt: '2026-08-27T14:30:00+09:00',
+        reusedExistingRetry: false,
+        dateAdjustment: {
+          applied: false,
+          originalPreferredStartDate: null,
+          originalPreferredEndDate: null,
+          adjustedPreferredStartDate: null,
+          adjustedPreferredEndDate: null,
+        },
+      },
+    });
+
+    await expect(
+      retryAiStrategyGeneration({ strategyCaseId: 100, dateAdjustmentPolicy: 'REJECT' }),
+    ).resolves.toMatchObject({ strategyCaseId: 101, originalStrategyCaseId: 100 });
+    expect(postJson).toHaveBeenCalledWith({
+      path: 'v1/ai-strategies/100/retries',
+      body: { dateAdjustmentPolicy: 'REJECT' },
+      signal: undefined,
+    });
+  });
+
+  it('rejects an unsupported retry date policy before making a request', async () => {
+    await expect(
+      retryAiStrategyGeneration({ strategyCaseId: 100, dateAdjustmentPolicy: 'CLIENT_DATE' }),
+    ).rejects.toThrow('AI 전략 재시도 날짜 정책이 올바르지 않습니다.');
+    expect(postJson).not.toHaveBeenCalled();
   });
 
   it('serializes list filters while removing empty values and ALL status', () => {

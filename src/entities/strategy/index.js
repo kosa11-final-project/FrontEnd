@@ -6,6 +6,7 @@ export {
   getAiStrategyCase,
   getAiStrategyCases,
   getAiStrategyReviewers,
+  retryAiStrategyGeneration,
   sendAiStrategyTeamsRequest,
   serializeAiStrategyListParams,
   validateAiStrategySelection,
