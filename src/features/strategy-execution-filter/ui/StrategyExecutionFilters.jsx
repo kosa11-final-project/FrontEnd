@@ -27,12 +27,28 @@ function ActiveFilterChip({ label, value, onRemove }) {
 
 export function StrategyExecutionFilters({ filters, resultCount, onChange, onReset }) {
   const searchInputRef = useRef(null);
+  const searchDebounceRef = useRef(null);
+  const currentQueryRef = useRef(filters.query || '');
 
+  // URL이나 외부 필터 변경 시 uncontrolled 입력값 및 디바운스 타이머를 동기화합니다.
   useEffect(() => {
-    if (searchInputRef.current && searchInputRef.current.value !== filters.query) {
-      searchInputRef.current.value = filters.query;
+    const nextQuery = filters.query || '';
+    currentQueryRef.current = nextQuery;
+    if (searchInputRef.current && searchInputRef.current.value !== nextQuery) {
+      searchInputRef.current.value = nextQuery;
+    }
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
     }
   }, [filters.query]);
+
+  useEffect(
+    () => () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    },
+    [],
+  );
 
   const selectedActionType = STRATEGY_EXECUTION_FILTER_ACTION_TYPES.includes(filters.actionType)
     ? filters.actionType
@@ -43,7 +59,24 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
   const hasActiveFilter = Boolean(filters.query) || selectedStatus !== 'ALL' || selectedActionType !== 'ALL';
   const setFilter = (key, value) => onChange({ ...filters, [key]: value });
 
+  // 300ms 디바운스 검색어 자동 반영 (통합재고조회 방식과 통일)
+  const handleKeywordChange = (event) => {
+    const nextValue = event.target.value;
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      const trimmed = nextValue.trim();
+      if (trimmed !== currentQueryRef.current) {
+        setFilter('query', trimmed);
+      }
+      searchDebounceRef.current = null;
+    }, 300);
+  };
+
   const handleReset = () => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
     if (searchInputRef.current) searchInputRef.current.value = '';
     onChange(defaultStrategyExecutionFilters);
     onReset?.();
@@ -51,7 +84,14 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
 
   const handleSearch = (event) => {
     event.preventDefault();
-    setFilter('query', searchInputRef.current?.value.trim() ?? '');
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
+    const trimmed = searchInputRef.current?.value.trim() ?? '';
+    if (trimmed !== currentQueryRef.current) {
+      setFilter('query', trimmed);
+    }
   };
 
   return (
@@ -71,11 +111,12 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
             <input
               ref={searchInputRef}
               id="strategy-execution-search"
-              aria-label="전략 번호 또는 상품명 검색"
+              aria-label="전략 코드, 상품명 또는 SKU 코드 검색"
               type="search"
               maxLength={100}
               defaultValue={filters.query}
-              placeholder="전략 번호, 상품명 또는 SKU"
+              onChange={handleKeywordChange}
+              placeholder="전략 코드, 상품명 또는 SKU 코드"
               className="h-9 w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-subtle)] pl-9 pr-3 text-[length:var(--font-size-body-sm)] text-[color:var(--text-heading)] placeholder:text-[color:var(--text-muted)] focus:border-[var(--primary)] focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring-soft)]"
             />
             <Icon
@@ -144,6 +185,10 @@ export function StrategyExecutionFilters({ filters, resultCount, onChange, onRes
                 label="검색"
                 value={`“${filters.query}”`}
                 onRemove={() => {
+                  if (searchDebounceRef.current) {
+                    clearTimeout(searchDebounceRef.current);
+                    searchDebounceRef.current = null;
+                  }
                   if (searchInputRef.current) searchInputRef.current.value = '';
                   setFilter('query', '');
                 }}

@@ -41,7 +41,7 @@ export function getStrategySalesPerformance(strategy) {
 
 function StrategySalesPerformance({ strategy }) {
   const performance = getStrategySalesPerformance(strategy);
-  const differenceQuantity = formatQuantity(Math.abs(performance.difference), { maximumFractionDigits: 1 });
+  const differenceQuantity = formatQuantity(Math.abs(performance.difference));
   const comparisonText =
     performance.difference === null
       ? '목표 데이터가 수집되면 비교할 수 있어요'
@@ -92,19 +92,19 @@ function StrategySalesPerformance({ strategy }) {
         <div className="min-w-0 pr-3">
           <dt className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">실적</dt>
           <dd className="mt-0.5 truncate text-[length:var(--font-size-subtitle2)] font-bold tabular-nums text-[color:var(--text-heading)]">
-            {formatQuantity(performance.actual, { fallback: '미수집', maximumFractionDigits: 1 })}
+            {formatQuantity(performance.actual, { fallback: '미수집' })}
           </dd>
         </div>
         <div className="min-w-0 border-l border-[color:color-mix(in_srgb,var(--border)_65%,transparent)] px-3">
           <dt className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">목표</dt>
-          <dd className="mt-0.5 truncate text-[length:var(--font-size-body-sm)] font-medium tabular-nums text-[color:var(--text-heading)]">
-            {formatQuantity(performance.target, { fallback: '미수집', maximumFractionDigits: 1 })}
+          <dd className="mt-0.5 truncate text-[length:var(--font-size-subtitle2)] font-bold tabular-nums text-[color:var(--text-heading)]">
+            {formatQuantity(performance.target, { fallback: '미수집' })}
           </dd>
         </div>
         <div className="min-w-0 border-l border-[color:color-mix(in_srgb,var(--border)_65%,transparent)] pl-3">
           <dt className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">달성률</dt>
           <dd
-            className={`mt-0.5 truncate text-[length:var(--font-size-subtitle2)] font-semibold tabular-nums ${
+            className={`mt-0.5 truncate text-[length:var(--font-size-subtitle2)] font-bold tabular-nums ${
               hasTargetComparison
                 ? performance.achieved
                   ? 'text-[color:var(--good)]'
