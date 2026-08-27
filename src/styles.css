@@ -465,6 +465,8 @@ a:focus-visible {
 }
 
 .topbar {
+  position: relative;
+  z-index: 30;
   display: flex;
   min-height: 70px;
   align-items: center;

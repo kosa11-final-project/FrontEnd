@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Logout, User } from 'reicon-react';
+import { Logout, User } from 'reicon-react';
 import { getNavigationItem } from '../model/navigation.js';
+import { NotificationMenu } from './NotificationMenu.jsx';
 import { authKeys, currentUserQueryOptions, logout as logoutSession } from '@/entities/auth';
 import { Avatar } from '@/shared/ui/Avatar.jsx';
 import { Icon } from '@/shared/ui/Icon.jsx';
-import { IconButton } from '@/shared/ui/IconButton.jsx';
 
 // DESIGN / WIDGET: 전역 헤더 조합입니다. 경로 변경 때 breadcrumb만 갱신합니다.
 export function AppHeader() {
@@ -63,10 +63,7 @@ export function AppHeader() {
         <strong>{currentPage.label}</strong>
       </div>
       <div className="topbar-actions">
-        <IconButton className="notification-button" label="알림" variant="ghost">
-          <Icon icon={Bell} size={20} />
-          <span className="notification-indicator" aria-hidden="true" />
-        </IconButton>
+        <NotificationMenu />
         <span className="topbar-divider" aria-hidden="true" />
         <div ref={accountMenuRef} className="account-menu">
           <button

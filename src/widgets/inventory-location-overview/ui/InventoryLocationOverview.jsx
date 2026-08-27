@@ -209,7 +209,7 @@ function SceneTotalSummary({ meta, totalAvailableStock, totalNearExpiryStock }) 
   return (
     <aside
       aria-label={meta.totalLabel}
-      className="pointer-events-none absolute right-3 top-3 z-[2000] hidden min-w-[292px] grid-cols-2 items-stretch overflow-hidden rounded-[var(--radius-panel)] border border-white/85 bg-white/95 shadow-[0_12px_28px_rgba(21,70,53,0.13)] backdrop-blur-md md:grid"
+      className="pointer-events-none absolute right-3 top-3 z-20 hidden min-w-[292px] grid-cols-2 items-stretch overflow-hidden rounded-[var(--radius-panel)] border border-white/85 bg-white/95 shadow-[0_12px_28px_rgba(21,70,53,0.13)] backdrop-blur-md md:grid"
     >
       <div className="px-3 py-2.5">
         <span className="block text-[length:var(--font-size-meta)] text-[color:var(--text-body)]">전체 가용수량</span>
@@ -235,7 +235,7 @@ function SceneDock({ location, meta, viewMode }) {
       : location.address || location.description || '주소 정보 없음';
 
   return (
-    <aside className="pointer-events-none absolute bottom-4 left-4 right-4 z-[2000] hidden grid-cols-[minmax(230px,1fr)_minmax(0,3fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/95 p-3 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid">
+    <aside className="pointer-events-none absolute bottom-4 left-4 right-4 z-20 hidden grid-cols-[minmax(230px,1fr)_minmax(0,3fr)] items-center gap-3 rounded-[var(--radius-panel)] border border-white/85 bg-white/95 p-3 shadow-[0_16px_36px_rgba(21,70,53,0.16)] backdrop-blur-md sm:grid">
       <div className="flex min-w-0 items-center gap-3 border-r border-[var(--border)] pr-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-control)] bg-[var(--primary-soft)] text-[color:var(--primary-strong)]">
           <Icon icon={meta.icon} size={18} aria-hidden="true" />
@@ -451,7 +451,7 @@ export function InventoryLocationOverview({
                 />
               )}
 
-              <div className="pointer-events-none absolute left-3 top-3 z-[2000] flex max-w-[calc(100%_-_24px)] items-center rounded-full border border-white/80 bg-white/95 px-3 py-1.5 shadow-[var(--shadow-soft)] backdrop-blur-sm">
+              <div className="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[calc(100%_-_24px)] items-center rounded-full border border-white/80 bg-white/95 px-3 py-1.5 shadow-[var(--shadow-soft)] backdrop-blur-sm">
                 <span className="text-[length:var(--font-size-meta)] font-[var(--font-weight-bold)] tracking-[0.04em] text-[color:var(--primary-strong)]">
                   {meta.sceneLabel}
                 </span>
@@ -468,7 +468,7 @@ export function InventoryLocationOverview({
 
               {viewMode === 'stores' ? (
                 <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 z-[1500] h-5 bg-[#edf7f4]"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-5 bg-[#edf7f4]"
                   aria-hidden="true"
                 />
               ) : null}

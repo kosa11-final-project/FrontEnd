@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { AiStrategyEventsSubscriber } from '../providers/AiStrategyEventsSubscriber.jsx';
 import { AppHeader } from '@/widgets/app-shell/ui/AppHeader.jsx';
 import AppSidebar from '@/widgets/app-shell/ui/AppSidebar.jsx';
 
@@ -11,6 +12,7 @@ export default function AppLayout() {
 
   return (
     <div className={`app-shell mesh-forecast${isSidebarOpen ? '' : ' sidebar-collapsed'}`}>
+      <AiStrategyEventsSubscriber />
       <AppSidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)} />
 
       <main className="main-content">

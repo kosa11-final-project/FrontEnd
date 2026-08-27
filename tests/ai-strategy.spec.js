@@ -1073,6 +1073,15 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByText('재시도 API 연결 후 사용할 수 있습니다.')).toBeVisible();
   });
 
+  test('실패 알림 URL로 진입하면 해당 Case를 검색하고 생성실패 Drawer를 연다', async ({ page }) => {
+    await page.goto('/ai-strategy?q=30&drawer=30');
+
+    await expect(page.getByPlaceholder('Case ID, 전략명, SKU·상품명 검색')).toHaveValue('30');
+    const drawer = page.getByRole('dialog', { name: '생성 실패 상세' });
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toContainText('#30');
+  });
+
   test('좁은 화면에서도 테이블을 가로로 탐색할 수 있다', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 });
     const table = page.getByRole('table', { name: 'AI 전략 생성 목록' });
