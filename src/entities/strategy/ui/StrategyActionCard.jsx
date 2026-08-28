@@ -1,6 +1,6 @@
 import { AlertCircle } from 'reicon-react';
 import { Badge, Card, Icon } from '@/shared/ui';
-import { actionTypeMeta, relationshipMeta } from '../model/strategy.js';
+import { actionTypeMeta, formatKpiValue, relationshipMeta } from '../model/strategy.js';
 import { StrategyActionProgress } from './StrategyActionProgress.jsx';
 import { StrategyActionTypeBadge } from './StrategyActionTypeBadge.jsx';
 import { StrategyKpiGrid } from './StrategyKpiGrid.jsx';
@@ -12,6 +12,9 @@ export function StrategyActionCard({ action, index, actionNames = {} }) {
   const typeLabel = actionTypeMeta[action.type]?.label;
   const displayTitle =
     !action.title || action.title === action.type ? (typeLabel ?? action.type ?? '전략명 미수집') : action.title;
+  const requestQuantityIndex = action.kpis?.findIndex((kpi) => kpi.label?.replaceAll(' ', '') === '요청수량') ?? -1;
+  const requestQuantityKpi = requestQuantityIndex >= 0 ? action.kpis[requestQuantityIndex] : null;
+  const remainingKpis = action.kpis?.filter((_, index) => index !== requestQuantityIndex) ?? [];
   return (
     <Card
       asChild
@@ -19,7 +22,7 @@ export function StrategyActionCard({ action, index, actionNames = {} }) {
       className={isProblem ? 'h-full border-[var(--danger)]' : 'h-full shadow-[var(--shadow-soft)]'}
     >
       <article aria-labelledby={`${action.id}-title`} className="flex flex-col">
-        <div className="flex min-w-0 items-start gap-3">
+        <header className="flex min-w-0 items-start gap-3">
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--primary-soft)] text-xs font-bold text-[color:var(--primary-strong)]">
             {index + 1}
           </span>
@@ -48,7 +51,18 @@ export function StrategyActionCard({ action, index, actionNames = {} }) {
               </p>
             ) : null}
           </div>
-        </div>
+          {requestQuantityKpi ? (
+            <dl
+              aria-label="요청 수량"
+              className="shrink-0 border-l border-[var(--border)] pl-3 text-right tabular-nums"
+            >
+              <dt className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
+                {requestQuantityKpi.label}
+              </dt>
+              <dd className="mt-1 font-bold text-[color:var(--text-heading)]">{formatKpiValue(requestQuantityKpi)}</dd>
+            </dl>
+          ) : null}
+        </header>
         <div className="mt-4 border-t border-[var(--border)] pt-3">
           <StrategyActionProgress
             value={action.progress}
@@ -68,15 +82,17 @@ export function StrategyActionCard({ action, index, actionNames = {} }) {
             <span>{action.note}</span>
           </div>
         ) : null}
-        <div className="mt-auto pt-4">
-          {action.kpis?.length ? (
-            <StrategyKpiGrid kpis={action.kpis} compact />
-          ) : (
-            <p className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
-              전략 성과가 아직 수집되지 않았습니다.
-            </p>
-          )}
-        </div>
+        {remainingKpis.length || !requestQuantityKpi ? (
+          <div className="mt-auto pt-4">
+            {remainingKpis.length ? (
+              <StrategyKpiGrid kpis={remainingKpis} compact />
+            ) : (
+              <p className="text-[length:var(--font-size-body-sm)] text-[color:var(--text-muted)]">
+                전략 성과가 아직 수집되지 않았습니다.
+              </p>
+            )}
+          </div>
+        ) : null}
       </article>
     </Card>
   );
