@@ -63,11 +63,11 @@ describe('inventoryQueries', () => {
   it('keeps the AND/OR operator in the summary request and cache key', () => {
     const options = inventorySummaryQueryOptions({
       filterOperator: 'OR',
-      riskGrade: ['DANGER'],
+      riskGrade: ['CRITICAL'],
       page: 3,
     });
 
-    expect(options.queryKey).toEqual(['inventory', 'summary', { filterOperator: 'OR', riskGrade: ['DANGER'] }]);
+    expect(options.queryKey).toEqual(['inventory', 'summary', { filterOperator: 'OR', riskGrade: ['CRITICAL'] }]);
   });
 
   it('keeps multiple category ids in the summary cache key', () => {

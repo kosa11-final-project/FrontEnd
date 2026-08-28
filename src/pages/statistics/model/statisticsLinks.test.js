@@ -8,8 +8,8 @@ const locations = [
 ];
 
 describe('statistics inventory links', () => {
-  it('maps the statistics critical grade to the inventory danger grade', () => {
-    expect(getStatisticsInventoryUrl({ riskGrade: 'CRITICAL' })).toBe('/inventory?riskGrade=DANGER');
+  it('preserves the DB critical grade in the inventory URL', () => {
+    expect(getStatisticsInventoryUrl({ riskGrade: 'CRITICAL' })).toBe('/inventory?riskGrade=CRITICAL');
   });
 
   it('preserves a selected warehouse and risk grade', () => {
@@ -20,7 +20,7 @@ describe('statistics inventory links', () => {
         locations,
         riskGrade: 'WARNING',
       }),
-    ).toBe('/inventory?warehouseCode=WAREHOUSE_1&riskGrade=CAUTION');
+    ).toBe('/inventory?warehouseCode=WAREHOUSE_1&riskGrade=WARNING');
   });
 
   it('includes every location when a location type total is selected', () => {
