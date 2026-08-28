@@ -27,6 +27,14 @@ describe('StatisticsPageContent', () => {
 
     expect(screen.getByRole('heading', { name: '액션 조합별 성과' })).toBeInTheDocument();
     expect(screen.getByText('API 연결 전 화면 검토용')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '종료 전략 실행 전후 종합 비교' })).toBeInTheDocument();
+    expect(screen.getAllByText('전략 실행 전 합계')).toHaveLength(3);
+    expect(screen.getAllByText('전략 종료 후 합계')).toHaveLength(3);
+    expect(screen.getByRole('heading', { name: '운영 유형별 AI 전략 성과' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '운영 유형별 위험재고 감소율 비교 가로 막대 차트' })).toBeInTheDocument();
+    expect(screen.queryByText('UI 검토용 더미 데이터')).not.toBeInTheDocument();
+    expect(screen.getByText('총 3개 유형')).toBeInTheDocument();
+    expect(screen.getByText(/시작 .* → 종료 .* 감소/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: '위험재고 추이' }));
 
@@ -38,9 +46,8 @@ describe('StatisticsPageContent', () => {
     expect(screen.getAllByText('위험재고 수량')).not.toHaveLength(0);
     expect(screen.queryByText('직전 동일 기간 대비')).not.toBeInTheDocument();
     expect(
-      screen.getByText(/기간 종료 위험재고는 941,095개로, 기간 시작보다 2,900개 순감했습니다/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/신규 입고·판매·이동·폐기가 모두 반영된 전체 재고 상태/)).toBeInTheDocument();
+      screen.queryByText(/기간 종료 위험재고는 941,095개로, 기간 시작보다 2,900개 순감했습니다/),
+    ).not.toBeInTheDocument();
     expect(screen.getByText(/24\.9% → 24\.8%/)).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /계산 기준/ })).toHaveLength(5);
     expect(screen.getByRole('heading', { name: '전체 위험재고 추이' })).toBeInTheDocument();
@@ -103,6 +110,9 @@ describe('StatisticsPageContent', () => {
       scopeType: 'WAREHOUSE',
       scopeCode: 'ALL',
     });
+    expect(screen.getByRole('heading', { name: '물류센터별 AI 전략 성과' })).toBeInTheDocument();
+    expect(screen.getByText('총 8개 센터')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '모든 물류센터 위험재고 감소율 비교 가로 막대 차트' })).toBeInTheDocument();
 
     screen.getByRole('combobox', { name: '세부 위치' }).focus();
     await user.keyboard('{Enter}{ArrowDown}{Enter}');
@@ -112,6 +122,8 @@ describe('StatisticsPageContent', () => {
       scopeType: 'WAREHOUSE',
       scopeCode: 'WH_SEONGNAM',
     });
+    expect(screen.getByRole('heading', { name: '물류센터별 AI 전략 성과' })).toBeInTheDocument();
+    expect(screen.getByText(/선택 위치는 성남 스마트푸드센터입니다/)).toBeInTheDocument();
   });
 
   it('직접 선택 시 날짜 범위 캘린더를 연다', async () => {
@@ -148,6 +160,6 @@ describe('StatisticsPageContent', () => {
     expect(screen.getByRole('img', { name: '폐기위험 감소 영역 차트' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '추정 손실 절감' }));
-    expect(screen.getByRole('img', { name: '일별 및 누적 추정 손실 절감 복합 차트' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '일별 추정 손실 절감 막대 차트' })).toBeInTheDocument();
   });
 });

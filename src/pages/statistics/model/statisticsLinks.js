@@ -1,8 +1,11 @@
 const inventoryRiskGradeMap = Object.freeze({
-  CRITICAL: 'DANGER',
-  WARNING: 'CAUTION',
+  CRITICAL: 'CRITICAL',
+  WARNING: 'WARNING',
   NORMAL: 'NORMAL',
-  GOOD: 'SAFE',
+  GOOD: 'GOOD',
+  DANGER: 'CRITICAL',
+  CAUTION: 'WARNING',
+  SAFE: 'GOOD',
 });
 
 function appendScopeParams(searchParams, { scopeType, locationId, locations }) {

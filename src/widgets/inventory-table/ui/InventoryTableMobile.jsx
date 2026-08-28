@@ -110,7 +110,7 @@ export function InventoryTableMobile({
                 </div>
               </div>
               <div className="shrink-0 flex flex-col items-end gap-1">
-                <InventoryStatusBadge status={item.riskGrade} />
+                <InventoryStatusBadge status={item.riskGrade} assessmentStatus={item.assessmentStatus} />
                 {hasSafetyShortage ? (
                   <span className="text-[10px] font-medium text-amber-700">재고 부족 상품 포함</span>
                 ) : null}

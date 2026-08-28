@@ -217,7 +217,7 @@ test.describe('통합재고 동기화', () => {
 
     const tooltip = page.getByRole('tooltip');
     await expect(tooltip).toBeVisible();
-    await expect(tooltip).toContainText('사용 기준 데이터: 현재 판매 가능 재고, D+7·D+30 수요예측');
+    await expect(tooltip).toContainText('사용 기준 데이터: 현재 판매 가능 재고, D+7·D+14·D+30 누적 수요예측');
     await expect(tooltip).not.toContainText('반영한 값');
   });
 });
