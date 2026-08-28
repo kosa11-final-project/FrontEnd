@@ -89,10 +89,10 @@ describe('statisticsMapper', () => {
     expect(result.dailyTrend).toEqual([]);
     expect(result.scopeSummaries.NATIONAL.totalStockQty).toBe(0);
     expect(result.scopeSummaries.NATIONAL.riskDistribution.map(({ riskGrade }) => riskGrade)).toEqual([
-      'CRITICAL',
-      'WARNING',
-      'NORMAL',
       'GOOD',
+      'NORMAL',
+      'WARNING',
+      'CRITICAL',
       'UNASSESSED',
     ]);
   });

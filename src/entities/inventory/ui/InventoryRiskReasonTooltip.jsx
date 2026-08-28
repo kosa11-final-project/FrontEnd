@@ -186,6 +186,18 @@ export function parseInventoryRiskReason(reason) {
   const normalizedReason = typeof reason === 'string' ? reason.trim() : '';
   if (!normalizedReason) return null;
 
+  // v1.7+ 서버 사유는 이미 사용자용 문장으로 완성되어 저장됩니다. 헤더나 산식 구분자가
+  // 없는 문장은 숫자 반올림·문장 재선택 없이 그대로 반환해 목록/상세 스냅샷과 일치시킵니다.
+  if (!SERVER_REASON_HEADER.test(normalizedReason) && !CALCULATION_SEPARATOR.test(normalizedReason)) {
+    return {
+      ruleVersion: null,
+      ruleCode: null,
+      primaryReason: normalizedReason,
+      calculationEvidence: null,
+      calculationCriteria: [],
+    };
+  }
+
   const header = normalizedReason.match(SERVER_REASON_HEADER);
   const explanation = header ? normalizedReason.slice(header[0].length) : normalizedReason;
   const [primaryReason, ...calculationParts] = explanation.split(CALCULATION_SEPARATOR);
