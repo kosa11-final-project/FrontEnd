@@ -112,7 +112,7 @@ function StrategySalesPerformance({ strategy }) {
                 : 'text-[color:var(--text-heading)]'
             }`}
           >
-            {formatPercent(performance.achievementRate, { fallback: '미수집', maximumFractionDigits: 0 })}
+            {formatPercent(performance.achievementRate, { fallback: '미수집', maximumFractionDigits: 1 })}
           </dd>
         </div>
       </dl>

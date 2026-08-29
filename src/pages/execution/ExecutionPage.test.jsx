@@ -16,12 +16,6 @@ function StrategyExecutionListHarness({ strategies = strategyExecutionFixtures, 
   return (
     <StrategyExecutionListContent
       strategies={filtered}
-      summary={{
-        executionStrategyCount: 281,
-        inProgressStrategyCount: 24,
-        attentionStrategyCount: 7,
-        totalStrategyCount: 362,
-      }}
       filters={filters}
       pagination={{
         page: 1,
@@ -45,11 +39,6 @@ describe('strategy execution pages', () => {
     expect(screen.getByText('진행 중 전략 수')).toBeInTheDocument();
     expect(screen.getByText('확인 필요 전략 수')).toBeInTheDocument();
     expect(screen.getByText('전체 전략 수')).toBeInTheDocument();
-    expect(screen.getByText('281건')).toBeInTheDocument();
-    expect(screen.getByText('24건')).toBeInTheDocument();
-    expect(screen.getByText('7건')).toBeInTheDocument();
-    expect(screen.getByText('362건')).toBeInTheDocument();
-    expect(screen.getByText('부분 실행 결과')).toBeInTheDocument();
   });
 
   it('filters strategies by action type and search', async () => {
@@ -136,15 +125,14 @@ describe('strategy execution pages', () => {
     expect(screen.queryByText('0%')).not.toBeInTheDocument();
   });
 
-  it('rounds the overall sales result to whole numbers', () => {
+  it('rounds the achievement rate in the overall result to one decimal place', () => {
     const strategy = {
       ...strategyExecutionFixtures[0],
-      resultSummary: '실제 판매 200 / 목표 180.4 (달성률 111.111111%)',
+      resultSummary: '실제 판매 200 / 목표 180 (달성률 111.111111%)',
     };
     renderRoute(<StrategyExecutionDetailContent strategy={strategy} />, '/execution/101');
 
-    expect(screen.getByText('실제 판매 200 / 목표 180 (달성률 111%)')).toBeInTheDocument();
-    expect(screen.queryByText(/180\.4/)).not.toBeInTheDocument();
+    expect(screen.getByText('실제 판매 200 / 목표 180 (달성률 111.1%)')).toBeInTheDocument();
     expect(screen.queryByText(/111\.111111%/)).not.toBeInTheDocument();
   });
 });

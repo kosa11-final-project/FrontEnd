@@ -96,12 +96,6 @@ describe('strategy execution API', () => {
         first: false,
         last: false,
       },
-      summary: {
-        executionStrategyCount: '18',
-        inProgressStrategyCount: 4,
-        attentionStrategyCount: 2,
-        totalStrategyCount: 21,
-      },
       timestamp: '2026-08-20T00:00:00Z',
     });
 
@@ -111,12 +105,6 @@ describe('strategy execution API', () => {
 
     expect(getJson).toHaveBeenCalledWith({ path: 'v1/strategy-executions', params, signal });
     expect(result).toMatchObject({ page: 2, size: 10, totalElements: 21, totalPages: 3 });
-    expect(result.summary).toEqual({
-      executionStrategyCount: 18,
-      inProgressStrategyCount: 4,
-      attentionStrategyCount: 2,
-      totalStrategyCount: 21,
-    });
     expect(result.items[0].id).toBe(721);
     expect(result.items[0].actions).toHaveLength(2);
     expect(result.items[0].actions[0].kpis[0].value).toBe(0);

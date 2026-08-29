@@ -38,6 +38,11 @@ export function FilterPresetPopover({ onApplyPreset }) {
         >
           <Bookmark size={14} className="text-emerald-600" />
           <span>최근/저장 필터</span>
+          {savedPresets.length > 0 && (
+            <span className="flex size-4.5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-800">
+              {savedPresets.length}
+            </span>
+          )}
           <ChevronDown
             size={13}
             className={`text-gray-400 transition-transform duration-200 ${open ? 'rotate-180 text-emerald-600' : ''}`}

@@ -20,13 +20,13 @@ describe('Inventory Filter State (URL SearchParams)', () => {
 
   it('correctly parses valid search params and repeated multi-value keys', () => {
     const raw =
-      '?q=만두&channelType=GREETING&channelType=HMART&storageType=FROZEN&riskGrade=WARNING&shortageYn=Y&filterOperator=OR&page=2&size=50&sort=availableQuantity,asc&detailSkuCode=SKU-1&detailSalesPointCode=SP-1&detailTab=FORECAST';
+      '?q=만두&channelType=GREETING&channelType=HMART&storageType=FROZEN&riskGrade=CAUTION&shortageYn=Y&filterOperator=OR&page=2&size=50&sort=availableQuantity,asc&detailSkuCode=SKU-1&detailSalesPointCode=SP-1&detailTab=FORECAST';
     const filters = parseInventoryFilters(raw);
 
     expect(filters.q).toBe('만두');
     expect(filters.channelType).toEqual(['GREETING', 'HMART']);
     expect(filters.storageType).toEqual(['FROZEN']);
-    expect(filters.riskGrade).toEqual(['WARNING']);
+    expect(filters.riskGrade).toEqual(['CAUTION']);
     expect(filters.shortageYn).toBe('Y');
     expect(filters.filterOperator).toBe('OR');
     expect(filters.page).toBe(2);
@@ -148,7 +148,7 @@ describe('Inventory Filter State (URL SearchParams)', () => {
       salesPointCode: ['STORE_1', 'STORE_2'],
       warehouseCode: ['GYEONGIN_1'],
       storageType: ['COLD', 'FROZEN'],
-      riskGrade: ['CRITICAL'],
+      riskGrade: ['DANGER'],
       shortageYn: 'Y',
       filterOperator: 'OR',
       page: 3,

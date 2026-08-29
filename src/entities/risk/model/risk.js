@@ -1,12 +1,12 @@
 export const RISK_GRADES = {
-  GOOD: 'GOOD',
+  SAFE: 'SAFE',
   NORMAL: 'NORMAL',
-  WARNING: 'WARNING',
-  CRITICAL: 'CRITICAL',
+  CAUTION: 'CAUTION',
+  DANGER: 'DANGER',
 };
 
 export const RISK_GRADE_META = {
-  GOOD: {
+  SAFE: {
     label: '양호',
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     dotClass: 'bg-emerald-500',
@@ -16,12 +16,12 @@ export const RISK_GRADE_META = {
     badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
     dotClass: 'bg-slate-500',
   },
-  WARNING: {
+  CAUTION: {
     label: '주의',
     badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
     dotClass: 'bg-amber-500',
   },
-  CRITICAL: {
+  DANGER: {
     label: '위험',
     badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
     dotClass: 'bg-rose-500',
@@ -44,14 +44,9 @@ export const ASSESSMENT_STATUS_LABELS = {
 };
 
 export const RISK_GRADE_ALIASES = Object.freeze({
-  SAFE: 'GOOD',
-  CAUTION: 'WARNING',
-  DANGER: 'CRITICAL',
-  양호: 'GOOD',
-  보통: 'NORMAL',
-  관찰: 'NORMAL',
-  주의: 'WARNING',
-  위험: 'CRITICAL',
+  GOOD: 'SAFE',
+  WARNING: 'CAUTION',
+  CRITICAL: 'DANGER',
 });
 
 export const RISK_REASON_SEVERITY_LABELS = Object.freeze({

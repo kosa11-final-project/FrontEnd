@@ -79,7 +79,7 @@ describe('InventoryDetailDrawer', () => {
   it('does not reuse the SKU total when the selected sales point disposal quantity is unavailable', () => {
     renderDrawer({ detailExpectedDisposalQuantity: null });
 
-    const disposalCard = screen.getByText('30일 예상 폐기').parentElement;
+    const disposalCard = screen.getByText('30일 예상 폐기수량').parentElement;
     expect(disposalCard).toHaveTextContent('산정 불가');
     expect(screen.queryByText('91개')).not.toBeInTheDocument();
   });
@@ -114,17 +114,5 @@ describe('InventoryDetailDrawer', () => {
 
     expect(screen.getByText('D-41')).toBeInTheDocument();
     expect(screen.queryByText('D-40')).not.toBeInTheDocument();
-  });
-
-  it('synchronizes the risk assessment result to the corresponding sales point card', () => {
-    renderDrawer({
-      detailExpectedDisposalQuantity: 4,
-      riskOverrides: {
-        riskGrade: 'SAFE',
-        assessmentStatus: 'ASSESSED',
-      },
-    });
-
-    expect(screen.getAllByText('양호').length).toBeGreaterThanOrEqual(2);
   });
 });

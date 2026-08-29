@@ -27,24 +27,4 @@ describe('StrategyActionCard', () => {
 
     expect(screen.getByRole('heading', { name: '주말 특가 할인 실행' })).toBeInTheDocument();
   });
-
-  it('places the request quantity in the card header and keeps other KPIs below', () => {
-    render(
-      <StrategyActionCard
-        action={{
-          ...action,
-          kpis: [
-            { label: '요청 수량', value: 13.4, unit: '개' },
-            { label: '완료 수량', value: 10, unit: '개' },
-          ],
-        }}
-        index={0}
-      />,
-    );
-
-    const requestQuantity = screen.getByText('요청 수량').closest('dl');
-    expect(requestQuantity.closest('header')).toBeInTheDocument();
-    expect(requestQuantity).toHaveTextContent('13.4개');
-    expect(screen.getByText('완료 수량').closest('header')).not.toBeInTheDocument();
-  });
 });

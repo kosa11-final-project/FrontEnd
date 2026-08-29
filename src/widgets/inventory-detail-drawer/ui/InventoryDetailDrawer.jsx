@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Danger, Refresh } from 'reicon-react';
 import { inventoryDetailQueryOptions, inventoryLotsQueryOptions } from '@/entities/inventory/api/inventoryQueries.js';
 import { demandForecastQueryOptions } from '@/entities/forecast/api/forecastQueries.js';
@@ -11,7 +11,6 @@ const DemandForecastChart = lazy(() =>
 );
 import { inventoryRiskQueryOptions } from '@/entities/risk/api/riskQueries.js';
 import { RiskExplanationPanel } from '@/entities/risk/ui/RiskExplanationPanel.jsx';
-import { RiskAssessmentStateView } from '@/entities/risk/ui/RiskAssessmentStateView.jsx';
 import { formatDate, formatQuantity } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/Button.jsx';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/Tabs.jsx';
@@ -45,9 +44,12 @@ export function InventoryDetailDrawer({
   const previousActiveElementRef = useRef(null);
   const closeButtonRef = useRef(null);
   const [copiedSku, setCopiedSku] = useState(false);
-  const queryClient = useQueryClient();
 
   const skuCode = initialItem?.skuCode || '';
+  const allSalesPoints = useMemo(
+    () => (initialItem?.salesPoints?.length ? initialItem.salesPoints : []),
+    [initialItem],
+  );
 
   const initialLocations = initialItem?.locations?.length ? initialItem.locations : [];
   const initialUnassignedInventory = initialItem?.unassignedInventory || {
@@ -66,12 +68,12 @@ export function InventoryDetailDrawer({
 
   const topOverviewSalesPointCode = useMemo(() => {
     if (hasInitialUnassignedInventory) return 'UNASSIGNED';
-    return initialItem?.salesPoints?.[0]?.salesPointCode || '';
-  }, [hasInitialUnassignedInventory, initialItem]);
+    return allSalesPoints[0]?.salesPointCode || '';
+  }, [hasInitialUnassignedInventory, allSalesPoints]);
 
   const topForecastSalesPointCode = useMemo(() => {
-    return initialItem?.salesPoints?.[0]?.salesPointCode || '';
-  }, [initialItem]);
+    return allSalesPoints[0]?.salesPointCode || '';
+  }, [allSalesPoints]);
 
   // 1) 재고 개요 탭 전용 판매처 선택 상태 (URL 및 부모 상태와 연동, 미지정 시 최상단 기본 선택)
   const effectiveOverviewSalesPointCode = useMemo(() => {
@@ -149,64 +151,6 @@ export function InventoryDetailDrawer({
     ),
   });
 
-  const rawSalesPoints = useMemo(
-    () => (initialItem?.salesPoints?.length ? initialItem.salesPoints : []),
-    [initialItem],
-  );
-
-  // 드로어 진입 시 모든 판매처의 위험도를 백그라운드에서 자동 병렬 조회합니다 (개요 탭 전용).
-  const salesPointRiskQueries = useQueries({
-    queries:
-      open && skuCode && activeTab === 'OVERVIEW'
-        ? rawSalesPoints.map((sp) => ({
-            ...inventoryRiskQueryOptions(skuCode, sp.salesPointCode),
-            enabled: Boolean(open && activeTab === 'OVERVIEW' && skuCode && sp.salesPointCode),
-            staleTime: 60 * 1000,
-          }))
-        : [],
-  });
-
-  const unassignedRiskQuery = useQuery({
-    ...inventoryRiskQueryOptions(skuCode, 'UNASSIGNED'),
-    enabled: Boolean(open && activeTab === 'OVERVIEW' && skuCode && hasInitialUnassignedInventory),
-    staleTime: 60 * 1000,
-  });
-
-  // 왼쪽 판매처 카드 목록 (서버 위험 판정 결과와 실시간 동기화)
-  const allSalesPoints = useMemo(() => {
-    return rawSalesPoints.map((sp, index) => {
-      const isCurrent = sp.salesPointCode === effectiveOverviewSalesPointCode;
-      const queryData = salesPointRiskQueries[index]?.data;
-      const cachedRisk =
-        !isCurrent && skuCode && sp.salesPointCode
-          ? queryClient.getQueryData(inventoryRiskQueryOptions(skuCode, sp.salesPointCode).queryKey)
-          : null;
-      const activeRiskGrade = isCurrent
-        ? (riskQuery.data?.riskGrade ?? detailQuery.data?.riskGrade ?? queryData?.riskGrade)
-        : (queryData?.riskGrade ?? cachedRisk?.riskGrade);
-      const activeAssessmentStatus = isCurrent
-        ? (riskQuery.data?.assessmentStatus ?? detailQuery.data?.assessmentStatus ?? queryData?.assessmentStatus)
-        : (queryData?.assessmentStatus ?? cachedRisk?.assessmentStatus);
-
-      if (activeRiskGrade != null || activeAssessmentStatus != null) {
-        return {
-          ...sp,
-          riskGrade: activeRiskGrade ?? sp.riskGrade,
-          assessmentStatus: activeAssessmentStatus ?? sp.assessmentStatus,
-        };
-      }
-      return sp;
-    });
-  }, [
-    rawSalesPoints,
-    salesPointRiskQueries,
-    effectiveOverviewSalesPointCode,
-    riskQuery.data,
-    detailQuery.data,
-    skuCode,
-    queryClient,
-  ]);
-
   // 개요 탭 선택 판매처 객체
   const selectedOverviewSalesPoint =
     allSalesPoints.find((point) => point.salesPointCode === effectiveOverviewSalesPointCode) ||
@@ -238,19 +182,7 @@ export function InventoryDetailDrawer({
       ? detailQuery.data.locations
       : [];
 
-  const isUnassignedCurrent = effectiveOverviewSalesPointCode === 'UNASSIGNED';
-  const unassignedRiskGrade = isUnassignedCurrent
-    ? (riskQuery.data?.riskGrade ?? detailQuery.data?.riskGrade ?? unassignedRiskQuery.data?.riskGrade)
-    : (unassignedRiskQuery.data?.riskGrade ??
-      queryClient.getQueryData(inventoryRiskQueryOptions(skuCode, 'UNASSIGNED').queryKey)?.riskGrade);
-  const unassignedAssessmentStatus = isUnassignedCurrent
-    ? (riskQuery.data?.assessmentStatus ??
-      detailQuery.data?.assessmentStatus ??
-      unassignedRiskQuery.data?.assessmentStatus)
-    : (unassignedRiskQuery.data?.assessmentStatus ??
-      queryClient.getQueryData(inventoryRiskQueryOptions(skuCode, 'UNASSIGNED').queryKey)?.assessmentStatus);
-
-  const baseUnassigned = item?.unassignedInventory ||
+  const unassignedInventory = item?.unassignedInventory ||
     initialItem?.unassignedInventory || {
       currentQuantity: null,
       availableQuantity: null,
@@ -258,14 +190,6 @@ export function InventoryDetailDrawer({
       locations,
       locationCount: locations.length,
     };
-  const unassignedInventory =
-    unassignedRiskGrade != null || unassignedAssessmentStatus != null
-      ? {
-          ...baseUnassigned,
-          riskGrade: unassignedRiskGrade ?? baseUnassigned.riskGrade,
-          assessmentStatus: unassignedAssessmentStatus ?? baseUnassigned.assessmentStatus,
-        }
-      : baseUnassigned;
   const ownerSalesPointCount =
     initialItem?.ownerSalesPointCount ??
     (allSalesPoints.length > 0 ? allSalesPoints.length : (item?.ownerSalesPointCount ?? 0));
@@ -353,7 +277,7 @@ export function InventoryDetailDrawer({
     >
       <aside
         ref={drawerRef}
-        className="inventory-detail-drawer-panel flex h-full w-full min-w-0 max-w-[1120px] flex-col bg-white shadow-2xl md:w-[85vw] lg:w-[78vw] xl:w-[70vw]"
+        className="inventory-detail-drawer-panel flex h-full w-full min-w-[360px] max-w-[1120px] flex-col bg-white shadow-2xl md:w-[85vw] lg:w-[78vw] xl:w-[70vw]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-product-title"
@@ -461,17 +385,12 @@ export function InventoryDetailDrawer({
                         </button>
                       </div>
                     )}
-                    {riskQuery.data && riskQuery.data.assessmentStatus !== 'ASSESSED' ? (
-                      <RiskAssessmentStateView
-                        status={riskQuery.data.assessmentStatus}
-                        onRetry={() => riskQuery.refetch()}
-                      />
-                    ) : riskQuery.data ? (
+                    {riskQuery.data && (
                       <RiskExplanationPanel
                         data={riskQuery.data}
                         expectedDisposalQuantity={detailQuery.data?.expectedDisposalQuantity ?? null}
                       />
-                    ) : null}
+                    )}
                     <InventoryLotsSection
                       selectedSalesPoint={selectedOverviewSalesPoint}
                       selectedSalesPointCode={effectiveOverviewSalesPointCode}
@@ -492,7 +411,7 @@ export function InventoryDetailDrawer({
               role="tabpanel"
               aria-labelledby="inventory-tab-forecast-trigger"
               tabIndex={0}
-              className="h-full w-full min-h-0 overflow-y-auto p-5 pr-2 space-y-4"
+              className="p-5 space-y-4 max-w-[1040px] mx-auto h-full overflow-y-auto"
             >
               {/* 판매처 다중 전환 칩 셀렉터 */}
               {allSalesPoints.length > 0 && (
@@ -548,6 +467,14 @@ export function InventoryDetailDrawer({
                       D+7~D+90 예상 가용재고와 안전재고 기준선을 시각화합니다.
                     </p>
                   </div>
+
+                  {forecastQuery.data?.confidenceLevel && (
+                    <div className="text-[11px] text-slate-400">
+                      <span className="rounded-sm bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
+                        신뢰도 {forecastQuery.data.confidenceLevel}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {forecastQuery.data?.freshness && (

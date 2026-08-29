@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
   buildInventoryComparisonChartData,
-  InventoryValueLabel,
   StrategyInventoryComparisonBarChart,
 } from './StrategyInventoryComparisonBarChart.jsx';
 
@@ -18,12 +17,6 @@ describe('StrategyInventoryComparisonBarChart', () => {
       expect.objectContaining({ location: '그리팅몰', before: 190, moved: 480, after: 670 }),
       expect.objectContaining({ location: '동부센터', before: 34, moved: null, after: null }),
     ]);
-  });
-
-  it('uses a user-facing safety criterion label when the guardrail is missing', () => {
-    expect(buildInventoryComparisonChartData([{ location: '동부센터', before: 34, after: 34 }])[0].guardrail).toBe(
-      '안전 기준 미수집',
-    );
   });
 
   it('renders an accessible horizontal comparison chart and text alternative', () => {
@@ -42,24 +35,5 @@ describe('StrategyInventoryComparisonBarChart', () => {
       <StrategyInventoryComparisonBarChart results={[{ location: '미수집 위치', before: null, after: null }]} />,
     );
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders inventory values inside long bars and beside zero-length bars', () => {
-    const { rerender } = render(
-      <svg>
-        <InventoryValueLabel x={10} y={4} width={80} height={18} value={156} />
-      </svg>,
-    );
-
-    expect(screen.getByText('156개')).toHaveAttribute('text-anchor', 'end');
-    expect(screen.getByText('156개')).toHaveAttribute('x', '84');
-
-    rerender(
-      <svg>
-        <InventoryValueLabel x={10} y={4} width={0} height={18} value={0} />
-      </svg>,
-    );
-    expect(screen.getByText('0개')).toHaveAttribute('text-anchor', 'start');
-    expect(screen.getByText('0개')).toHaveAttribute('x', '16');
   });
 });

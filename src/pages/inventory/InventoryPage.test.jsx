@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mapInventoryItem, mapInventoryListResponse, mapInventorySummaryResponse } from '@/entities/inventory';
@@ -159,7 +159,7 @@ describe('InventoryPage Integration', () => {
     });
     riskApiMock.getInventoryRisk.mockResolvedValue({
       assessmentStatus: 'ASSESSED',
-      riskGrade: 'WARNING',
+      riskGrade: 'CAUTION',
       reasonMessage: 'D+30 예측수요가 현재 가용재고보다 많습니다.',
       ruleVersion: 'STOCK_EXPIRY_V1_SALES_FORECAST',
       baseDate: '2026-08-16',
@@ -288,7 +288,7 @@ describe('InventoryPage Integration', () => {
   it('restores persisted filter query parameters on page entry or refresh', async () => {
     renderWithProviders(<InventoryPage />, {
       initialEntries: [
-        '/inventory?q=비비고&filterOperator=OR&storageType=FROZEN&riskGrade=CRITICAL&categoryId=12&shortageYn=Y',
+        '/inventory?q=비비고&filterOperator=OR&storageType=FROZEN&riskGrade=DANGER&categoryId=12&shortageYn=Y',
       ],
     });
 
@@ -300,7 +300,7 @@ describe('InventoryPage Integration', () => {
         q: '비비고',
         filterOperator: 'OR',
         storageType: ['FROZEN'],
-        riskGrade: ['CRITICAL'],
+        riskGrade: ['DANGER'],
         categoryId: '12',
         shortageYn: 'Y',
       });
@@ -308,7 +308,7 @@ describe('InventoryPage Integration', () => {
         q: '비비고',
         filterOperator: 'OR',
         storageType: ['FROZEN'],
-        riskGrade: ['CRITICAL'],
+        riskGrade: ['DANGER'],
         categoryId: '12',
         shortageYn: 'Y',
       });
@@ -319,7 +319,7 @@ describe('InventoryPage Integration', () => {
 
   it('restores a persisted OR operator and detailed filters on page entry', async () => {
     renderWithProviders(<InventoryPage />, {
-      initialEntries: ['/inventory?filterOperator=OR&storageType=FROZEN&riskGrade=CRITICAL'],
+      initialEntries: ['/inventory?filterOperator=OR&storageType=FROZEN&riskGrade=DANGER'],
     });
 
     await vi.waitFor(() => {
@@ -328,12 +328,12 @@ describe('InventoryPage Integration', () => {
       expect(listParams).toMatchObject({
         filterOperator: 'OR',
         storageType: ['FROZEN'],
-        riskGrade: ['CRITICAL'],
+        riskGrade: ['DANGER'],
       });
       expect(summaryParams).toMatchObject({
         filterOperator: 'OR',
         storageType: ['FROZEN'],
-        riskGrade: ['CRITICAL'],
+        riskGrade: ['DANGER'],
       });
     });
   });
@@ -562,8 +562,8 @@ describe('InventoryPage Integration', () => {
 
     // 재고 개요 탭 내 우측 LOT 섹션에 FEFO 목록 표시 확인
     expect((await screen.findAllByText(/FEFO 1순위/)).length).toBeGreaterThanOrEqual(1);
-    expect(await screen.findByText('안전재고 충족')).toBeInTheDocument();
-    const expectedDisposalLabel = within(screen.getByTestId('risk-metric-grid')).getByText('30일 예상 폐기');
+    expect(await screen.findByText('재고 부족 여부')).toBeInTheDocument();
+    const expectedDisposalLabel = await screen.findByText('30일 예상 폐기수량');
     expect(expectedDisposalLabel.parentElement).toHaveTextContent('18개');
     expect(await screen.findByText('부족')).toBeInTheDocument();
     expect(screen.queryByText('재고 위험 판정')).not.toBeInTheDocument();
@@ -708,7 +708,7 @@ describe('InventoryPage Integration', () => {
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(await screen.findByText(/수요예측 & 예상 잔고 추이/)).toBeInTheDocument();
-    expect(screen.queryByText(/신뢰도/)).not.toBeInTheDocument();
+    expect(await screen.findByText('신뢰도 LOW')).toBeInTheDocument();
     expect(screen.queryByText('모델:')).not.toBeInTheDocument();
     expect(screen.queryByText('판정 실패')).not.toBeInTheDocument();
     expect(screen.queryByText('위험 판정')).not.toBeInTheDocument();
