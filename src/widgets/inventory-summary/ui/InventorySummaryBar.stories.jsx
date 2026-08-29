@@ -33,3 +33,11 @@ export const Loading = {
 export const Error = {
   args: { summary: undefined, isLoading: false, isError: true },
 };
+
+export const EmptySummary = {
+  args: {
+    summary: undefined,
+    isLoading: false,
+    isError: false,
+  },
+};

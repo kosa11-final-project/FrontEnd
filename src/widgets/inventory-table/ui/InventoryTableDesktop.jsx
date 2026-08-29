@@ -289,7 +289,7 @@ export function InventoryTableDesktop({
                 {/* 7. 최고 위험도 */}
                 <td className="px-3 py-4 text-center">
                   <div className="flex flex-col items-center gap-1">
-                    <InventoryStatusBadge status={item.riskGrade} />
+                    <InventoryStatusBadge status={item.riskGrade} assessmentStatus={item.assessmentStatus} />
                     {item.assessmentStatus && item.assessmentStatus !== 'ASSESSED' && (
                       <span className="text-[10px] font-medium text-gray-500 whitespace-nowrap">
                         {getAssessmentStatusLabel(item.assessmentStatus)}

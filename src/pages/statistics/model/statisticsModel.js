@@ -19,10 +19,10 @@ export const STATISTICS_SCOPES = Object.freeze([
 export const LOCATION_COMPARISON_SCOPES = Object.freeze(STATISTICS_SCOPES.filter(({ value }) => value !== 'NATIONAL'));
 
 export const RISK_GRADE_META = Object.freeze({
-  CRITICAL: { label: '위험', color: 'var(--danger)', tone: 'danger' },
-  WARNING: { label: '주의', color: 'var(--warning)', tone: 'warning' },
-  NORMAL: { label: '보통', color: 'var(--info)', tone: 'info' },
   GOOD: { label: '양호', color: 'var(--good)', tone: 'good' },
+  NORMAL: { label: '보통', color: 'var(--info)', tone: 'info' },
+  WARNING: { label: '주의', color: 'var(--warning)', tone: 'warning' },
+  CRITICAL: { label: '위험', color: 'var(--danger)', tone: 'danger' },
   UNASSESSED: { label: '미평가', color: 'var(--color-gray-300)', tone: 'neutral' },
 });
 

@@ -5,6 +5,22 @@ import { SUPPORTED_ACTION_TYPES } from '../model/strategy.js';
 const strategyExecutionPath = 'v1/strategy-executions';
 const supportedActionTypes = new Set(SUPPORTED_ACTION_TYPES);
 
+const normalizeSummaryCount = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 0 ? count : null;
+};
+
+const normalizeExecutionSummary = (summary) =>
+  summary && typeof summary === 'object'
+    ? {
+        executionStrategyCount: normalizeSummaryCount(summary.executionStrategyCount),
+        inProgressStrategyCount: normalizeSummaryCount(summary.inProgressStrategyCount),
+        attentionStrategyCount: normalizeSummaryCount(summary.attentionStrategyCount),
+        totalStrategyCount: normalizeSummaryCount(summary.totalStrategyCount),
+      }
+    : null;
+
 const normalizeLocation = (location) =>
   location
     ? {
@@ -93,6 +109,8 @@ export function mapStrategyExecutionPageResponse(response = {}) {
   const size = Number.isInteger(data.size) && data.size > 0 ? data.size : Math.max(content.length, 10);
   const totalElements = Number.isInteger(data.totalElements) ? data.totalElements : content.length;
   const totalPages = Number.isInteger(data.totalPages) ? Math.max(data.totalPages, 1) : 1;
+  // 공통 API 응답의 부가 정보는 페이지 data 내부 또는 data와 같은 레벨에 포함될 수 있습니다.
+  const summary = normalizeExecutionSummary(data.summary ?? response?.summary);
 
   return {
     items: content.map(mapStrategyExecutionResponse),
@@ -102,6 +120,7 @@ export function mapStrategyExecutionPageResponse(response = {}) {
     totalPages,
     first: typeof data.first === 'boolean' ? data.first : backendPage <= 0,
     last: typeof data.last === 'boolean' ? data.last : backendPage >= totalPages - 1,
+    ...(summary ? { summary } : {}),
   };
 }
 

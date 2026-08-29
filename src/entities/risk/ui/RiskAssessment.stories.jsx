@@ -14,7 +14,7 @@ function createRisk(overrides = {}) {
 }
 
 const meta = {
-  title: 'Entities/Risk/Risk Assessment',
+  title: 'Entities/Risk/Assessment',
   component: RiskExplanationPanel,
   tags: ['autodocs'],
   parameters: {

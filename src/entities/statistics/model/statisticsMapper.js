@@ -1,4 +1,4 @@
-const RISK_GRADES = Object.freeze(['CRITICAL', 'WARNING', 'NORMAL', 'GOOD', 'UNASSESSED']);
+const RISK_GRADES = Object.freeze(['GOOD', 'NORMAL', 'WARNING', 'CRITICAL', 'UNASSESSED']);
 const REGION_LABELS = Object.freeze({
   SEOUL: '서울권',
   GYEONGGI: '경기권',
