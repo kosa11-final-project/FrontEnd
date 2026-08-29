@@ -8,7 +8,17 @@ const preview = {
     options: {
       storySort: {
         method: 'alphabetical',
-        order: ['Introduction', 'Foundations', 'Shared UI', 'Entities', 'Features', 'Widgets', 'Pages', 'Prototypes'],
+        order: [
+          'Introduction',
+          'Foundations',
+          'Shared UI',
+          'Entities',
+          'Features',
+          'Widgets',
+          'App Shell',
+          'Pages',
+          'Prototypes',
+        ],
       },
     },
     controls: {
