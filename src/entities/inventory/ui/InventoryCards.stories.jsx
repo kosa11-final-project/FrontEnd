@@ -12,7 +12,7 @@ const scopeMetrics = [
 ];
 
 const scopeMeta = {
-  title: 'Entities/Inventory/Scope Cards',
+  title: 'Entities/Inventory/Cards',
   tags: ['autodocs'],
   parameters: {
     docs: {
