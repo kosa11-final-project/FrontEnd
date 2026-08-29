@@ -16,17 +16,23 @@ const STORAGE_SELECTED_BADGE_COLORS = {
 };
 
 const RISK_BADGE_COLORS = {
-  GOOD: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+  DANGER: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
+  CAUTION: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
+  SAFE: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
   NORMAL: 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100',
-  WARNING: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
-  CRITICAL: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
 };
 
 const RISK_SELECTED_BADGE_COLORS = {
-  GOOD: 'border-emerald-400 bg-emerald-100 text-emerald-800 shadow-2xs',
+  DANGER: 'border-rose-400 bg-rose-100 text-rose-800 shadow-2xs',
+  CAUTION: 'border-amber-400 bg-amber-100 text-amber-800 shadow-2xs',
+  SAFE: 'border-emerald-400 bg-emerald-100 text-emerald-800 shadow-2xs',
   NORMAL: 'border-gray-400 bg-gray-100 text-gray-800 shadow-2xs',
-  WARNING: 'border-amber-400 bg-amber-100 text-amber-800 shadow-2xs',
-  CRITICAL: 'border-rose-400 bg-rose-100 text-rose-800 shadow-2xs',
+};
+
+const RISK_BADGE_COLOR_ALIASES = {
+  GOOD: RISK_BADGE_COLORS.SAFE,
+  WARNING: RISK_BADGE_COLORS.CAUTION,
+  CRITICAL: RISK_BADGE_COLORS.DANGER,
 };
 
 const SELECTED_FILTER_TONE_STYLES = {
@@ -205,17 +211,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
     [allCategories],
   );
   const storageOptions = filterOptions?.storageTypes || [];
-  const riskOptions = useMemo(() => {
-    const options = filterOptions?.riskGrades || [];
-    const order = ['GOOD', 'NORMAL', 'WARNING', 'CRITICAL'];
-    return [...options].sort((a, b) => {
-      const codeA = normalizeRiskGrade(typeof a === 'string' ? a : a?.code) || '';
-      const codeB = normalizeRiskGrade(typeof b === 'string' ? b : b?.code) || '';
-      const indexA = order.indexOf(codeA);
-      const indexB = order.indexOf(codeB);
-      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-    });
-  }, [filterOptions?.riskGrades]);
+  const riskOptions = filterOptions?.riskGrades || [];
   const warehouseOptions = useMemo(
     () => (filterOptions?.warehouses || []).filter((w) => w.availability !== 'REGISTERED_EMPTY'),
     [filterOptions?.warehouses],
@@ -843,13 +839,11 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                   const label = normalizedCode
                     ? getRiskGradeLabel(normalizedCode)
                     : typeof opt === 'object' && opt.name
-                      ? opt.name === '관찰'
-                        ? '보통'
-                        : opt.name
+                      ? opt.name
                       : '위험 등급 확인 필요';
                   const colorClass =
-                    RISK_BADGE_COLORS[normalizedCode] ||
                     RISK_BADGE_COLORS[code] ||
+                    RISK_BADGE_COLOR_ALIASES[code] ||
                     'border-gray-200 bg-gray-50 text-gray-700';
 
                   return (

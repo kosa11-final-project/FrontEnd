@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { authKeys } from '@/entities/auth';
-import { notificationKeys } from '@/entities/notification';
 import { AppHeader, AppSidebar } from '@/widgets/app-shell';
 
 /**
@@ -35,10 +34,6 @@ export function createStoryQueryClient(seed) {
   });
 
   queryClient.setQueryData(authKeys.currentUser(), storyUser);
-  // AppHeader는 모든 제품 프레임에서 알림 개수를 조회하므로 Storybook에서도
-  // 네트워크 요청 없이 안정적인 초기 상태를 제공해야 합니다.
-  queryClient.setQueryData(notificationKeys.list(), []);
-  queryClient.setQueryData(notificationKeys.unreadCount(), 0);
   seed?.(queryClient);
   return queryClient;
 }

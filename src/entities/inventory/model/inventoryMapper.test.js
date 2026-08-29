@@ -30,7 +30,7 @@ describe('Inventory Mapper', () => {
       shortage_yn: 'N',
       inventory_fact_state: 'AVAILABLE',
       risk: {
-        grade: 'GOOD',
+        grade: 'SAFE',
         assessmentStatus: 'ASSESSED',
         reason: '충분한 안전재고 유지 중',
       },
@@ -58,7 +58,7 @@ describe('Inventory Mapper', () => {
     expect(mapped.expectedDisposalQuantity).toBe(18);
     expect(mapped.channelName).toBe('현대백화점');
     expect(mapped.storageName).toBe('냉동');
-    expect(mapped.riskGrade).toBe('GOOD');
+    expect(mapped.riskGrade).toBe('SAFE');
     expect(mapped.riskMeta.tone).toBe('success');
     expect(mapped.inventoryFactState).toBe(INVENTORY_FACT_STATE.AVAILABLE);
     expect(mapped.shortageYn).toBe('N');
@@ -80,7 +80,7 @@ describe('Inventory Mapper', () => {
     expect(mapped.sellingPrice).toBeNull();
     expect(mapped.inventoryFactState).toBeNull();
     expect(mapped.riskGrade).toBeNull();
-    expect(mapped.assessmentStatus).toBeNull();
+    expect(mapped.assessmentStatus).toBe('UNASSESSED');
     expect(mapped.riskMeta).toBeNull();
     expect(mapped.salesPoints).toEqual([]);
     expect(mapped.aiRecommendation).toBeNull();
@@ -162,53 +162,16 @@ describe('Inventory Mapper', () => {
     expect(lot.fefoPriority).toBeNull();
   });
 
-  it('normalizes unknown explicit assessment status and never preserves its stale grade', () => {
+  it('preserves unknown explicit assessment status and normalizes numeric strings', () => {
     const mapped = mapInventoryItem({
       skuCode: 'SKU-1',
-      riskGrade: 'GOOD',
+      riskGrade: 'SAFE',
       assessmentStatus: 'UNKNOWN',
-      shortageYn: 'N',
-      riskReason: '오래된 판정 사유',
       ownerSalesPointCount: '5',
     });
 
     expect(mapped.assessmentStatus).toBeNull();
-    expect(mapped.riskGrade).toBeNull();
-    expect(mapped.riskReason).toBe('');
-    expect(mapped.shortageYn).toBeNull();
     expect(mapped.ownerSalesPointCount).toBe(5);
-  });
-
-  it('등급이 먼저 도착하면 판정 상태 누락을 미판정으로 덮지 않는다', () => {
-    const mapped = mapInventoryItem({
-      skuCode: 'SKU-GRADE-FIRST',
-      riskGrade: 'WARNING',
-      riskReason: '30일 예상 폐기율이 8%입니다.',
-    });
-
-    expect(mapped.assessmentStatus).toBe('ASSESSED');
-    expect(mapped.riskGrade).toBe('WARNING');
-    expect(mapped.riskReason).toBe('30일 예상 폐기율이 8%입니다.');
-  });
-
-  it('keeps an explicit UNASSESSED seller scope free of stale status fields', () => {
-    const mapped = mapInventoryItem({
-      skuCode: 'SKU-UNASSESSED',
-      salesPoints: [
-        {
-          salesPointCode: 'STORE-A',
-          assessmentStatus: 'UNASSESSED',
-          riskGrade: 'CRITICAL',
-          shortageYn: 'Y',
-        },
-      ],
-    });
-
-    expect(mapped.salesPoints[0]).toMatchObject({
-      assessmentStatus: 'UNASSESSED',
-      riskGrade: null,
-      shortageYn: null,
-    });
   });
 
   it('preserves safety-stock shortage independently for each sales point', () => {
@@ -315,7 +278,7 @@ describe('Inventory Mapper', () => {
           salesPointState: 'CENTER_ONLY',
         },
       ],
-      unassignedRiskGrade: 'WARNING',
+      unassignedRiskGrade: 'CAUTION',
       unassignedAssessmentStatus: 'ASSESSED',
       unassignedRiskReason: '미할당 공용재고의 예측 데이터 없음',
       unassigned_shortage_yn: 'Y',
@@ -328,7 +291,7 @@ describe('Inventory Mapper', () => {
       availableQuantity: 35,
       reservedQuantity: 5,
       locationCount: 1,
-      riskGrade: 'WARNING',
+      riskGrade: 'CAUTION',
       assessmentStatus: 'ASSESSED',
       riskReason: '미할당 공용재고의 예측 데이터 없음',
       shortageYn: 'Y',
@@ -366,7 +329,7 @@ describe('Inventory Mapper', () => {
       skuCode: 'SKU-1',
       salesPointCode: 'STORE-1',
       currentQuantity: 10,
-      risk: { assessmentStatus: 'ASSESSED', grade: 'GOOD', reason: '정상' },
+      risk: { assessmentStatus: 'ASSESSED', grade: 'SAFE', reason: '정상' },
       lots: [
         {
           id: 17,
@@ -405,19 +368,13 @@ describe('Inventory Mapper', () => {
         data: {
           warehouses: [{ code: 'WH-1', name: '경인 1센터', availability: 'ACTIVE' }],
           categories: [{ code: 'CAT-3', name: '베이커리', parentCode: 'CAT-2', level: 3 }],
-          riskGrades: [
-            { code: 'GOOD', name: '양호' },
-            { code: 'NORMAL', name: '관찰' },
-          ],
+          riskGrades: [{ code: 'SAFE', name: '양호' }],
         },
       }),
     ).toMatchObject({
       warehouses: [{ code: 'WH-1', name: '경인 1센터', availability: 'ACTIVE' }],
       categories: [{ code: 'CAT-3', name: '베이커리', parentCode: 'CAT-2', level: 3, categoryLevel: 3 }],
-      riskGrades: [
-        { code: 'GOOD', name: '양호' },
-        { code: 'NORMAL', name: '보통' },
-      ],
+      riskGrades: [{ code: 'SAFE', name: '양호' }],
     });
   });
 

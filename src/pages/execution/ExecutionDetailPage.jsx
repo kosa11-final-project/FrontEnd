@@ -166,7 +166,7 @@ export function StrategyExecutionDetailContent({ strategy }) {
       <div className="grid gap-4 2xl:grid-cols-2">
         <Section
           title="위치별 재고 변화"
-          description="전략 시작 시점과 최근 재고 동기화 시점의 위치별 재고를 비교합니다. 안전재고는 변경할 수 없는 안전 기준입니다."
+          description="전략 시작 시점과 최근 재고 동기화 시점의 위치별 재고를 비교합니다. 안전재고는 읽기 전용 가드레일입니다."
         >
           {strategy.inventoryResults.length ? (
             <>
@@ -179,7 +179,7 @@ export function StrategyExecutionDetailContent({ strategy }) {
                       <th className="p-3">전략 시작</th>
                       <th className="p-3">재고 증감</th>
                       <th className="p-3">현재 재고</th>
-                      <th className="p-3">안전 기준</th>
+                      <th className="p-3">가드레일</th>
                     </tr>
                   </thead>
                   <tbody>

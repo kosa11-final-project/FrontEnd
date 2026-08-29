@@ -4,10 +4,10 @@
 
 /** 위험 판정 등급 */
 export const INVENTORY_RISK_GRADES = Object.freeze({
-  GOOD: 'GOOD',
+  SAFE: 'SAFE',
   NORMAL: 'NORMAL',
-  WARNING: 'WARNING',
-  CRITICAL: 'CRITICAL',
+  CAUTION: 'CAUTION',
+  DANGER: 'DANGER',
 });
 
 /** 위험 판정 상태 */
@@ -59,7 +59,7 @@ export const RESULT_STATE = Object.freeze({
 
 /** 위험 등급별 UI 표시 설정 */
 export const RISK_GRADE_META = Object.freeze({
-  GOOD: {
+  SAFE: {
     label: '양호',
     tone: 'success',
     badgeVariant: 'success',
@@ -71,13 +71,13 @@ export const RISK_GRADE_META = Object.freeze({
     badgeVariant: 'info',
     colorHex: '#00B0D7',
   },
-  WARNING: {
+  CAUTION: {
     label: '주의',
     tone: 'warning',
     badgeVariant: 'warning',
     colorHex: '#FDA643',
   },
-  CRITICAL: {
+  DANGER: {
     label: '위험',
     tone: 'danger',
     badgeVariant: 'danger',

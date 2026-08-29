@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Danger, HelpCircle } from 'reicon-react';
 import { getCalculationCriteria, parseInventoryRiskReason } from '@/entities/inventory';
+import { getRiskReasonSeverityLabel } from '@/entities/risk';
 import { formatDateTime, formatNumber } from '@/shared/lib/format';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui';
 import { RiskGradeBadge } from './RiskGradeBadge.jsx';
@@ -9,32 +10,6 @@ import { RiskGradeBadge } from './RiskGradeBadge.jsx';
  * 판정 메시지와 서버 저장 문자열의 소수점 숫자를 정수 단위로 정돈합니다.
  * 사용자가 보는 핵심 사유의 수량 가독성을 유지하고, 내부 문자열 호환도 보장합니다.
  */
-function stripSupplementaryNotes(text) {
-  if (!text || typeof text !== 'string') return text;
-  const stripped = text
-    .replace(/\s*수요예측과\s*안전재고\s*기준이\s*없어[^\n.]*상황입니다\.?/g, '')
-    .replace(/\s*수요예측을?\s*확인할\s*수\s*없어[^\n.]*상황입니다\.?/g, '')
-    .replace(/\s*수요예측\s*기준일이\s*오래되어[^\n.]*상황입니다\.?/g, '')
-    .replace(/\s*수요예측\s*값이\s*유효하지\s*않아[^\n.]*상황입니다\.?/g, '')
-    .replace(/\s*수요예측을?\s*확인할\s*수\s*없는\s*상황입니다\.?/g, '')
-    .replace(/\s*안전재고\s*기준이\s*없어[^\n.]*상황입니다\.?/g, '')
-    .trim();
-  return /^(?:수요예측과?|안전재고)$/.test(stripped) ? '' : stripped;
-}
-
-function legacyMetricReason(availableQty, expectedDisposalQty30) {
-  if (availableQty != null && expectedDisposalQty30 != null) {
-    return `현재 판매 가능 재고는 ${formatNumber(availableQty)}개이며, 30일 예상 폐기수량은 ${formatNumber(expectedDisposalQty30)}개입니다.`;
-  }
-  if (availableQty != null) {
-    return `현재 판매 가능 재고는 ${formatNumber(availableQty)}개입니다.`;
-  }
-  if (expectedDisposalQty30 != null) {
-    return `30일 예상 폐기수량은 ${formatNumber(expectedDisposalQty30)}개입니다.`;
-  }
-  return '현재 확인 가능한 재고 기준으로 판정했습니다.';
-}
-
 function cleanDecimalsInText(text) {
   if (!text || typeof text !== 'string') return text;
   return text.replace(/(\d+)\.(\d+)/g, (match, _integer, _fraction, offset, source) => {
@@ -77,13 +52,6 @@ function getLiveAssessmentCriteria({
   return criteria;
 }
 
-function isCanonicalReasonVersion(ruleVersion) {
-  const match = typeof ruleVersion === 'string' && ruleVersion.match(/^v(\d+)\.(\d+)\.(\d+)$/);
-  if (!match) return false;
-  const [, major, minor] = match;
-  return Number(major) > 1 || (Number(major) === 1 && Number(minor) >= 7);
-}
-
 /**
  * 위험도 평가 상세 설명 및 근거 패널 컴포넌트
  * @param {object} props
@@ -99,7 +67,6 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
     assessmentStatus,
     riskGrade,
     reasonMessage,
-    ruleVersion,
     assessedAt,
     baseDate,
     availableQty,
@@ -114,34 +81,10 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
   const resolvedExpectedDisposalQuantity =
     expectedDisposalQty30 != null ? expectedDisposalQty30 : expectedDisposalQuantity;
 
-  const canonicalReason = isCanonicalReasonVersion(ruleVersion);
-  const parsedReason = canonicalReason ? null : parseInventoryRiskReason(reasonMessage);
-  const actionableReasonItem = canonicalReason
-    ? null
-    : reasons.find((r) => r.severity === 'CRITICAL' || r.severity === 'WARNING') ||
-      reasons.find((r) => r.severity !== 'INFO' && r.severity !== 'GOOD');
-  const rawTargetText = actionableReasonItem
-    ? actionableReasonItem.code && !actionableReasonItem.message.startsWith('[ASSESSED')
-      ? `[ASSESSED/v1.0.0/${actionableReasonItem.code}] ${actionableReasonItem.message}`
-      : actionableReasonItem.message
-    : reasonMessage;
-  const parsedTargetReason = canonicalReason ? null : parseInventoryRiskReason(rawTargetText);
-  const candidateReason = canonicalReason
-    ? reasonMessage
-    : parsedTargetReason?.primaryReason ||
-      parsedReason?.primaryReason ||
-      actionableReasonItem?.message ||
-      reasonMessage;
-  // v1.7+ reason_message는 서버가 완성한 canonical 문장입니다. 숫자 반올림·문장 선택·영문
-  // evidence 제거를 프론트에서 다시 수행하면 저장 스냅샷과 화면이 갈라지므로 그대로 렌더링합니다.
-  const normalizedLegacyReason = cleanDecimalsInText(stripSupplementaryNotes(candidateReason));
-  const primaryReason = canonicalReason
-    ? candidateReason || '서버에 저장된 핵심 사유가 없습니다.'
-    : normalizedLegacyReason || legacyMetricReason(availableQty, resolvedExpectedDisposalQuantity);
-  const calculationEvidence = canonicalReason ? null : cleanDecimalsInText(parsedReason?.calculationEvidence);
-  const storedCalculationCriteria = canonicalReason
-    ? []
-    : (parsedReason?.calculationCriteria ?? getCalculationCriteria(calculationEvidence));
+  const parsedReason = parseInventoryRiskReason(reasonMessage);
+  const primaryReason = cleanDecimalsInText(parsedReason?.primaryReason || reasonMessage);
+  const calculationEvidence = cleanDecimalsInText(parsedReason?.calculationEvidence);
+  const storedCalculationCriteria = parsedReason?.calculationCriteria ?? getCalculationCriteria(calculationEvidence);
   const liveCalculationCriteria = getLiveAssessmentCriteria({
     availableQty,
     shortageQty30: data.shortageQty30,
@@ -153,16 +96,15 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
   });
   const calculationCriteria =
     storedCalculationCriteria.length > 0 ? storedCalculationCriteria : liveCalculationCriteria;
-  const resolvedShortageYn = canonicalReason
-    ? shortageYn
-    : (shortageYn ??
-      (availableQty == null || availableQty === 0
-        ? 'Y'
-        : safetyStockQty == null
-          ? null
-          : availableQty < safetyStockQty
-            ? 'Y'
-            : 'N'));
+  const resolvedShortageYn =
+    shortageYn ??
+    (availableQty == null || availableQty === 0
+      ? 'Y'
+      : safetyStockQty == null
+        ? null
+        : availableQty < safetyStockQty
+          ? 'Y'
+          : 'N');
   const safetyStockDelta =
     availableQty != null && safetyStockQty != null ? Number(availableQty) - Number(safetyStockQty) : null;
   const hasSafetyStockDelta = Number.isFinite(safetyStockDelta);
@@ -202,9 +144,6 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
             </Tooltip>
           )}
           <RiskGradeBadge grade={riskGrade} status={assessmentStatus} showStatus showDot={false} />
-          {assessmentStatus === 'ASSESSED' && (
-            <span className="text-[10px] font-medium text-slate-400">동기화 판정 기준</span>
-          )}
         </div>
 
         <div className="flex items-center gap-2 text-[11px] text-slate-400">
@@ -213,11 +152,8 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
         </div>
       </div>
 
-      {/* 2. 주요 판정 사유 (핵심 사유 단일 표시) */}
-      <div
-        data-testid="risk-primary-reason"
-        className="flex items-start gap-2 rounded-lg bg-slate-50 p-2.5 text-xs text-slate-700"
-      >
+      {/* 2. 주요 판정 사유 */}
+      <div className="flex items-start gap-2 rounded-lg bg-slate-50 p-2.5 text-xs text-slate-700">
         <Danger size={15} className="mt-0.5 shrink-0 text-slate-500" />
         <div className="flex-1">
           <span className="font-semibold text-slate-900">핵심 사유: </span>
@@ -225,10 +161,9 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
         </div>
       </div>
 
-      <div className="mb-1 text-[10px] font-semibold text-slate-400">현재 조회 기준</div>
       <div data-testid="risk-metric-grid" className="grid grid-cols-3 gap-1.5">
         <div className="min-w-0 rounded-lg border border-indigo-100 bg-indigo-50/40 px-2 py-1.5">
-          <div className="whitespace-nowrap text-[10px] text-indigo-600">예상 보유일</div>
+          <div className="whitespace-nowrap text-[10px] text-indigo-600">예상 보유 가능 일수</div>
           <div className="mt-1 whitespace-nowrap text-xs font-bold text-indigo-700">
             {stockCoverageDays != null ? `${formatNumber(stockCoverageDays)}일` : '산정 불가'}
           </div>
@@ -254,7 +189,7 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
                   : 'text-slate-500'
             }`}
           >
-            안전재고 충족
+            재고 부족 여부
           </div>
           <div className="mt-0.5 whitespace-nowrap text-[9px] text-slate-400">
             안전재고 기준 {safetyStockQty != null ? `${formatNumber(safetyStockQty)}개` : '산정 불가'}
@@ -283,7 +218,7 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
           )}
         </div>
         <div className="min-w-0 rounded-lg border border-amber-100 bg-amber-50/40 px-2 py-1.5">
-          <div className="whitespace-nowrap text-[10px] text-amber-700">30일 예상 폐기</div>
+          <div className="whitespace-nowrap text-[10px] text-amber-700">30일 예상 폐기수량</div>
           <div className="mt-1 whitespace-nowrap text-xs font-bold tabular-nums text-amber-800">
             {resolvedExpectedDisposalQuantity != null
               ? `${formatNumber(resolvedExpectedDisposalQuantity)}개`
@@ -300,6 +235,43 @@ export function RiskExplanationPanel({ data, expectedDisposalQuantity = null }) 
           </div>
         </div>
       </div>
+
+      {/* 3. 세부 평가 사유 목록 (Reasons) */}
+      {reasons && reasons.length > 0 && (
+        <div className="space-y-1.5 border-t border-slate-100 pt-2 text-xs">
+          <h5 className="text-[11px] font-bold text-slate-500">세부 평가 내역 ({reasons.length}건)</h5>
+          <div className="space-y-1">
+            {reasons.map((r, i) => {
+              const isCritical = r.severity === 'CRITICAL';
+              const isWarning = r.severity === 'WARNING';
+              const badgeClass = isCritical
+                ? 'bg-rose-100 text-rose-700'
+                : isWarning
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-slate-100 text-slate-700';
+
+              return (
+                <div
+                  key={`${r.code}-${i}`}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-2.5 py-1.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-sm px-1.5 py-0.5 text-[10px] font-bold ${badgeClass}`}>
+                      {getRiskReasonSeverityLabel(r.severity)}
+                    </span>
+                    <span className="text-slate-800">{cleanDecimalsInText(r.message)}</span>
+                  </div>
+                  {r.evidence && (
+                    <span className="text-[10px] text-slate-400 font-mono break-all">
+                      {cleanDecimalsInText(r.evidence)}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

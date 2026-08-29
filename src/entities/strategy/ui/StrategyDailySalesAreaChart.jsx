@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatDate, formatNumber, formatQuantity } from '@/shared/lib/format';
 import { Button } from '@/shared/ui';
 import { EmptyPerformanceState } from './EmptyPerformanceState.jsx';
@@ -74,29 +74,11 @@ function formatAxisDate(value) {
   return value.slice(5).replace('-', '.');
 }
 
-export function getDelayedSeriesStartMarkers(chartData = [], series = []) {
-  const chartStartDate = chartData[0]?.date;
-  if (!chartStartDate) return [];
-
-  const markersByDate = new Map();
-  series.forEach((item) => {
-    const firstPoint = chartData.find((point) => Number.isFinite(point[item.key]));
-    if (!firstPoint || firstPoint.date === chartStartDate) return;
-
-    const marker = markersByDate.get(firstPoint.date) ?? { date: firstPoint.date, series: [] };
-    marker.series.push(item);
-    markersByDate.set(firstPoint.date, marker);
-  });
-
-  return [...markersByDate.values()].sort((left, right) => left.date.localeCompare(right.date));
-}
-
-function SalesTooltip({ active, payload, startMarkersByDate }) {
+function SalesTooltip({ active, payload }) {
   if (!active || !payload?.[0]?.payload) return null;
   const point = payload[0].payload;
-  const startMarker = startMarkersByDate.get(point.date);
   return (
-    <div className="max-w-[280px] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 shadow-[var(--shadow-soft)]">
+    <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--card)] px-3 py-2 shadow-[var(--shadow-soft)]">
       <span className="text-[length:var(--font-size-meta)] text-[color:var(--text-muted)]">
         {formatDate(point.date)}
       </span>
@@ -114,16 +96,6 @@ function SalesTooltip({ active, payload, startMarkersByDate }) {
           </span>
         ))}
       </div>
-      {startMarker ? (
-        <div className="mt-2 border-t border-[var(--border)] pt-2 text-[length:var(--font-size-meta)]">
-          <strong className="text-[color:var(--text-heading)]">그래프 시작 지점</strong>
-          {startMarker.series.map((item) => (
-            <p key={item.key} className="mt-1 leading-relaxed text-[color:var(--text-muted)]">
-              {item.label} · {item.name}의 판매 데이터가 이 날짜부터 수집되어 그래프가 여기서 시작됩니다.
-            </p>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -179,14 +151,6 @@ export function StrategyDailySalesAreaChart({ establishedAt, records = [], sales
   const lastPointQuantity = lastPoint
     ? activeSeries.reduce((total, item) => total + (lastPoint[item.key] ?? 0), 0)
     : null;
-  const delayedSeriesStartMarkers = useMemo(
-    () => getDelayedSeriesStartMarkers(chartData, activeSeries),
-    [activeSeries, chartData],
-  );
-  const startMarkersByDate = useMemo(
-    () => new Map(delayedSeriesStartMarkers.map((marker) => [marker.date, marker])),
-    [delayedSeriesStartMarkers],
-  );
 
   if (!establishedAt || !records.length) {
     return (
@@ -271,26 +235,7 @@ export function StrategyDailySalesAreaChart({ establishedAt, records = [], sales
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip content={<SalesTooltip startMarkersByDate={startMarkersByDate} />} />
-                {delayedSeriesStartMarkers.map((marker) => {
-                  const label = marker.series.map((item) => item.label).join(' · ');
-                  const stroke = marker.series.length === 1 ? marker.series[0].color : 'var(--text-muted)';
-                  return (
-                    <ReferenceLine
-                      key={marker.date}
-                      x={marker.date}
-                      stroke={stroke}
-                      strokeWidth={1.5}
-                      strokeDasharray="4 4"
-                      label={{
-                        value: `${label} 시작`,
-                        position: 'insideTopRight',
-                        fill: 'var(--text-muted)',
-                        fontSize: 11,
-                      }}
-                    />
-                  );
-                })}
+                <Tooltip content={<SalesTooltip />} />
                 {activeSeries.map((item) => (
                   <Area
                     key={item.key}
