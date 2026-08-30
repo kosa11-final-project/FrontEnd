@@ -20,6 +20,10 @@ const SUMMARY_FILTER_KEYS = Object.freeze([
   'shortageYn',
 ]);
 
+// 통합 재고의 원천 데이터는 동기화가 완료될 때만 바뀝니다.
+// 따라서 목록·요약은 짧은 포커스 재조회 대신 동기화 후 선택적 무효화를 기준으로 캐시합니다.
+export const INVENTORY_DATA_CACHE_TIME_MS = 30 * 60 * 1000;
+
 function pickSummaryParams(params = {}) {
   return SUMMARY_FILTER_KEYS.reduce((result, key) => {
     const value = params?.[key];
@@ -55,7 +59,8 @@ export function inventoryListQueryOptions(params = {}) {
     queryKey: inventoryKeys.list(params),
     queryFn: ({ signal }) => getInventories(params, signal),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: INVENTORY_DATA_CACHE_TIME_MS,
+    gcTime: INVENTORY_DATA_CACHE_TIME_MS,
     retry: retryServerErrorOnly,
   });
 }
@@ -68,7 +73,8 @@ export function inventorySummaryQueryOptions(params = {}) {
     queryKey: inventoryKeys.summary(summaryParams),
     queryFn: ({ signal }) => getInventorySummary(summaryParams, signal),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: INVENTORY_DATA_CACHE_TIME_MS,
+    gcTime: INVENTORY_DATA_CACHE_TIME_MS,
     retry: retryServerErrorOnly,
   });
 }

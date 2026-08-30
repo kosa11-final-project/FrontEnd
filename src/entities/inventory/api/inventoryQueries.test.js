@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   inventoryDetailQueryOptions,
   inventoryFilterOptionsQueryOptions,
+  INVENTORY_DATA_CACHE_TIME_MS,
   inventoryKeys,
   inventoryListQueryOptions,
   inventoryLotsQueryOptions,
@@ -24,11 +25,13 @@ describe('inventoryQueries', () => {
   it('provides query options with correct query keys and enablement rules', () => {
     const listOptions = inventoryListQueryOptions({ q: '만두' });
     expect(listOptions.queryKey).toEqual(['inventory', 'list', { q: '만두' }]);
-    expect(listOptions.staleTime).toBe(0);
+    expect(listOptions.staleTime).toBe(INVENTORY_DATA_CACHE_TIME_MS);
+    expect(listOptions.gcTime).toBe(INVENTORY_DATA_CACHE_TIME_MS);
 
     const summaryOptions = inventorySummaryQueryOptions({});
     expect(summaryOptions.queryKey).toEqual(['inventory', 'summary', {}]);
-    expect(summaryOptions.staleTime).toBe(0);
+    expect(summaryOptions.staleTime).toBe(INVENTORY_DATA_CACHE_TIME_MS);
+    expect(summaryOptions.gcTime).toBe(INVENTORY_DATA_CACHE_TIME_MS);
 
     const detailEnabled = inventoryDetailQueryOptions('SKU_01', 'STORE_01');
     expect(detailEnabled.enabled).toBe(true);

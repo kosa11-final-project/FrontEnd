@@ -315,6 +315,58 @@ describe('InventorySyncControl', () => {
     randomSpy.mockRestore();
   });
 
+  it('refreshes inventory reads after a successful sync even when changedCount is zero', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    apiMock.startInventorySync.mockResolvedValue({ syncRunId: 42, status: 'QUEUED' });
+    apiMock.getInventorySync.mockResolvedValue({
+      syncRunId: 42,
+      status: 'SUCCEEDED',
+      readCount: 1,
+      changedCount: 0,
+      errorCount: 0,
+    });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    renderControl(queryClient);
+
+    fireEvent.click(await screen.findByRole('button', { name: '재고 동기화' }));
+
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledTimes(5));
+    expect(invalidateSpy.mock.calls.map(([options]) => options.queryKey)).toEqual([
+      ['inventory', 'list'],
+      ['inventory', 'summary'],
+      ['inventory', 'detail'],
+      ['inventory', 'lots'],
+      ['inventory-risk'],
+    ]);
+    randomSpy.mockRestore();
+  });
+
+  it('does not refresh the same successful sync again after remounting with the same query client', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const succeededRun = {
+      syncRunId: 42,
+      status: 'SUCCEEDED',
+      readCount: 1,
+      changedCount: 0,
+      errorCount: 0,
+    };
+    apiMock.getInventorySyncLatest.mockResolvedValue(succeededRun);
+    apiMock.getInventorySync.mockResolvedValue(succeededRun);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    const firstRender = renderControl(queryClient);
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledTimes(5));
+    firstRender.unmount();
+
+    renderControl(queryClient);
+    await waitFor(() => expect(screen.getByRole('button', { name: '재고 동기화' })).toBeEnabled());
+    expect(invalidateSpy).toHaveBeenCalledTimes(5);
+
+    randomSpy.mockRestore();
+  });
+
   it('waits for persisted snapshots before refreshing dashboard and inventory statistics', async () => {
     vi.useFakeTimers();
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
