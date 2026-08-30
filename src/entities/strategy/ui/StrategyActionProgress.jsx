@@ -21,7 +21,7 @@ export function StrategyActionProgress({ value, label = '진행률', compact = f
         </strong>
       </div>
       <div
-        className={cn('overflow-hidden rounded-full bg-[var(--surface-subtle)]', compact ? 'h-1.5' : 'h-2')}
+        className={cn('overflow-hidden rounded-full bg-[var(--border)]', compact ? 'h-1.5' : 'h-2.5')}
         role={hasValue ? 'progressbar' : undefined}
         aria-label={hasValue ? label : undefined}
         aria-valuemin={hasValue ? 0 : undefined}
@@ -29,7 +29,11 @@ export function StrategyActionProgress({ value, label = '진행률', compact = f
         aria-valuenow={hasValue ? safeValue : undefined}
       >
         <div
-          className={cn('h-full rounded-full transition-[width]', hasValue ? barTone : 'bg-transparent')}
+          className={cn(
+            'h-full rounded-full transition-all duration-300',
+            hasValue ? barTone : 'bg-transparent',
+            safeValue > 0 && 'min-w-1.5',
+          )}
           style={{ width: hasValue ? `${safeValue}%` : '0%' }}
         />
       </div>

@@ -112,7 +112,7 @@ test.describe('통합재고 동기화', () => {
     expect(startRequestCount).toBe(0);
   });
 
-  test('모바일 상세에서 서버 위험 판정의 계산 근거를 툴팁으로 확인한다', async ({ page }) => {
+  test('모바일 상세에서 서버 위험 판정의 판정 기준을 툴팁으로 확인한다', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await mockAuthenticatedSession(page);
     await mockCsrfToken(page);
@@ -211,12 +211,13 @@ test.describe('통합재고 동기화', () => {
     await page.goto('/inventory?detailSkuCode=SKU-TOOLTIP&detailSalesPointCode=GREETING&detailTab=OVERVIEW');
 
     await expect(page.getByRole('dialog')).toBeVisible();
-    const trigger = page.getByRole('button', { name: '계산 근거 보기' });
+    const trigger = page.getByRole('button', { name: '판정 기준 보기' });
     await expect(trigger).toBeVisible();
     await trigger.click();
 
     const tooltip = page.getByRole('tooltip');
     await expect(tooltip).toBeVisible();
-    await expect(tooltip).toContainText('가용 재고: 100개, 30일 부족 수량: 40개');
+    await expect(tooltip).toContainText('사용 기준 데이터: 현재 판매 가능 재고, D+7·D+14·D+30 누적 수요예측');
+    await expect(tooltip).not.toContainText('반영한 값');
   });
 });

@@ -45,6 +45,7 @@ export {
   getStrategyExecutions,
   mapStrategyExecutionPageResponse,
   mapStrategyExecutionResponse,
+  synchronizeStrategyPerformances,
 } from './api/strategyExecutionApi.js';
 export { EmptyPerformanceState } from './ui/EmptyPerformanceState.jsx';
 export { StrategyActionCard } from './ui/StrategyActionCard.jsx';

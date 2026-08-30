@@ -28,6 +28,12 @@ function ListPreview({ strategies }) {
   return (
     <StrategyExecutionListContent
       strategies={filtered}
+      summary={{
+        executionStrategyCount: filtered.filter((strategy) => strategy.status !== 'READY').length,
+        inProgressStrategyCount: filtered.filter((strategy) => strategy.status === 'EXECUTING').length,
+        attentionStrategyCount: filtered.filter((strategy) => strategy.status === 'PARTIAL').length,
+        totalStrategyCount: filtered.length,
+      }}
       filters={filters}
       pagination={{
         page: 1,

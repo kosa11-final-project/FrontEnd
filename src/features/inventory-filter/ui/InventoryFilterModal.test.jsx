@@ -14,7 +14,7 @@ describe('InventoryFilterModal', () => {
         filterOptions={{
           categories: [],
           storageTypes: [{ code: 'FROZEN', name: '냉동' }],
-          riskGrades: [{ code: 'DANGER', name: '위험' }],
+          riskGrades: [{ code: 'CRITICAL', name: '위험' }],
           warehouses: [],
           salesPoints: [],
           regions: [],
@@ -31,7 +31,7 @@ describe('InventoryFilterModal', () => {
 
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({
-        riskGrade: ['DANGER'],
+        riskGrade: ['CRITICAL'],
       }),
     );
     expect(onApply.mock.lastCall[0]).not.toHaveProperty('filterOperator');
@@ -52,7 +52,7 @@ describe('InventoryFilterModal', () => {
           ],
           riskGrades: [
             { code: 'NORMAL', name: '보통' },
-            { code: 'CAUTION', name: '주의' },
+            { code: 'WARNING', name: '주의' },
           ],
           warehouses: [],
           salesPoints: [],
@@ -68,7 +68,7 @@ describe('InventoryFilterModal', () => {
     expect(screen.getAllByText('(복수 선택 가능)')).toHaveLength(2);
     expect(screen.getByRole('button', { name: '냉동' }).parentElement).toHaveClass('flex-nowrap');
     expect(screen.getByRole('button', { name: '보통' }).parentElement).toHaveClass('flex-nowrap');
-    expect(screen.getByText('안전재고 미달 상품 포함여부')).toHaveClass('whitespace-nowrap');
+    expect(screen.getByText('재고 부족 상품 포함여부')).toHaveClass('whitespace-nowrap');
 
     fireEvent.click(screen.getByRole('button', { name: '냉동' }));
     fireEvent.click(screen.getByRole('button', { name: '상온' }));
@@ -79,7 +79,7 @@ describe('InventoryFilterModal', () => {
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({
         storageType: ['FROZEN', 'ROOM_TEMP'],
-        riskGrade: ['NORMAL', 'CAUTION'],
+        riskGrade: ['NORMAL', 'WARNING'],
       }),
     );
   });
@@ -97,7 +97,7 @@ describe('InventoryFilterModal', () => {
             { code: 'FROZEN', name: '냉동' },
             { code: 'ROOM_TEMP', name: '상온' },
           ],
-          riskGrades: [{ code: 'CAUTION', name: '주의' }],
+          riskGrades: [{ code: 'WARNING', name: '주의' }],
           warehouses: [],
           salesPoints: [],
           regions: [],
@@ -158,15 +158,15 @@ describe('InventoryFilterModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '물류센터 선택' }));
-    expect(screen.getByRole('listbox', { name: '물류센터 목록' })).toHaveClass('top-full', 'bottom-auto');
+    fireEvent.click(screen.getByRole('button', { name: '물류센터(미할당 재고) 선택' }));
+    expect(screen.getByRole('listbox', { name: '물류센터(미할당 재고) 목록' })).toHaveClass('top-full', 'bottom-auto');
     fireEvent.click(screen.getByRole('option', { name: '경인1센터' }));
     fireEvent.click(screen.getByRole('option', { name: '서울센터' }));
     fireEvent.click(screen.getByRole('button', { name: '상세 판매처 선택' }));
     fireEvent.click(screen.getByRole('option', { name: '판교점' }));
     fireEvent.click(screen.getByRole('option', { name: '수지점' }));
 
-    expect(screen.getByRole('button', { name: '물류센터 선택' })).toHaveTextContent('경인1센터, 서울센터');
+    expect(screen.getByRole('button', { name: '물류센터(미할당 재고) 선택' })).toHaveTextContent('경인1센터, 서울센터');
     expect(screen.getByRole('button', { name: '상세 판매처 선택' })).toHaveTextContent('판교점, 수지점');
     expect(screen.getByText('선택된 필터')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '경인1센터 필터 해제' })).toBeInTheDocument();
@@ -206,7 +206,7 @@ describe('InventoryFilterModal', () => {
         />,
       );
 
-      fireEvent.click(screen.getByRole('button', { name: '물류센터 선택' }));
+      fireEvent.click(screen.getByRole('button', { name: '물류센터(미할당 재고) 선택' }));
 
       await vi.waitFor(() => {
         expect(scrollIntoViewSpy).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
@@ -348,7 +348,7 @@ describe('InventoryFilterModal', () => {
     expect(screen.queryByRole('button', { name: '재판정 중' })).not.toBeInTheDocument();
   });
 
-  it('applies the safety-stock shortage filter', () => {
+  it('applies the inventory shortage filter', () => {
     const onApply = vi.fn();
 
     render(
@@ -369,9 +369,24 @@ describe('InventoryFilterModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('checkbox', { name: '안전재고 미달 상품 포함여부' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '재고 부족 상품 포함여부' }));
     fireEvent.click(screen.getByRole('button', { name: /필터 적용하기/ }));
 
     expect(onApply).toHaveBeenCalledWith(expect.objectContaining({ shortageYn: 'Y' }));
+  });
+
+  it('does not allow the shortage filter to change while filter options are loading', () => {
+    render(
+      <InventoryFilterModal
+        open
+        filters={DEFAULT_INVENTORY_FILTERS}
+        filterOptions={undefined}
+        isFilterOptionsLoading
+        onClose={vi.fn()}
+        onApply={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('checkbox', { name: '재고 부족 상품 포함여부' })).toBeDisabled();
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   POLL_INTERVAL_BY_STATUS_MS,
+  INVENTORY_SYNC_LATEST_POLL_INTERVAL_MS,
   SNAPSHOT_REFRESH_FAST_POLL_INTERVAL_MS,
   SNAPSHOT_REFRESH_FAST_WINDOW_MS,
   SNAPSHOT_REFRESH_MAX_WAIT_MS,
@@ -54,10 +55,10 @@ describe('inventorySyncQueries', () => {
     expect(options.refetchOnReconnect).toBe(false);
   });
 
-  it('never interval-polls latest because the run detail owns active tracking', () => {
+  it('polls latest periodically so scheduled runs can invalidate inventory caches', () => {
     const options = inventorySyncLatestQueryOptions();
 
-    expect(options.refetchInterval).toBe(false);
+    expect(options.refetchInterval).toBe(INVENTORY_SYNC_LATEST_POLL_INTERVAL_MS);
     expect(options.refetchOnWindowFocus).toBe('always');
     expect(options.refetchOnReconnect).toBe('always');
     expect(options.refetchIntervalInBackground).toBe(false);

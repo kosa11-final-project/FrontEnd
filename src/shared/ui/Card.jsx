@@ -33,9 +33,10 @@ export const CardHeader = forwardRef(function CardHeader({ className, ...props }
   return <div ref={ref} data-slot="card-header" className={cn('flex flex-col gap-1.5', className)} {...props} />;
 });
 
-export const CardTitle = forwardRef(function CardTitle({ className, ...props }, ref) {
+export const CardTitle = forwardRef(function CardTitle({ as: Comp = 'h2', asChild = false, className, ...props }, ref) {
+  const Component = asChild ? Slot : Comp;
   return (
-    <h3
+    <Component
       ref={ref}
       data-slot="card-title"
       className={cn(

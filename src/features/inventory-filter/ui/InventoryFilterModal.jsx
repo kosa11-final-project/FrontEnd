@@ -16,23 +16,17 @@ const STORAGE_SELECTED_BADGE_COLORS = {
 };
 
 const RISK_BADGE_COLORS = {
-  DANGER: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
-  CAUTION: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
-  SAFE: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+  GOOD: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
   NORMAL: 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100',
+  WARNING: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
+  CRITICAL: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100',
 };
 
 const RISK_SELECTED_BADGE_COLORS = {
-  DANGER: 'border-rose-400 bg-rose-100 text-rose-800 shadow-2xs',
-  CAUTION: 'border-amber-400 bg-amber-100 text-amber-800 shadow-2xs',
-  SAFE: 'border-emerald-400 bg-emerald-100 text-emerald-800 shadow-2xs',
+  GOOD: 'border-emerald-400 bg-emerald-100 text-emerald-800 shadow-2xs',
   NORMAL: 'border-gray-400 bg-gray-100 text-gray-800 shadow-2xs',
-};
-
-const RISK_BADGE_COLOR_ALIASES = {
-  GOOD: RISK_BADGE_COLORS.SAFE,
-  WARNING: RISK_BADGE_COLORS.CAUTION,
-  CRITICAL: RISK_BADGE_COLORS.DANGER,
+  WARNING: 'border-amber-400 bg-amber-100 text-amber-800 shadow-2xs',
+  CRITICAL: 'border-rose-400 bg-rose-100 text-rose-800 shadow-2xs',
 };
 
 const SELECTED_FILTER_TONE_STYLES = {
@@ -211,8 +205,21 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
     [allCategories],
   );
   const storageOptions = filterOptions?.storageTypes || [];
-  const riskOptions = filterOptions?.riskGrades || [];
-  const warehouseOptions = filterOptions?.warehouses || [];
+  const riskOptions = useMemo(() => {
+    const options = filterOptions?.riskGrades || [];
+    const order = ['GOOD', 'NORMAL', 'WARNING', 'CRITICAL'];
+    return [...options].sort((a, b) => {
+      const codeA = normalizeRiskGrade(typeof a === 'string' ? a : a?.code) || '';
+      const codeB = normalizeRiskGrade(typeof b === 'string' ? b : b?.code) || '';
+      const indexA = order.indexOf(codeA);
+      const indexB = order.indexOf(codeB);
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+    });
+  }, [filterOptions?.riskGrades]);
+  const warehouseOptions = useMemo(
+    () => (filterOptions?.warehouses || []).filter((w) => w.availability !== 'REGISTERED_EMPTY'),
+    [filterOptions?.warehouses],
+  );
   const salesPointOptions = filterOptions?.salesPoints || [];
   const initialCategoryIds = useMemo(
     () => (Array.isArray(filters.categoryIds) ? filters.categoryIds : filters.categoryId ? [filters.categoryId] : []),
@@ -533,7 +540,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
         'warehouseCode',
         code,
       ),
-      group: '물류센터',
+      group: '물류센터(미할당 재고)',
       tone: 'warehouse',
       onRemove: () => setDraftWarehouseCodes((prev) => prev.filter((value) => value !== code)),
     })),
@@ -552,7 +559,7 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
       ? [
           {
             key: 'shortage-Y',
-            label: '안전재고 미달 포함',
+            label: '재고 부족 상품 포함',
             group: '재고',
             tone: 'shortage',
             onRemove: () => setDraftShortageYn(''),
@@ -836,11 +843,13 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
                   const label = normalizedCode
                     ? getRiskGradeLabel(normalizedCode)
                     : typeof opt === 'object' && opt.name
-                      ? opt.name
+                      ? opt.name === '관찰'
+                        ? '보통'
+                        : opt.name
                       : '위험 등급 확인 필요';
                   const colorClass =
+                    RISK_BADGE_COLORS[normalizedCode] ||
                     RISK_BADGE_COLORS[code] ||
-                    RISK_BADGE_COLOR_ALIASES[code] ||
                     'border-gray-200 bg-gray-50 text-gray-700';
 
                   return (
@@ -861,19 +870,20 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
               </div>
             </div>
 
-            {/* 안전재고 미달 상품 포함 여부 */}
+            {/* 재고 부족 상품 포함 여부 */}
             <div className="flex items-end">
               <label htmlFor={shortageFilterId} className="inline-flex cursor-pointer items-center gap-2">
                 <input
                   id={shortageFilterId}
                   type="checkbox"
-                  aria-label="안전재고 미달 상품 포함여부"
+                  aria-label="재고 부족 상품 포함여부"
                   checked={draftShortageYn === 'Y'}
+                  disabled={isFilterOptionsLoading}
                   onChange={(event) => setDraftShortageYn(event.target.checked ? 'Y' : '')}
-                  className="size-5 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)]"
+                  className="size-5 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <span className="whitespace-nowrap text-[11px] font-semibold text-gray-700">
-                  안전재고 미달 상품 포함여부
+                  재고 부족 상품 포함여부
                 </span>
               </label>
             </div>
@@ -883,15 +893,15 @@ function InventoryFilterModalContent({ filters, filterOptions, isFilterOptionsLo
           <div className="grid grid-cols-1 gap-4 pt-2 border-t border-gray-100 sm:grid-cols-2">
             {/* 물류센터 */}
             <div>
-              <label className="text-xs font-bold text-gray-800 mb-1.5 block">물류센터</label>
+              <label className="text-xs font-bold text-gray-800 mb-1.5 block">물류센터(미할당 재고)</label>
               <FilterMultiSelect
-                label="물류센터"
+                label="물류센터(미할당 재고)"
                 placeholder="전체 물류센터"
                 options={warehouseOptions}
                 optionType="warehouseCode"
                 selectedValues={draftWarehouseCodes}
                 isFilterOptionsLoading={isFilterOptionsLoading}
-                isOpen={openMultiSelect === '물류센터'}
+                isOpen={openMultiSelect === '물류센터(미할당 재고)'}
                 onOpenChange={setOpenMultiSelect}
                 onToggle={(code) =>
                   setDraftWarehouseCodes((prev) =>

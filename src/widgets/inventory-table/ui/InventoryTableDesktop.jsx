@@ -1,5 +1,5 @@
 import { Building, Shop, ShoppingCart, Store } from 'reicon-react';
-import { formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
+import { formatDate, formatDaysRemaining, formatQuantity } from '@/shared/lib/format';
 import { InventoryStatusBadge } from '@/entities/inventory/ui/InventoryStatusBadge.jsx';
 import { getAssessmentStatusLabel } from '@/entities/risk/model/risk.js';
 import { CHANNEL_BADGE_STYLES, STORAGE_BADGE_STYLES } from './constants.js';
@@ -87,7 +87,7 @@ export function InventoryTableDesktop({
         <InventoryTableDesktopBodySkeleton rowCount={Math.max(items.length, 1)} />
       ) : (
         <tbody className="divide-y divide-[#F3F4F6]">
-          {items.map((item) => {
+          {items.map((item, index) => {
             const isSelected = selectedItem?.rowId === item.rowId;
             const isSelectedSku = selectedSkuCodes.includes(item.skuCode);
             const isMaxReached = selectedSkuCodes.length >= maxSelection;
@@ -111,8 +111,7 @@ export function InventoryTableDesktop({
               <tr
                 key={item.rowId}
                 tabIndex={0}
-                role="button"
-                aria-label={`${item.skuCode} ${skuLabel} ${ownerSalesPointCount}개 판매처 재고, 물류센터 미할당 재고 상세 보기`}
+                aria-label={`${item.skuCode} ${skuLabel} ${ownerSalesPointCount}개 판매처 재고, 가용수량 ${formatQuantity(item.availableQuantity)}, 30일 예상 폐기 ${formatQuantity(item.expectedDisposalQuantity)}, 물류센터 미할당 재고 상세 보기`}
                 onClick={() => onRowClick?.(item)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -128,25 +127,23 @@ export function InventoryTableDesktop({
               >
                 {/* 0. 체크박스 (최대 5개 다중 선택) */}
                 <td
-                  className="min-w-[52px] py-3 pl-3 pr-2 text-left align-middle"
+                  className="text-left pl-3 pr-2 py-4 align-middle"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
-                  <label className="inline-flex size-9 items-center justify-center cursor-pointer rounded-lg hover:bg-gray-100/80">
-                    <input
-                      type="checkbox"
-                      checked={isSelectedSku}
-                      disabled={!isSelectedSku && isMaxReached}
-                      onChange={() => onToggleSelectSku?.(item.skuCode)}
-                      aria-label={`${skuLabel} 선택`}
-                      title={
-                        !isSelectedSku && isMaxReached
-                          ? `최대 ${maxSelection}개까지 선택 가능합니다`
-                          : `${skuLabel} 선택 (${selectedSkuCodes.length}/${maxSelection})`
-                      }
-                      className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                    />
-                  </label>
+                  <input
+                    type="checkbox"
+                    checked={isSelectedSku}
+                    disabled={!isSelectedSku && isMaxReached}
+                    onChange={() => onToggleSelectSku?.(item.skuCode)}
+                    aria-label={`${skuLabel} 선택`}
+                    title={
+                      !isSelectedSku && isMaxReached
+                        ? `최대 ${maxSelection}개까지 선택 가능합니다`
+                        : `${skuLabel} 선택 (${selectedSkuCodes.length}/${maxSelection})`
+                    }
+                    className="size-4 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  />
                 </td>
 
                 {/* 1. SKU 정보 및 소분류 */}
@@ -160,6 +157,7 @@ export function InventoryTableDesktop({
                       className="size-12"
                       item={item}
                       onImageClick={onImageClick}
+                      priority={index < 2}
                     />
                     <div className="flex flex-col min-w-0">
                       {/* 1행: SKU 규격명 (메인 식별자) */}
@@ -275,10 +273,23 @@ export function InventoryTableDesktop({
                   </div>
                 </td>
 
-                {/* 6. 최고 위험도 */}
+                {/* 6. 30일 예상 폐기수량 */}
+                <td
+                  className="px-3 py-4 text-right"
+                  title="소비기한 또는 판매중지일이 30일 이내인 재고 중 예상 판매량을 제외하고 남는 수량"
+                >
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm font-bold text-amber-700 tabular-nums">
+                      {formatQuantity(item.expectedDisposalQuantity)}
+                    </span>
+                    <span className="text-[10px] text-gray-400">향후 30일</span>
+                  </div>
+                </td>
+
+                {/* 7. 최고 위험도 */}
                 <td className="px-3 py-4 text-center">
                   <div className="flex flex-col items-center gap-1">
-                    <InventoryStatusBadge status={item.riskGrade} />
+                    <InventoryStatusBadge status={item.riskGrade} assessmentStatus={item.assessmentStatus} />
                     {item.assessmentStatus && item.assessmentStatus !== 'ASSESSED' && (
                       <span className="text-[10px] font-medium text-gray-500 whitespace-nowrap">
                         {getAssessmentStatusLabel(item.assessmentStatus)}
@@ -291,26 +302,33 @@ export function InventoryTableDesktop({
                     )}
                     {hasSafetyShortage && (
                       <span className="text-[10px] font-medium text-amber-700 whitespace-nowrap">
-                        안전재고 미달 상품 포함
+                        재고 부족 상품 포함
                       </span>
                     )}
                   </div>
                 </td>
 
-                {/* 7. 소비기한 */}
+                {/* 8. 소비기한 */}
                 <td className="px-5 py-4 text-center tabular-nums">
                   {item.nearestExpiryDays !== null ? (
-                    <span
-                      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${
-                        item.nearestExpiryDays <= 7
-                          ? 'bg-rose-100 text-rose-900 border border-rose-200'
-                          : item.nearestExpiryDays <= 30
-                            ? 'bg-amber-100 text-amber-950 border border-amber-200'
-                            : 'bg-gray-100 text-gray-800 border border-gray-200'
-                      }`}
-                    >
-                      {formatDaysRemaining(item.nearestExpiryDays)}
-                    </span>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span
+                        className={`inline-flex items-center whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-bold ${
+                          item.nearestExpiryDays <= 7
+                            ? 'bg-rose-100 text-rose-900 border border-rose-200'
+                            : item.nearestExpiryDays <= 30
+                              ? 'bg-amber-100 text-amber-950 border border-amber-200'
+                              : 'bg-gray-100 text-gray-800 border border-gray-200'
+                        }`}
+                      >
+                        {formatDaysRemaining(item.nearestExpiryDays)}
+                      </span>
+                      {item.nearestExpiryDate && (
+                        <span className="text-[10px] font-medium text-gray-500">
+                          {formatDate(item.nearestExpiryDate)}
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-xs text-gray-500">-</span>
                   )}

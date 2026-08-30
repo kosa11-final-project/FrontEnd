@@ -20,6 +20,7 @@ import {
   StrategyGenerationStatus,
   strategyGenerationStageMeta,
 } from '@/entities/strategy';
+
 import { inventoryFilterOptionsQueryOptions } from '@/entities/inventory';
 import { StrategyGenerationRetry } from '@/features/strategy-generation-retry';
 import { formatDate, formatDateTime } from '@/shared/lib/format';
@@ -501,6 +502,7 @@ export function StrategyGenerationList() {
     }),
     [listQuery.data?.statusCounts],
   );
+
   const hasActiveFilter = Boolean(query || channel || warehouse || from || to || status !== 'ALL');
   const hasDrawerStrategyId = Number.isInteger(drawerStrategyId) && drawerStrategyId > 0;
   const pageStrategy = useMemo(() => {

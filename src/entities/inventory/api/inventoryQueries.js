@@ -1,7 +1,5 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query';
-import { mapDashboardResponse } from '../model/dashboardMapper.js';
 import {
-  getDashboard,
   getInventories,
   getInventoryDetail,
   getInventoryFilterOptions,
@@ -21,6 +19,10 @@ const SUMMARY_FILTER_KEYS = Object.freeze([
   'riskGrade',
   'shortageYn',
 ]);
+
+// 통합 재고의 원천 데이터는 동기화가 완료될 때만 바뀝니다.
+// 따라서 목록·요약은 짧은 포커스 재조회 대신 동기화 후 선택적 무효화를 기준으로 캐시합니다.
+export const INVENTORY_DATA_CACHE_TIME_MS = 30 * 60 * 1000;
 
 function pickSummaryParams(params = {}) {
   return SUMMARY_FILTER_KEYS.reduce((result, key) => {
@@ -49,11 +51,6 @@ export const inventoryKeys = Object.freeze({
   filterOptions: () => [...inventoryKeys.all, 'filter-options'],
 });
 
-export const dashboardKeys = Object.freeze({
-  all: ['dashboard'],
-  snapshot: () => [...dashboardKeys.all, 'snapshot'],
-});
-
 const retryServerErrorOnly = (failureCount, error) => error?.status >= 500 && failureCount < 1;
 
 /** 재고 목록 Query Options */
@@ -62,7 +59,8 @@ export function inventoryListQueryOptions(params = {}) {
     queryKey: inventoryKeys.list(params),
     queryFn: ({ signal }) => getInventories(params, signal),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: INVENTORY_DATA_CACHE_TIME_MS,
+    gcTime: INVENTORY_DATA_CACHE_TIME_MS,
     retry: retryServerErrorOnly,
   });
 }
@@ -75,7 +73,8 @@ export function inventorySummaryQueryOptions(params = {}) {
     queryKey: inventoryKeys.summary(summaryParams),
     queryFn: ({ signal }) => getInventorySummary(summaryParams, signal),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: INVENTORY_DATA_CACHE_TIME_MS,
+    gcTime: INVENTORY_DATA_CACHE_TIME_MS,
     retry: retryServerErrorOnly,
   });
 }
@@ -109,14 +108,5 @@ export function inventoryLotsQueryOptions(skuCode, salesPointCode) {
     enabled: Boolean(skuCode && salesPointCode),
     staleTime: 60 * 1000,
     retry: retryServerErrorOnly,
-  });
-}
-
-export function dashboardQueryOptions() {
-  return queryOptions({
-    queryKey: dashboardKeys.snapshot(),
-    queryFn: ({ signal }) => getDashboard(signal),
-    select: mapDashboardResponse,
-    staleTime: 60_000,
   });
 }

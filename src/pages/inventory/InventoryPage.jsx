@@ -1,7 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { aiStrategyKeys } from '@/entities/strategy';
 import {
   inventoryFilterOptionsQueryOptions,
   inventoryListQueryOptions,
@@ -9,7 +8,6 @@ import {
 } from '@/entities/inventory/api/inventoryQueries.js';
 import { RESULT_STATE } from '@/entities/inventory/model/inventory.js';
 import {
-  DEFAULT_INVENTORY_FILTERS,
   applyFilterChanges,
   parseInventoryFilters,
   serializeInventoryFilters,
@@ -19,57 +17,29 @@ import { InventoryFilterBar } from '@/features/inventory-filter/ui/InventoryFilt
 import { InventorySyncControl } from '@/features/inventory-sync/ui/InventorySyncControl.jsx';
 import { InventorySummaryBar } from '@/widgets/inventory-summary/ui/InventorySummaryBar.jsx';
 import { InventoryTable } from '@/widgets/inventory-table/ui/InventoryTable.jsx';
-import { StrategyRequestModal } from '@/widgets/strategy-request-modal/ui/StrategyRequestModal.jsx';
 
 const LazyInventoryDetailDrawer = lazy(() =>
   import('@/widgets/inventory-detail-drawer/ui/InventoryDetailDrawer.jsx').then((module) => ({
     default: module.InventoryDetailDrawer,
   })),
 );
-
-const FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY = Object.freeze([
-  'q',
-  'filterOperator',
-  'channelType',
-  'salesPointCode',
-  'warehouseCode',
-  'regionCode',
-  'categoryId',
-  'categoryIds',
-  'storageType',
-  'riskGrade',
-  'assessmentStatus',
-  'shortageYn',
-]);
-
-const hasPersistedFilterQuery = (searchParams) =>
-  FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY.some((key) => searchParams.has(key));
+// ponytail: 전략 모달은 버튼을 누를 때만 필요하므로 초기 재고 청크에서 제외합니다.
+const LazyStrategyRequestModal = lazy(() =>
+  import('@/widgets/strategy-request-modal/ui/StrategyRequestModal.jsx').then((module) => ({
+    default: module.StrategyRequestModal,
+  })),
+);
 
 export default function InventoryPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [initialFilterQuery] = useState(() => (hasPersistedFilterQuery(searchParams) ? searchParams.toString() : null));
   const [selectedSkuItems, setSelectedSkuItems] = useState([]);
   const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
   const selectedSkuCodes = useMemo(() => selectedSkuItems.map((item) => item.skuCode), [selectedSkuItems]);
 
-  // 페이지에 처음 진입할 때만 이전 잔여 필터 query를 1회 정리합니다.
-  useEffect(() => {
-    if (initialFilterQuery == null) return;
-
-    const nextSearchParams = new URLSearchParams(initialFilterQuery);
-    FILTER_QUERY_KEYS_TO_RESET_ON_ENTRY.forEach((key) => nextSearchParams.delete(key));
-
-    setSearchParams(nextSearchParams, { replace: true });
-  }, [initialFilterQuery, setSearchParams]);
-
-  // 1. URL searchParams로부터 필터 상태 파싱 (SSOT)
-  const isInitialResetPending = initialFilterQuery != null && searchParams.toString() === initialFilterQuery;
-  const filters = useMemo(
-    () => (isInitialResetPending ? DEFAULT_INVENTORY_FILTERS : parseInventoryFilters(searchParams)),
-    [isInitialResetPending, searchParams],
-  );
+  // 1. URL searchParams로부터 필터 상태 파싱 (SSOT: 새로고침·뒤로가기·링크공유 시 조건 유지)
+  const filters = useMemo(() => parseInventoryFilters(searchParams), [searchParams]);
   const queryParams = useMemo(() => toInventoryQueryParams(filters), [filters]);
   const listFetchKey = useMemo(() => JSON.stringify(queryParams), [queryParams]);
 
@@ -248,7 +218,7 @@ export default function InventoryPage() {
     setIsStrategyModalOpen(false);
     setSelectedSkuItems([]);
     await queryClient.invalidateQueries({
-      queryKey: aiStrategyKeys.lists(),
+      queryKey: ['ai-strategies', 'list'],
       refetchType: 'all',
     });
     navigate('/ai-strategy');
@@ -321,11 +291,13 @@ export default function InventoryPage() {
       />
 
       {isStrategyModalOpen ? (
-        <StrategyRequestModal
-          selectedItems={selectedSkuItems}
-          onClose={() => setIsStrategyModalOpen(false)}
-          onCreated={handleStrategyCreated}
-        />
+        <Suspense fallback={null}>
+          <LazyStrategyRequestModal
+            selectedItems={selectedSkuItems}
+            onClose={() => setIsStrategyModalOpen(false)}
+            onCreated={handleStrategyCreated}
+          />
+        </Suspense>
       ) : null}
 
       {/* 4. 우측 상세 관제 드로어 */}

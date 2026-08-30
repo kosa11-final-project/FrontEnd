@@ -130,13 +130,17 @@ export function filterStrategies(strategies, filters) {
 
 export function formatAchievementRateText(value) {
   if (value === null || value === undefined) return value;
-  return String(value).replace(/(달성률\s*)(-?\d+(?:\.\d+)?)(%)/g, (_, label, rate, unit) => {
-    const roundedRate = Number(rate).toLocaleString('ko-KR', {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
+  return String(value)
+    .replace(
+      /(실제\s*판매(?:량)?\s*)(-?\d+(?:\.\d+)?)(\s*\/\s*목표(?:\s*판매(?:량)?)?\s*)(-?\d+(?:\.\d+)?)/g,
+      (_, actualLabel, actual, targetLabel, target) =>
+        `${actualLabel}${Number(actual).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}` +
+        `${targetLabel}${Number(target).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`,
+    )
+    .replace(/(달성률\s*)(-?\d+(?:\.\d+)?)(%)/g, (_, label, rate, unit) => {
+      const roundedRate = Number(rate).toLocaleString('ko-KR', { maximumFractionDigits: 0 });
+      return `${label}${roundedRate}${unit}`;
     });
-    return `${label}${roundedRate}${unit}`;
-  });
 }
 
 export function formatKpiValue(kpi) {
@@ -145,7 +149,7 @@ export function formatKpiValue(kpi) {
   if (typeof kpi.value === 'number') {
     const isAchievementRate = kpi.unit === '%' && kpi.label?.includes('달성률');
     const value = isAchievementRate
-      ? kpi.value.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      ? kpi.value.toLocaleString('ko-KR', { maximumFractionDigits: 0 })
       : kpi.value.toLocaleString('ko-KR');
     return `${value}${unit}`;
   }

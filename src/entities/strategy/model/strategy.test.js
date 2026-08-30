@@ -70,13 +70,13 @@ describe('strategy execution model', () => {
   it('localizes the EA quantity unit for KPI display', () => {
     expect(formatKpiValue({ value: 9, unit: 'EA' })).toBe('9개');
   });
-  it('rounds numeric and embedded achievement rates to one decimal place', () => {
-    expect(formatKpiValue({ label: '목표 달성률', value: 103.092784, unit: '%' })).toBe('103.1%');
+  it('rounds sales results and achievement rates to whole numbers', () => {
+    expect(formatKpiValue({ label: '목표 달성률', value: 103.092784, unit: '%' })).toBe('103%');
     expect(formatKpiValue({ value: '실제 판매 63 / 목표 61.11 (달성률 103.092784%)' })).toBe(
-      '실제 판매 63 / 목표 61.11 (달성률 103.1%)',
+      '실제 판매 63 / 목표 61 (달성률 103%)',
     );
     expect(formatAchievementRateText('실제 판매 200 / 목표 180 (달성률 111.111111%)')).toBe(
-      '실제 판매 200 / 목표 180 (달성률 111.1%)',
+      '실제 판매 200 / 목표 180 (달성률 111%)',
     );
   });
   it('summarizes known strategy and action data', () => {

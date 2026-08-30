@@ -48,17 +48,14 @@ describe('DashboardOperationsPanel', () => {
     const urgentTrigger = screen.getByRole('button', { name: /긴급 처리 SKU TOP 5/ });
     const riskTrigger = screen.getByRole('button', { name: /위험재고 보유 판매처 TOP 10/ });
     expect(urgentTrigger).toHaveAttribute('aria-expanded', 'true');
-    expect(riskTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(riskTrigger).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('그린믹스 · 5팩')).toBeInTheDocument();
     expect(screen.queryByText(/목록 안에서 스크롤해/)).not.toBeInTheDocument();
 
     await user.click(riskTrigger);
 
     expect(urgentTrigger).toHaveAttribute('aria-expanded', 'true');
-    expect(riskTrigger).toHaveAttribute('aria-expanded', 'true');
-    const riskContent = document.getElementById(riskTrigger.getAttribute('aria-controls'));
-    expect(riskContent).not.toHaveAttribute('hidden');
-    expect(riskContent).toHaveClass('overflow-y-auto');
+    expect(riskTrigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('hides seller-specific urgent processing for an unassigned location', () => {

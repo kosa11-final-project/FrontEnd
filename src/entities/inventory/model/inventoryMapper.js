@@ -43,6 +43,13 @@ function resolveShortageYn(rawValue, availableQuantity, safetyQuantity) {
   return availableQuantity < safetyQuantity ? 'Y' : 'N';
 }
 
+function normalizeAssessmentStatus(value, riskGrade = null) {
+  if (value === RISK_ASSESSMENT_STATUS.ASSESSED || value === RISK_ASSESSMENT_STATUS.UNASSESSED) {
+    return value;
+  }
+  return (value == null || value === '') && normalizeRiskGrade(riskGrade) ? RISK_ASSESSMENT_STATUS.ASSESSED : null;
+}
+
 function mapCategoryPathItem(dto = {}) {
   return {
     id: valueOf(dto, 'id', 'categoryId', null),
@@ -118,8 +125,17 @@ function mapSalesPoint(dto = {}, fallback = {}) {
   const availableQuantity = nullableNumber(valueOf(dto, 'availableQuantity', 'available_qty'));
   const reservedQuantity = nullableNumber(valueOf(dto, 'reservedQuantity', 'reserved_qty'));
   const safetyQuantity = nullableNumber(valueOf(dto, 'safetyQuantity', 'safety_qty', fallback.safetyQuantity));
+  const rawRiskGrade = valueOf(dto, 'riskGrade', 'risk_grade', fallback.riskGrade || null);
+  const rawAssessmentStatus = valueOf(dto, 'assessmentStatus', 'assessment_status', fallback.assessmentStatus);
+  const assessmentStatus = normalizeAssessmentStatus(rawAssessmentStatus, rawRiskGrade);
+  const isLegacyStatusOmitted = rawAssessmentStatus == null || rawAssessmentStatus === '';
   const rawShortageYn = valueOf(dto, 'shortageYn', 'shortage_yn', fallback.shortageYn || null);
-  const shortageYn = resolveShortageYn(rawShortageYn, availableQuantity, safetyQuantity);
+  const shortageYn =
+    assessmentStatus === RISK_ASSESSMENT_STATUS.ASSESSED
+      ? normalizeShortageYn(rawShortageYn)
+      : isLegacyStatusOmitted
+        ? resolveShortageYn(rawShortageYn, availableQuantity, safetyQuantity)
+        : null;
   return {
     salesPointId: nullableNumber(valueOf(dto, 'salesPointId', 'sales_point_id', fallback.salesPointId)),
     salesPointCode: valueOf(dto, 'salesPointCode', 'sales_point_code', fallback.salesPointCode || ''),
@@ -134,7 +150,8 @@ function mapSalesPoint(dto = {}, fallback = {}) {
     availableQuantity,
     reservedQuantity,
     safetyQuantity,
-    riskGrade: normalizeRiskGrade(valueOf(dto, 'riskGrade', 'risk_grade', fallback.riskGrade || null)),
+    riskGrade: assessmentStatus === RISK_ASSESSMENT_STATUS.ASSESSED ? normalizeRiskGrade(rawRiskGrade) : null,
+    assessmentStatus,
     shortageYn,
     salesPointState: valueOf(dto, 'salesPointState', 'sales_point_state', fallback.salesPointState || 'OWNED'),
     priceStatus: rawPriceStatus || (sellingPrice == null ? 'NOT_LOADED' : 'AVAILABLE'),
@@ -184,6 +201,12 @@ export function mapInventoryItem(response = {}) {
   const currentQuantity = nullableNumber(dto.currentQuantity, dto.current_qty, dto.on_hand_qty);
   const availableQuantity = nullableNumber(dto.availableQuantity, dto.available_qty);
   const reservedQuantity = nullableNumber(dto.reservedQuantity, dto.reserved_qty);
+  const expectedDisposalQuantity = nullableNumber(
+    dto.expectedDisposalQuantity,
+    dto.expected_disposal_quantity,
+    dto.expectedDisposalQty,
+    dto.expected_disposal_qty,
+  );
   const safetyQuantity = nullableNumber(dto.safetyQuantity, dto.safety_qty);
 
   // 판매처별 현재 가격 정보만 상세에서 사용합니다. 판매량은 ML 파이프라인의 입력이며
@@ -198,20 +221,22 @@ export function mapInventoryItem(response = {}) {
   // 위험 판정 정보
   const riskObj = dto.risk || {};
   const rawShortageYn = dto.shortageYn ?? dto.shortage_yn ?? riskObj.shortageYn ?? riskObj.shortage_yn;
-  const shortageYn = resolveShortageYn(rawShortageYn, availableQuantity, safetyQuantity);
   const rawRiskGrade = dto.riskGrade ?? dto.risk_grade ?? riskObj.grade ?? null;
-  const riskGrade = normalizeRiskGrade(rawRiskGrade);
   const rawAssessmentStatus =
     dto.assessmentStatus ?? dto.assessment_status ?? riskObj.assessmentStatus ?? riskObj.assessment_status ?? null;
-  const assessmentStatus =
-    rawAssessmentStatus == null
-      ? riskGrade
-        ? RISK_ASSESSMENT_STATUS.ASSESSED
-        : RISK_ASSESSMENT_STATUS.UNASSESSED
-      : Object.values(RISK_ASSESSMENT_STATUS).includes(rawAssessmentStatus)
-        ? rawAssessmentStatus
+  const assessmentStatus = normalizeAssessmentStatus(rawAssessmentStatus, rawRiskGrade);
+  const isLegacyStatusOmitted = rawAssessmentStatus == null || rawAssessmentStatus === '';
+  const riskGrade = assessmentStatus === RISK_ASSESSMENT_STATUS.ASSESSED ? normalizeRiskGrade(rawRiskGrade) : null;
+  const shortageYn =
+    assessmentStatus === RISK_ASSESSMENT_STATUS.ASSESSED
+      ? normalizeShortageYn(rawShortageYn)
+      : isLegacyStatusOmitted
+        ? resolveShortageYn(rawShortageYn, availableQuantity, safetyQuantity)
         : null;
-  const riskReason = dto.riskReason || dto.risk_reason || riskObj.reason || '';
+  const riskReason =
+    assessmentStatus === RISK_ASSESSMENT_STATUS.ASSESSED
+      ? dto.riskReason || dto.risk_reason || riskObj.reason || ''
+      : '';
 
   // 보관 물류센터 목록은 판매처에 귀속되지 않은 미할당 재고만 담습니다.
   // 새 API는 unassignedInventory.locations를 함께 제공하지만, 목록/상세 하위 호환을 위해
@@ -308,11 +333,27 @@ export function mapInventoryItem(response = {}) {
     dto.unassigned_shortage_yn ??
     centerSalesPoint?.shortageYn ??
     null;
-  const unassignedShortageYn = resolveShortageYn(
-    rawUnassignedShortageYn,
-    unassignedAvailableQuantity,
-    unassignedSafetyQuantity,
-  );
+  const rawUnassignedAssessmentStatus =
+    rawUnassignedInventory?.assessmentStatus ??
+    rawUnassignedInventory?.assessment_status ??
+    dto.unassignedAssessmentStatus ??
+    dto.unassigned_assessment_status ??
+    centerSalesPoint?.assessmentStatus ??
+    null;
+  const rawUnassignedRiskGrade =
+    rawUnassignedInventory?.riskGrade ??
+    rawUnassignedInventory?.risk_grade ??
+    dto.unassignedRiskGrade ??
+    dto.unassigned_risk_grade ??
+    centerSalesPoint?.riskGrade ??
+    null;
+  const unassignedAssessmentStatus = normalizeAssessmentStatus(rawUnassignedAssessmentStatus, rawUnassignedRiskGrade);
+  const unassignedShortageYn =
+    unassignedAssessmentStatus === RISK_ASSESSMENT_STATUS.ASSESSED
+      ? normalizeShortageYn(rawUnassignedShortageYn)
+      : rawUnassignedAssessmentStatus == null || rawUnassignedAssessmentStatus === ''
+        ? resolveShortageYn(rawUnassignedShortageYn, unassignedAvailableQuantity, unassignedSafetyQuantity)
+        : null;
   const rawUnassignedFactState =
     rawUnassignedInventory?.inventoryFactState ??
     rawUnassignedInventory?.inventory_fact_state ??
@@ -322,26 +363,16 @@ export function mapInventoryItem(response = {}) {
   const unassignedFactState = Object.values(INVENTORY_FACT_STATE).includes(rawUnassignedFactState)
     ? rawUnassignedFactState
     : null;
-  const rawUnassignedRiskGrade =
-    rawUnassignedInventory?.riskGrade ??
-    rawUnassignedInventory?.risk_grade ??
-    dto.unassignedRiskGrade ??
-    dto.unassigned_risk_grade ??
-    centerSalesPoint?.riskGrade ??
-    null;
-  const unassignedRiskGrade = normalizeRiskGrade(rawUnassignedRiskGrade);
-  const unassignedAssessmentStatus =
-    rawUnassignedInventory?.assessmentStatus ??
-    rawUnassignedInventory?.assessment_status ??
-    dto.unassignedAssessmentStatus ??
-    dto.unassigned_assessment_status ??
-    (unassignedRiskGrade ? RISK_ASSESSMENT_STATUS.ASSESSED : RISK_ASSESSMENT_STATUS.UNASSESSED);
+  const unassignedRiskGrade =
+    unassignedAssessmentStatus === RISK_ASSESSMENT_STATUS.ASSESSED ? normalizeRiskGrade(rawUnassignedRiskGrade) : null;
   const unassignedRiskReason =
-    rawUnassignedInventory?.riskReason ??
-    rawUnassignedInventory?.risk_reason ??
-    dto.unassignedRiskReason ??
-    dto.unassigned_risk_reason ??
-    '';
+    unassignedAssessmentStatus === RISK_ASSESSMENT_STATUS.ASSESSED
+      ? (rawUnassignedInventory?.riskReason ??
+        rawUnassignedInventory?.risk_reason ??
+        dto.unassignedRiskReason ??
+        dto.unassigned_risk_reason ??
+        '')
+      : '';
   const unassignedInventory = {
     currentQuantity: unassignedCurrentQuantity,
     availableQuantity: unassignedAvailableQuantity,
@@ -423,6 +454,7 @@ export function mapInventoryItem(response = {}) {
     currentQuantity,
     availableQuantity,
     reservedQuantity,
+    expectedDisposalQuantity,
     safetyQuantity,
     shortageYn: resolvedShortageYn,
     inventoryFactState,
@@ -547,20 +579,25 @@ export function mapInventoryFilterOptionsResponse(response = {}) {
       return [
         key,
         Array.isArray(options)
-          ? options.map((option) => ({
-              code: valueOf(option, 'code', 'code', ''),
-              name: valueOf(option, 'name', 'name', valueOf(option, 'code', 'code', '')),
-              parentCode: valueOf(option, 'parentCode', 'parent_code', null),
-              regionCode: valueOf(option, 'regionCode', 'region_code', null),
-              channelType: valueOf(option, 'channelType', 'channel_type', null),
-              availability: valueOf(option, 'availability', 'availability', null),
-              currentSkuCount: valueOf(option, 'currentSkuCount', 'current_sku_count', null),
-              currentBalanceRowCount: valueOf(option, 'currentBalanceRowCount', 'current_balance_row_count', null),
-              currentOnHandQty: valueOf(option, 'currentOnHandQty', 'current_on_hand_qty', null),
-              level: valueOf(option, 'level', 'categoryLevel', null),
-              // 필터 모달은 categoryLevel을 사용하고 백엔드 계약은 level을 사용하므로 양쪽 이름을 보존합니다.
-              categoryLevel: valueOf(option, 'categoryLevel', 'level', null),
-            }))
+          ? options.map((option) => {
+              const code = valueOf(option, 'code', 'code', '');
+              const rawName = valueOf(option, 'name', 'name', code);
+              const name = key === 'riskGrades' && (code === 'NORMAL' || rawName === '관찰') ? '보통' : rawName;
+              return {
+                code,
+                name,
+                parentCode: valueOf(option, 'parentCode', 'parent_code', null),
+                regionCode: valueOf(option, 'regionCode', 'region_code', null),
+                channelType: valueOf(option, 'channelType', 'channel_type', null),
+                availability: valueOf(option, 'availability', 'availability', null),
+                currentSkuCount: valueOf(option, 'currentSkuCount', 'current_sku_count', null),
+                currentBalanceRowCount: valueOf(option, 'currentBalanceRowCount', 'current_balance_row_count', null),
+                currentOnHandQty: valueOf(option, 'currentOnHandQty', 'current_on_hand_qty', null),
+                level: valueOf(option, 'level', 'categoryLevel', null),
+                // 필터 모달은 categoryLevel을 사용하고 백엔드 계약은 level을 사용하므로 양쪽 이름을 보존합니다.
+                categoryLevel: valueOf(option, 'categoryLevel', 'level', null),
+              };
+            })
           : [],
       ];
     }),

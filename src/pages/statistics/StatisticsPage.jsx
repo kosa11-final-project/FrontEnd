@@ -50,11 +50,21 @@ export function StatisticsPageContent({
   const strategyView = strategyStatistics
     ? {
         range,
+        scopeType,
+        locationId,
         current: strategyStatistics.summary,
+        beforeAfterComparison: strategyStatistics.beforeAfterComparison,
+        locationPerformance: strategyStatistics.locationPerformance,
+        scopePerformance: strategyStatistics.scopePerformance,
         trend: strategyStatistics.dailyTrend,
         actionCombinationBreakdown: strategyStatistics.actionCombinationBreakdown,
+        enhancementsPreview: false,
       }
-    : buildStrategyStatisticsView(strategyStatisticsFixture, range, scopeType);
+    : {
+        ...buildStrategyStatisticsView(strategyStatisticsFixture, range, scopeType),
+        scopeType,
+        locationId,
+      };
   const selectedTrend = selectStatisticsTrend(statistics.dailyTrend, range);
   const selectedScopeCode = scopeType === 'UNASSIGNED' ? 'UNASSIGNED' : locationId;
   const usesServerTrend = Boolean(statistics.trendScopeType);

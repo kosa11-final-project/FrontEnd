@@ -55,8 +55,6 @@ export function StrategyExecutionDetailContent({ strategy }) {
         { label: '실제 매출', value: strategy.performance.actualRevenue, unit: '원' },
         { label: '실제 기여이익', value: strategy.performance.actualContributionMargin, unit: '원' },
         { label: '실제 잔여재고', value: strategy.performance.actualRemainingQuantity, unit: '개' },
-        { label: '이동 수량', value: strategy.performance.movedQuantity, unit: '개' },
-        { label: '폐기 수량', value: strategy.performance.disposedQuantity, unit: '개' },
       ]
     : [];
   return (
@@ -161,14 +159,14 @@ export function StrategyExecutionDetailContent({ strategy }) {
         ) : (
           <EmptyPerformanceState
             title="재고 이동 경로가 없습니다."
-            description="재고 이동이 실행되거나 이동 결과가 동기화되면 표시됩니다."
+            description="최종 선택 전략에 재고 이동 액션이 등록되면 표시됩니다."
           />
         )}
       </Section>
       <div className="grid gap-4 2xl:grid-cols-2">
         <Section
           title="위치별 재고 변화"
-          description="전략 실행 전후의 위치별 재고를 비교하며, 안전재고는 읽기 전용 가드레일입니다."
+          description="전략 시작 시점과 최근 재고 동기화 시점의 위치별 재고를 비교합니다. 안전재고는 변경할 수 없는 안전 기준입니다."
         >
           {strategy.inventoryResults.length ? (
             <>
@@ -178,10 +176,10 @@ export function StrategyExecutionDetailContent({ strategy }) {
                   <thead className="border-b border-[var(--border)] text-[color:var(--text-muted)]">
                     <tr>
                       <th className="p-3">재고 위치</th>
-                      <th className="p-3">이동 전</th>
+                      <th className="p-3">전략 시작</th>
                       <th className="p-3">재고 증감</th>
-                      <th className="p-3">이동 후</th>
-                      <th className="p-3">가드레일</th>
+                      <th className="p-3">현재 재고</th>
+                      <th className="p-3">안전 기준</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -202,7 +200,7 @@ export function StrategyExecutionDetailContent({ strategy }) {
               </div>
             </>
           ) : (
-            <EmptyPerformanceState title="이동 결과가 아직 수집되지 않았습니다." />
+            <EmptyPerformanceState title="비교할 위치별 재고가 아직 수집되지 않았습니다." />
           )}
         </Section>
         <Section title="채널별 판매 성과 리포트" description="채널 수와 수집된 성과에 맞는 분석 화면을 제공합니다.">

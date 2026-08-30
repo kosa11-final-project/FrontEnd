@@ -8,6 +8,7 @@ const strategyApiMock = vi.hoisted(() => ({
   getAiStrategyCase: vi.fn(),
   getAiStrategyCases: vi.fn(),
 }));
+
 const inventoryApiMock = vi.hoisted(() => ({
   getInventoryFilterOptions: vi.fn(),
 }));
@@ -17,6 +18,7 @@ vi.mock('@/entities/strategy/api/strategyApi.js', async (importOriginal) => ({
   getAiStrategyCase: strategyApiMock.getAiStrategyCase,
   getAiStrategyCases: strategyApiMock.getAiStrategyCases,
 }));
+
 vi.mock('@/entities/inventory/api/inventoryApi.js', async (importOriginal) => ({
   ...(await importOriginal()),
   getInventoryFilterOptions: inventoryApiMock.getInventoryFilterOptions,
@@ -52,6 +54,7 @@ describe('StrategyGenerationList retry result selection', () => {
       first: true,
       last: false,
     });
+
     inventoryApiMock.getInventoryFilterOptions.mockResolvedValue({
       channels: [
         { code: 'GREETING', name: '그리팅' },

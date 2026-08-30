@@ -1,4 +1,4 @@
-const RISK_GRADES = Object.freeze(['CRITICAL', 'WARNING', 'NORMAL', 'GOOD', 'UNASSESSED']);
+const RISK_GRADES = Object.freeze(['GOOD', 'NORMAL', 'WARNING', 'CRITICAL', 'UNASSESSED']);
 const REGION_LABELS = Object.freeze({
   SEOUL: '서울권',
   GYEONGGI: '경기권',
@@ -118,22 +118,69 @@ export function mapInventoryStatisticsResponse(response = {}) {
 
 export function mapStrategyStatisticsResponse(response = {}) {
   const summary = response.summary ?? {};
+  const mappedSummary = {
+    completedCount: toNumber(summary.completedCount),
+    goalAchievedCount: toNumber(summary.goalAchievedCount),
+    goalAchievedStrategyRate: toNumber(summary.goalAchievedStrategyRate),
+    averageAchievementRate: toNumber(summary.averageAchievementRate),
+    baselineRiskStockQty: toNumber(summary.baselineRiskStockQty),
+    endRiskStockQty: toNumber(summary.endRiskStockQty),
+    riskStockReductionQty: toNumber(summary.riskStockReductionQty),
+    riskStockReductionRate: toNumber(summary.riskStockReductionRate),
+    baselineExpectedDisposalQty: toNumber(summary.baselineExpectedDisposalQty),
+    endExpectedDisposalQty: toNumber(summary.endExpectedDisposalQty),
+    avoidedDisposalQty: toNumber(summary.avoidedDisposalQty),
+    baselineEstimatedLossAmount: toNumber(summary.baselineEstimatedLossAmount),
+    endEstimatedLossAmount: toNumber(summary.endEstimatedLossAmount),
+    estimatedLossSavingsAmount: toNumber(summary.estimatedLossSavingsAmount),
+  };
+  const mapPerformance = (item = {}) => ({
+    id: String(item.id ?? item.code ?? ''),
+    code: item.code ?? String(item.id ?? ''),
+    name: item.name ?? '',
+    scopeType: item.scopeType ?? '',
+    completedCount: toNumber(item.completedCount),
+    goalAchievementRate: toNumber(item.goalAchievementRate),
+    baselineRiskStockQty: toNumber(item.baselineRiskStockQty),
+    riskStockReductionQty: toNumber(item.riskStockReductionQty),
+    riskStockReductionRate: toNumber(item.riskStockReductionRate),
+    estimatedLossSavingsAmount: toNumber(item.estimatedLossSavingsAmount),
+  });
+
   return {
     fromDate: response.fromDate ?? null,
     toDate: response.toDate ?? null,
     scopeType: response.scopeType ?? 'NATIONAL',
     scopeCode: response.scopeCode ?? 'ALL',
-    summary: {
-      completedCount: toNumber(summary.completedCount),
-      goalAchievedCount: toNumber(summary.goalAchievedCount),
-      goalAchievedStrategyRate: toNumber(summary.goalAchievedStrategyRate),
-      averageAchievementRate: toNumber(summary.averageAchievementRate),
-      baselineRiskStockQty: toNumber(summary.baselineRiskStockQty),
-      riskStockReductionQty: toNumber(summary.riskStockReductionQty),
-      riskStockReductionRate: toNumber(summary.riskStockReductionRate),
-      avoidedDisposalQty: toNumber(summary.avoidedDisposalQty),
-      estimatedLossSavingsAmount: toNumber(summary.estimatedLossSavingsAmount),
-    },
+    summary: mappedSummary,
+    beforeAfterComparison: [
+      {
+        key: 'risk-stock',
+        label: '위험재고',
+        before: mappedSummary.baselineRiskStockQty,
+        after: mappedSummary.endRiskStockQty,
+        reduction: mappedSummary.riskStockReductionQty,
+        format: 'quantity',
+      },
+      {
+        key: 'disposal-risk',
+        label: '폐기위험 재고',
+        before: mappedSummary.baselineExpectedDisposalQty,
+        after: mappedSummary.endExpectedDisposalQty,
+        reduction: mappedSummary.avoidedDisposalQty,
+        format: 'quantity',
+      },
+      {
+        key: 'estimated-loss',
+        label: '추정 손실액',
+        before: mappedSummary.baselineEstimatedLossAmount,
+        after: mappedSummary.endEstimatedLossAmount,
+        reduction: mappedSummary.estimatedLossSavingsAmount,
+        format: 'currency',
+      },
+    ],
+    locationPerformance: (response.locationPerformance ?? []).map(mapPerformance),
+    scopePerformance: (response.scopePerformance ?? []).map(mapPerformance),
     dailyTrend: (response.dailyTrend ?? []).map((point) => ({
       date: point.date,
       completedCount: toNumber(point.completedCount),

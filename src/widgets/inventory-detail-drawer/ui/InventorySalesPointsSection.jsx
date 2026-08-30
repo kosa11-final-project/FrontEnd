@@ -93,7 +93,10 @@ export function InventorySalesPointsSection({
                   </span>
                   <span className="text-xs font-bold text-gray-900 truncate shrink-0">미할당 재고</span>
                 </div>
-                <InventoryStatusBadge status={unassignedInventory.riskGrade} />
+                <InventoryStatusBadge
+                  status={unassignedInventory.riskGrade}
+                  assessmentStatus={unassignedInventory.assessmentStatus}
+                />
               </div>
               <div className="mt-2 flex items-center justify-between text-[11px]">
                 <span className="text-amber-800">판매처 재고를 제외한 센터 보관분</span>
@@ -136,7 +139,7 @@ export function InventorySalesPointsSection({
                     </span>
                     <span className="text-xs font-bold text-gray-900 truncate">{sp.salesPointName}</span>
                   </div>
-                  <InventoryStatusBadge status={sp.riskGrade} />
+                  <InventoryStatusBadge status={sp.riskGrade} assessmentStatus={sp.assessmentStatus} />
                 </div>
 
                 <div className="mt-2 flex items-center justify-between text-[11px]">

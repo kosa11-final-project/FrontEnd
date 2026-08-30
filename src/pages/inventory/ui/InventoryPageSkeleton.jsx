@@ -1,4 +1,4 @@
-import { InventorySummaryBar } from '@/widgets/inventory-summary';
+import { InventorySummaryBar } from '@/widgets/inventory-summary/ui/InventorySummaryBar.jsx';
 import { InventoryTableSkeleton } from '@/widgets/inventory-table/ui/InventoryTableSkeleton.jsx';
 
 export function InventoryPageSkeleton() {

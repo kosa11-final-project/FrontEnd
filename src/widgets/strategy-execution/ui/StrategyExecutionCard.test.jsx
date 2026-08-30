@@ -111,6 +111,29 @@ describe('StrategyExecutionCard', () => {
     );
   });
 
+  it('formats fractional sales quantity and target as whole numbers', () => {
+    const strategy = mapStrategyExecutionResponse({
+      id: 358,
+      status: 'COMPLETED',
+      product: { name: '테스트 상품', sku: 'SKU000910' },
+      resultSummary: '실제 판매 63 / 목표 61.1 (달성률 103.1%)',
+      actions: [],
+    });
+
+    render(
+      <MemoryRouter>
+        <StrategyExecutionCard strategy={strategy} />
+      </MemoryRouter>,
+    );
+
+    const salesPerformance = screen.getByRole('region', { name: '판매 성과 요약' });
+    expect(within(salesPerformance).getByText('63개')).toBeInTheDocument();
+    expect(within(salesPerformance).getByText('61개')).toBeInTheDocument();
+    expect(within(salesPerformance).getByText('103%')).toBeInTheDocument();
+    expect(within(salesPerformance).queryByText('61.1개')).not.toBeInTheDocument();
+    expect(within(salesPerformance).queryByText('103.1%')).not.toBeInTheDocument();
+  });
+
   it('does not expose an internal UUID-based strategy case code', () => {
     const internalNumber = 'SC-c57fa559f43a4163a57dd6f48d9bb537';
     const strategy = mapStrategyExecutionResponse({

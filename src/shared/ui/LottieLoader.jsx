@@ -75,7 +75,7 @@ export function LottieLoader({
       style={{ width: size, height: size }}
     >
       {failed ? (
-        <span className="px-2 text-center">{label}</span>
+        <span className="sr-only">{label}</span>
       ) : (
         <span ref={containerRef} className="size-full" aria-hidden="true" />
       )}
