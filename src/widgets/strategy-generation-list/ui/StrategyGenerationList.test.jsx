@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { TooltipProvider } from '@/shared/ui';
@@ -8,11 +8,18 @@ const strategyApiMock = vi.hoisted(() => ({
   getAiStrategyCase: vi.fn(),
   getAiStrategyCases: vi.fn(),
 }));
+const inventoryApiMock = vi.hoisted(() => ({
+  getInventoryFilterOptions: vi.fn(),
+}));
 
 vi.mock('@/entities/strategy/api/strategyApi.js', async (importOriginal) => ({
   ...(await importOriginal()),
   getAiStrategyCase: strategyApiMock.getAiStrategyCase,
   getAiStrategyCases: strategyApiMock.getAiStrategyCases,
+}));
+vi.mock('@/entities/inventory/api/inventoryApi.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  getInventoryFilterOptions: inventoryApiMock.getInventoryFilterOptions,
 }));
 
 import { StrategyGenerationList } from './StrategyGenerationList.jsx';
@@ -45,6 +52,20 @@ describe('StrategyGenerationList retry result selection', () => {
       first: true,
       last: false,
     });
+    inventoryApiMock.getInventoryFilterOptions.mockResolvedValue({
+      channels: [
+        { code: 'GREETING', name: '그리팅' },
+        { code: 'ECOMMERCE', name: '모두의맛집' },
+        { code: 'HYUNDAI_DEPT', name: '현대백화점' },
+        { code: 'HMART', name: '직영점' },
+      ],
+      warehouses: [
+        { code: 'GYEONGIN_1', name: '경인 1센터' },
+        { code: 'SEONGNAM_SMART', name: '성남 스마트푸드센터' },
+        { code: 'ICHEON_DC', name: '이천 통합센터' },
+        { code: 'BUSAN_DC', name: '부산센터' },
+      ],
+    });
   });
 
   it('loads a drawer Case by ID when it is outside the current list page', async () => {
@@ -74,5 +95,38 @@ describe('StrategyGenerationList retry result selection', () => {
     await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent('재사용 재시도 상품'));
     expect(screen.getByRole('dialog')).toHaveTextContent('#101');
     expect(strategyApiMock.getAiStrategyCase).toHaveBeenCalledWith(101, expect.any(AbortSignal));
+  });
+
+  it('shows the proposed list filters and resets their UI values together', async () => {
+    renderList();
+
+    const channelSelect = await screen.findByLabelText('판매 채널');
+    const centerSelect = screen.getByLabelText('센터');
+    const startDateInput = screen.getByLabelText('시작일');
+    const resetButton = screen.getByRole('button', { name: '입력값 초기화' });
+    expect(screen.queryByLabelText('판매처')).not.toBeInTheDocument();
+    expect(resetButton).toBeDisabled();
+
+    fireEvent.change(channelSelect, { target: { value: 'GREETING' } });
+    fireEvent.change(centerSelect, { target: { value: 'SEONGNAM_SMART' } });
+    fireEvent.change(startDateInput, { target: { value: '2026-08-27' } });
+
+    expect(resetButton).toBeEnabled();
+    await waitFor(() =>
+      expect(strategyApiMock.getAiStrategyCases).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          channelType: 'GREETING',
+          warehouseCode: 'SEONGNAM_SMART',
+          strategyFrom: '2026-08-27',
+        }),
+        expect.any(AbortSignal),
+      ),
+    );
+    fireEvent.click(resetButton);
+
+    expect(screen.getByLabelText('판매 채널')).toHaveValue('');
+    expect(screen.getByLabelText('센터')).toHaveValue('');
+    expect(screen.getByLabelText('시작일')).toHaveValue('');
+    expect(resetButton).toBeDisabled();
   });
 });

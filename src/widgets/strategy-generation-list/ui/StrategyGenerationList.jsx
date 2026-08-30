@@ -2,7 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { ArrowRight, ChevronLeft, ChevronRight, InfoCircle, Package, SearchNormal } from 'reicon-react';
+import {
+  ArrowRight,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  InfoCircle,
+  Package,
+  Refresh,
+  SearchNormal,
+} from 'reicon-react';
 import {
   aiStrategyDetailQueryOptions,
   aiStrategyListQueryOptions,
@@ -11,9 +20,10 @@ import {
   StrategyGenerationStatus,
   strategyGenerationStageMeta,
 } from '@/entities/strategy';
+import { inventoryFilterOptionsQueryOptions } from '@/entities/inventory';
 import { StrategyGenerationRetry } from '@/features/strategy-generation-retry';
 import { formatDate, formatDateTime } from '@/shared/lib/format';
-import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, StateView } from '@/shared/ui';
+import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, Select, StateView } from '@/shared/ui';
 
 const PAGE_SIZE = 10;
 const EMPTY_STRATEGIES = Object.freeze([]);
@@ -24,6 +34,14 @@ const statusTabs = Object.freeze([
   { value: 'GENERATION_FAILED', label: '생성실패' },
 ]);
 const validStatuses = new Set(statusTabs.map(({ value }) => value));
+const fallbackSalesChannelOptions = Object.freeze([
+  { value: '', label: '전체 채널' },
+  { value: 'ECOMMERCE', label: '모두의맛집' },
+  { value: 'GREETING', label: '그리팅' },
+  { value: 'HMART', label: '직영점' },
+  { value: 'HYUNDAI_DEPT', label: '현대백화점' },
+]);
+const allWarehouseOption = Object.freeze({ value: '', label: '전체 센터' });
 const columnHelper = createColumnHelper();
 const MAINTAIN_CURRENT_STATE = 'MAINTAIN_CURRENT_STATE';
 
@@ -280,56 +298,71 @@ function StrategySearchInput({ value: externalValue, onDebouncedChange }) {
   );
 }
 
-function StrategyFilterBar({ status, counts, query, from, to, onFilterChange, onQueryChange }) {
+function FilterSelect({ label, value, options, onChange, className = '' }) {
+  return (
+    <label
+      className={`grid min-w-0 gap-1 text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-muted)] ${className}`}
+    >
+      {label}
+      <Select size="md" value={value} aria-label={label} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option.value || 'ALL'} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
+    </label>
+  );
+}
+
+function StrategyStatusFilters({ status, counts, onFilterChange }) {
+  return (
+    <div className="flex shrink-0 flex-wrap gap-2" role="group" aria-label="생성 상태">
+      {statusTabs.map((tab) => {
+        const selected = status === tab.value;
+        return (
+          <Button
+            key={tab.value}
+            type="button"
+            variant={selected ? 'primary' : 'secondary'}
+            size="sm"
+            aria-pressed={selected}
+            onClick={() => onFilterChange('status', tab.value)}
+          >
+            {tab.label}
+            <span className={selected ? 'text-[color:var(--color-white)]/80' : 'text-[color:var(--text-muted)]'}>
+              {counts[tab.value]}
+            </span>
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
+function StrategyFilterBar({
+  status,
+  counts,
+  query,
+  channel,
+  warehouse,
+  channelOptions,
+  warehouseOptions,
+  from,
+  to,
+  hasActiveFilter,
+  onFilterChange,
+  onQueryChange,
+  onReset,
+}) {
   return (
     <section
-      className="flex flex-wrap items-end justify-between gap-4 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)] p-4"
+      className="rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--card)] p-4"
       aria-label="AI 전략 생성 목록 필터"
     >
-      <div className="flex flex-wrap gap-2" role="group" aria-label="생성 상태">
-        {statusTabs.map((tab) => {
-          const selected = status === tab.value;
-          return (
-            <Button
-              key={tab.value}
-              type="button"
-              variant={selected ? 'primary' : 'secondary'}
-              size="sm"
-              aria-pressed={selected}
-              onClick={() => onFilterChange('status', tab.value)}
-            >
-              {tab.label}
-              <span className={selected ? 'text-[color:var(--color-white)]/80' : 'text-[color:var(--text-muted)]'}>
-                {counts[tab.value]}
-              </span>
-            </Button>
-          );
-        })}
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-wrap items-end justify-end gap-3">
-        <label className="grid gap-1 text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-muted)]">
-          시작일
-          <Input
-            type="date"
-            size="sm"
-            value={from}
-            max={to || undefined}
-            onChange={(event) => onFilterChange('from', event.target.value)}
-          />
-        </label>
-        <label className="grid gap-1 text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-muted)]">
-          종료일
-          <Input
-            type="date"
-            size="sm"
-            value={to}
-            min={from || undefined}
-            onChange={(event) => onFilterChange('to', event.target.value)}
-          />
-        </label>
-        <label className="grid w-full min-w-0 flex-1 gap-1 text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-muted)] sm:min-w-[240px] sm:max-w-[320px]">
-          전략 검색
+      <div className="flex min-w-0 flex-nowrap items-end gap-3 overflow-x-auto pb-1">
+        <label className="grid w-[280px] min-w-0 shrink-0 gap-1 text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-muted)] xl:mr-3">
+          검색
           <span className="relative">
             <Icon
               icon={SearchNormal}
@@ -340,6 +373,70 @@ function StrategyFilterBar({ status, counts, query, from, to, onFilterChange, on
             <StrategySearchInput value={query} onDebouncedChange={onQueryChange} />
           </span>
         </label>
+        <StrategyStatusFilters status={status} counts={counts} onFilterChange={onFilterChange} />
+        <FilterSelect
+          className="w-full shrink-0 sm:w-[150px]"
+          label="판매 채널"
+          value={channel}
+          options={channelOptions}
+          onChange={(value) => onFilterChange('channel', value)}
+        />
+        <FilterSelect
+          className="w-full shrink-0 sm:w-[180px]"
+          label="센터"
+          value={warehouse}
+          options={warehouseOptions}
+          onChange={(value) => onFilterChange('warehouse', value)}
+        />
+        <label className="grid w-full shrink-0 gap-1 text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-muted)] sm:w-[150px]">
+          시작일
+          <span className="relative">
+            <Input
+              type="date"
+              size="md"
+              className="pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0"
+              value={from}
+              max={to || undefined}
+              onChange={(event) => onFilterChange('from', event.target.value)}
+            />
+            <Icon
+              icon={Calendar}
+              size={15}
+              aria-hidden="true"
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)]"
+            />
+          </span>
+        </label>
+        <label className="ml-2 grid w-full shrink-0 gap-1 text-[length:var(--font-size-meta)] font-medium text-[color:var(--text-muted)] sm:w-[150px]">
+          종료일
+          <span className="relative">
+            <Input
+              type="date"
+              size="md"
+              className="pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0"
+              value={to}
+              min={from || undefined}
+              onChange={(event) => onFilterChange('to', event.target.value)}
+            />
+            <Icon
+              icon={Calendar}
+              size={15}
+              aria-hidden="true"
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--text-muted)]"
+            />
+          </span>
+        </label>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="ml-5 shrink-0"
+          disabled={!hasActiveFilter}
+          onClick={onReset}
+        >
+          <Icon icon={Refresh} size={14} aria-hidden="true" />
+          입력값 초기화
+        </Button>
       </div>
     </section>
   );
@@ -354,22 +451,42 @@ export function StrategyGenerationList() {
   const requestedStatus = searchParams.get('status') ?? 'ALL';
   const status = validStatuses.has(requestedStatus) ? requestedStatus : 'ALL';
   const query = searchParams.get('q') ?? '';
-  const from = searchParams.get('from') ?? '';
-  const to = searchParams.get('to') ?? '';
+  const channel = searchParams.get('channel') ?? '';
+  const warehouse = searchParams.get('warehouse') ?? '';
+  const from = searchParams.get('strategyFrom') ?? '';
+  const to = searchParams.get('strategyTo') ?? '';
   const drawerStrategyId = Number.parseInt(searchParams.get('drawer') ?? '', 10);
   const parsedPage = Number.parseInt(searchParams.get('page') ?? '1', 10);
   const requestedPage = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const filterOptionsQuery = useQuery(inventoryFilterOptionsQueryOptions());
+  const channelOptions = useMemo(() => {
+    const options = filterOptionsQuery.data?.channels;
+    if (!options?.length) return fallbackSalesChannelOptions;
+    return [
+      fallbackSalesChannelOptions[0],
+      ...options.filter((option) => option.code).map((option) => ({ value: option.code, label: option.name })),
+    ];
+  }, [filterOptionsQuery.data?.channels]);
+  const warehouseOptions = useMemo(() => {
+    const options = filterOptionsQuery.data?.warehouses ?? [];
+    return [
+      allWarehouseOption,
+      ...options.filter((option) => option.code).map((option) => ({ value: option.code, label: option.name })),
+    ];
+  }, [filterOptionsQuery.data?.warehouses]);
   const apiParams = useMemo(
     () => ({
       page: requestedPage - 1,
       size: PAGE_SIZE,
       status,
       query,
-      from,
-      to,
+      channelType: channel,
+      warehouseCode: warehouse,
+      strategyFrom: from,
+      strategyTo: to,
       sort: 'createdAt,desc',
     }),
-    [from, query, requestedPage, status, to],
+    [channel, from, query, requestedPage, status, to, warehouse],
   );
   const listQuery = useQuery(aiStrategyListQueryOptions(apiParams));
   const strategies = listQuery.data?.content ?? EMPTY_STRATEGIES;
@@ -384,6 +501,7 @@ export function StrategyGenerationList() {
     }),
     [listQuery.data?.statusCounts],
   );
+  const hasActiveFilter = Boolean(query || channel || warehouse || from || to || status !== 'ALL');
   const hasDrawerStrategyId = Number.isInteger(drawerStrategyId) && drawerStrategyId > 0;
   const pageStrategy = useMemo(() => {
     if (!hasDrawerStrategyId) return null;
@@ -429,6 +547,18 @@ export function StrategyGenerationList() {
   );
 
   const updateSearch = useCallback((value) => updateFilter('q', value), [updateFilter]);
+  const resetFilters = useCallback(() => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        ['q', 'channel', 'warehouse', 'salesPoint', 'strategyFrom', 'strategyTo', 'status', 'page'].forEach((key) =>
+          next.delete(key),
+        );
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
 
   useEffect(() => {
     if (!listQuery.data || listQuery.isPlaceholderData) return;
@@ -496,7 +626,7 @@ export function StrategyGenerationList() {
         meta: { width: '130px' },
       }),
       columnHelper.accessor('strategyName', {
-        header: '전략명 · 최종 카테고리',
+        header: '전략명 · 카테고리',
         enableSorting: false,
         cell: ({ row, getValue }) => (
           <div className="min-w-0">
@@ -504,7 +634,7 @@ export function StrategyGenerationList() {
               {getValue()}
             </strong>
             <Badge variant="neutral" className="mt-2">
-              {row.original.category?.name ?? '미분류'}
+              {row.original.category?.pathLabel ?? row.original.category?.name ?? '미분류'}
             </Badge>
           </div>
         ),
@@ -600,10 +730,18 @@ export function StrategyGenerationList() {
         status={status}
         counts={counts}
         query={query}
+        channel={channel}
+        warehouse={warehouse}
+        channelOptions={channelOptions}
+        warehouseOptions={warehouseOptions}
         from={from}
         to={to}
-        onFilterChange={updateFilter}
+        hasActiveFilter={hasActiveFilter}
+        onFilterChange={(key, value) =>
+          updateFilter(key === 'from' ? 'strategyFrom' : key === 'to' ? 'strategyTo' : key, value)
+        }
         onQueryChange={updateSearch}
+        onReset={resetFilters}
       />
 
       {listQuery.isPending ? (
@@ -632,9 +770,7 @@ export function StrategyGenerationList() {
             layout="fixed"
             ariaLabel="AI 전략 생성 목록"
             emptyMessage={
-              status === 'ALL' && !query && !from && !to
-                ? '아직 생성 요청한 AI 전략이 없습니다.'
-                : '검색 조건에 맞는 AI 전략이 없습니다.'
+              !hasActiveFilter ? '아직 생성 요청한 AI 전략이 없습니다.' : '검색 조건에 맞는 AI 전략이 없습니다.'
             }
             className="min-w-0 max-w-full rounded-b-none border-b-0 [&_table]:min-w-[1074px] [&_tbody_td]:py-4"
           />
