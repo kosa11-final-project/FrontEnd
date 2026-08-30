@@ -5,6 +5,7 @@ export const inventorySyncKeys = Object.freeze({
   all: ['inventory-sync'],
   latest: () => ['inventory-sync', 'latest'],
   run: (syncRunId) => ['inventory-sync', 'run', syncRunId],
+  refreshHistory: () => ['inventory-sync', 'refresh-history'],
 });
 
 const ACTIVE_STATUSES = new Set(['QUEUED', 'RUNNING', 'INTERRUPTED']);
@@ -13,12 +14,28 @@ const SNAPSHOT_REFRESH_FAST_POLL_INTERVAL_MS = 3000;
 const SNAPSHOT_REFRESH_NORMAL_POLL_INTERVAL_MS = 10_000;
 const SNAPSHOT_REFRESH_FAST_WINDOW_MS = 60_000;
 const SNAPSHOT_REFRESH_MAX_WAIT_MS = 5 * 60_000;
+const INVENTORY_SYNC_LATEST_POLL_INTERVAL_MS = 60_000;
 const POLL_INTERVAL_BY_STATUS_MS = Object.freeze({
   // 등록 직후에는 다른 세션이 실행 사실을 빨리 관찰할 수 있도록 짧게 확인합니다.
   QUEUED: 3000,
   // 실행 중에는 상태가 자주 바뀌지 않으므로 요청 빈도를 낮춥니다.
   RUNNING: 10_000,
 });
+
+export function hasRefreshedSyncScope(queryClient, scope, runId) {
+  const previousRunId = queryClient.getQueryData(inventorySyncKeys.refreshHistory())?.[scope];
+  return previousRunId != null && Number(previousRunId) >= Number(runId);
+}
+
+export function markRefreshedSyncScope(queryClient, scope, runId) {
+  const queryKey = inventorySyncKeys.refreshHistory();
+  queryClient.setQueryDefaults(queryKey, { gcTime: Infinity, staleTime: Infinity });
+  queryClient.setQueryData(queryKey, (previous = {}) => {
+    const previousRunId = previous[scope];
+    if (previousRunId != null && Number(previousRunId) >= Number(runId)) return previous;
+    return { ...previous, [scope]: runId };
+  });
+}
 
 export function inventorySyncPollInterval(query, now = Date.now()) {
   if (query?.state?.status === 'error') return false;
@@ -73,9 +90,10 @@ export function inventorySyncLatestQueryOptions() {
     retry: false,
     refetchOnWindowFocus: 'always',
     refetchOnReconnect: 'always',
-    // 다른 세션의 실행은 포커스·재연결 때 latest로 발견하고, 발견한 뒤의
-    // 반복 추적은 run 상세 쿼리 하나만 담당해 중복 polling을 막습니다.
-    refetchInterval: false,
+    // 스케줄러가 등록한 실행도 열린 화면에서 1분 안에 발견해야
+    // 성공 시 재고 Query 무효화가 누락되지 않습니다. 발견한 뒤의 상세
+    // 상태 추적은 run 쿼리가 맡아 중복 polling을 최소화합니다.
+    refetchInterval: INVENTORY_SYNC_LATEST_POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
   });
 }
@@ -104,4 +122,5 @@ export {
   SNAPSHOT_REFRESH_FAST_WINDOW_MS,
   SNAPSHOT_REFRESH_NORMAL_POLL_INTERVAL_MS,
   SNAPSHOT_REFRESH_MAX_WAIT_MS,
+  INVENTORY_SYNC_LATEST_POLL_INTERVAL_MS,
 };

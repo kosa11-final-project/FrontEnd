@@ -7,12 +7,14 @@ import { formatDateTime } from '@/shared/lib/format';
 import { getInventorySync, retryAfterSeconds, startInventorySync } from '../api/inventorySyncApi.js';
 import {
   ACTIVE_STATUSES,
+  hasRefreshedSyncScope,
   isSnapshotRefreshDelayed,
   isSnapshotRefreshFailed,
   isSnapshotRefreshPending,
   inventorySyncKeys,
   inventorySyncLatestQueryOptions,
   inventorySyncRunQueryOptions,
+  markRefreshedSyncScope,
 } from '../model/inventorySyncQueries.js';
 
 export const SYNC_UI_STATES = Object.freeze({
@@ -56,15 +58,6 @@ const NEW_REQUEST_UI_STATES = new Set([
   SYNC_UI_STATES.SNAPSHOT_REFRESH_FAILED,
   SYNC_UI_STATES.SNAPSHOT_REFRESH_DELAYED,
 ]);
-
-function hasRefreshedScope(refreshedRunIds, scope, runId) {
-  const previousRunId = refreshedRunIds[scope];
-  return previousRunId != null && Number(previousRunId) >= Number(runId);
-}
-
-function markRefreshedScope(refreshedRunIds, scope, runId) {
-  if (!hasRefreshedScope(refreshedRunIds, scope, runId)) refreshedRunIds[scope] = runId;
-}
 
 function createClientRequestId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -148,7 +141,6 @@ export function InventorySyncControl() {
   const [syncRunId, setSyncRunId] = useState(null);
   const [uiState, setUiState] = useState(SYNC_UI_STATES.INITIAL_LOADING);
   const [runSnapshot, setRunSnapshot] = useState(null);
-  const refreshedRunIdsRef = useRef({ inventory: null, dashboard: null, inventoryStatistics: null });
   const refreshTimersRef = useRef(new Map());
   const rateLimitTimerRef = useRef(null);
   const startedRunIdsRef = useRef(new Set());
@@ -216,14 +208,15 @@ export function InventorySyncControl() {
     const refreshKey = `${succeededRunId}:inventory`;
     if (
       !succeededRunId ||
-      !Number.isFinite(succeededChangedCount) ||
-      succeededChangedCount <= 0 ||
-      hasRefreshedScope(refreshedRunIdsRef.current, 'inventory', succeededRunId) ||
+      hasRefreshedSyncScope(queryClient, 'inventory', succeededRunId) ||
       refreshTimersRef.current.has(refreshKey)
     ) {
       return;
     }
 
+    // 동기화 성공 응답의 changedCount가 0이어도 목록·요약을 무효화합니다.
+    // 동기화 과정에서 파생 위험도/집계가 갱신될 수 있고, 목록 원천 데이터의
+    // 변경 여부를 프론트가 추측하지 않도록 성공한 동기화를 최신성 경계로 사용합니다.
     const refreshTimer = window.setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: ['inventory', 'list'], refetchType: 'active' });
       queryClient.invalidateQueries({ queryKey: ['inventory', 'summary'], refetchType: 'active' });
@@ -231,10 +224,10 @@ export function InventorySyncControl() {
       queryClient.invalidateQueries({ queryKey: ['inventory', 'lots'], refetchType: 'active' });
       queryClient.invalidateQueries({ queryKey: ['inventory-risk'], refetchType: 'active' });
       refreshTimersRef.current.delete(refreshKey);
-      markRefreshedScope(refreshedRunIdsRef.current, 'inventory', succeededRunId);
+      markRefreshedSyncScope(queryClient, 'inventory', succeededRunId);
     }, inventoryRefreshDelay());
     refreshTimersRef.current.set(refreshKey, refreshTimer);
-  }, [queryClient, succeededChangedCount, succeededRunId]);
+  }, [queryClient, succeededRunId]);
 
   useEffect(() => {
     if (
@@ -249,17 +242,17 @@ export function InventorySyncControl() {
     const legacyContract = snapshotRefresh == null;
     if (
       (legacyContract || snapshotRefresh.dashboardReady === true) &&
-      !hasRefreshedScope(refreshedRunIdsRef.current, 'dashboard', succeededRunId)
+      !hasRefreshedSyncScope(queryClient, 'dashboard', succeededRunId)
     ) {
-      markRefreshedScope(refreshedRunIdsRef.current, 'dashboard', succeededRunId);
+      markRefreshedSyncScope(queryClient, 'dashboard', succeededRunId);
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'snapshot'], refetchType: 'all' });
     }
 
     if (
       (legacyContract || snapshotRefresh.inventoryStatisticsReady === true) &&
-      !hasRefreshedScope(refreshedRunIdsRef.current, 'inventoryStatistics', succeededRunId)
+      !hasRefreshedSyncScope(queryClient, 'inventoryStatistics', succeededRunId)
     ) {
-      markRefreshedScope(refreshedRunIdsRef.current, 'inventoryStatistics', succeededRunId);
+      markRefreshedSyncScope(queryClient, 'inventoryStatistics', succeededRunId);
       queryClient.invalidateQueries({ queryKey: ['statistics'], refetchType: 'all' });
     }
   }, [queryClient, snapshotRefresh, succeededChangedCount, succeededRunId]);
