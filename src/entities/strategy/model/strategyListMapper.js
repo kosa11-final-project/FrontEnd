@@ -35,6 +35,11 @@ function mapRecommendationOutcome(value) {
 export function mapAiStrategyListItem(item = {}) {
   const strategyCaseId = item.strategyCaseId;
   const category = item.sku?.category;
+  const categoryPathLabel =
+    item.sku?.categoryPathLabel ||
+    category?.categoryPathLabel ||
+    (Array.isArray(category?.path) ? category.path.filter(Boolean).join(' > ') : '') ||
+    category?.categoryName;
 
   return {
     id: strategyCaseId,
@@ -48,6 +53,7 @@ export function mapAiStrategyListItem(item = {}) {
           id: category.categoryId,
           name: category.categoryName,
           level: category.categoryLevel,
+          pathLabel: categoryPathLabel,
         }
       : null,
     product: {

@@ -12,6 +12,10 @@ export function serializeAiStrategyListParams(params = {}) {
   if (String(params.query ?? '').trim()) serialized.query = String(params.query).trim();
   if (params.from) serialized.from = params.from;
   if (params.to) serialized.to = params.to;
+  if (params.channelType) serialized.channelType = params.channelType;
+  if (params.warehouseCode) serialized.warehouseCode = params.warehouseCode;
+  if (params.strategyFrom) serialized.strategyFrom = params.strategyFrom;
+  if (params.strategyTo) serialized.strategyTo = params.strategyTo;
   if (params.sort) serialized.sort = params.sort;
   return serialized;
 }
