@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatNumber, formatQuantity } from '@/shared/lib/format';
 
 function toFiniteNumber(value) {
@@ -15,7 +15,7 @@ export function buildInventoryComparisonChartData(results = []) {
       before: toFiniteNumber(result.before),
       after: toFiniteNumber(result.after),
       moved: toFiniteNumber(result.moved),
-      guardrail: result.guardrail || '가드레일 미수집',
+      guardrail: result.guardrail || '안전 기준 미수집',
     }))
     .filter((result) => result.before !== null || result.after !== null);
 }
@@ -46,6 +46,27 @@ function InventoryComparisonTooltip({ active, payload }) {
         {result.guardrail}
       </p>
     </div>
+  );
+}
+
+export function InventoryValueLabel({ x = 0, y = 0, width = 0, height = 0, value }) {
+  const number = toFiniteNumber(value);
+  if (number === null) return null;
+
+  const placeInside = width >= 52;
+  return (
+    <text
+      x={placeInside ? x + width - 6 : x + width + 6}
+      y={y + height / 2}
+      dy="0.35em"
+      textAnchor={placeInside ? 'end' : 'start'}
+      fill={placeInside ? 'var(--color-white)' : 'var(--text-body)'}
+      fontSize={11}
+      fontWeight={700}
+      aria-hidden="true"
+    >
+      {formatQuantity(number)}
+    </text>
   );
 }
 
@@ -108,8 +129,12 @@ export function StrategyInventoryComparisonBarChart({ results = [] }) {
               tickLine={false}
             />
             <Tooltip cursor={{ fill: 'var(--surface-subtle)' }} content={<InventoryComparisonTooltip />} />
-            <Bar dataKey="before" name="전략 시작" fill="var(--chart-2)" radius={[0, 5, 5, 0]} maxBarSize={18} />
-            <Bar dataKey="after" name="현재 재고" fill="var(--chart-1)" radius={[0, 5, 5, 0]} maxBarSize={18} />
+            <Bar dataKey="before" name="전략 시작" fill="var(--chart-2)" radius={[0, 5, 5, 0]} maxBarSize={18}>
+              <LabelList dataKey="before" content={<InventoryValueLabel />} />
+            </Bar>
+            <Bar dataKey="after" name="현재 재고" fill="var(--chart-1)" radius={[0, 5, 5, 0]} maxBarSize={18}>
+              <LabelList dataKey="after" content={<InventoryValueLabel />} />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>

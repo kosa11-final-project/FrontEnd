@@ -129,7 +129,9 @@ describe('StrategyExecutionCard', () => {
     const salesPerformance = screen.getByRole('region', { name: '판매 성과 요약' });
     expect(within(salesPerformance).getByText('63개')).toBeInTheDocument();
     expect(within(salesPerformance).getByText('61개')).toBeInTheDocument();
+    expect(within(salesPerformance).getByText('103%')).toBeInTheDocument();
     expect(within(salesPerformance).queryByText('61.1개')).not.toBeInTheDocument();
+    expect(within(salesPerformance).queryByText('103.1%')).not.toBeInTheDocument();
   });
 
   it('does not expose an internal UUID-based strategy case code', () => {

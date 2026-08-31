@@ -14,7 +14,7 @@ describe('InventoryFilterModal', () => {
         filterOptions={{
           categories: [],
           storageTypes: [{ code: 'FROZEN', name: '냉동' }],
-          riskGrades: [{ code: 'DANGER', name: '위험' }],
+          riskGrades: [{ code: 'CRITICAL', name: '위험' }],
           warehouses: [],
           salesPoints: [],
           regions: [],
@@ -31,7 +31,7 @@ describe('InventoryFilterModal', () => {
 
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({
-        riskGrade: ['DANGER'],
+        riskGrade: ['CRITICAL'],
       }),
     );
     expect(onApply.mock.lastCall[0]).not.toHaveProperty('filterOperator');
@@ -52,7 +52,7 @@ describe('InventoryFilterModal', () => {
           ],
           riskGrades: [
             { code: 'NORMAL', name: '보통' },
-            { code: 'CAUTION', name: '주의' },
+            { code: 'WARNING', name: '주의' },
           ],
           warehouses: [],
           salesPoints: [],
@@ -79,7 +79,7 @@ describe('InventoryFilterModal', () => {
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({
         storageType: ['FROZEN', 'ROOM_TEMP'],
-        riskGrade: ['NORMAL', 'CAUTION'],
+        riskGrade: ['NORMAL', 'WARNING'],
       }),
     );
   });
@@ -97,7 +97,7 @@ describe('InventoryFilterModal', () => {
             { code: 'FROZEN', name: '냉동' },
             { code: 'ROOM_TEMP', name: '상온' },
           ],
-          riskGrades: [{ code: 'CAUTION', name: '주의' }],
+          riskGrades: [{ code: 'WARNING', name: '주의' }],
           warehouses: [],
           salesPoints: [],
           regions: [],

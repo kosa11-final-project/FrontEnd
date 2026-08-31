@@ -118,6 +118,20 @@ function replaceLocationCodesWithNames(value, actions) {
   }, value);
 }
 
+function normalizeOptionName(value) {
+  if (typeof value !== 'string') return value;
+
+  return value
+    .replace(/\s*\(\s*\d{4}-\d{2}-\d{2}\s*[~～]\s*\d{4}-\d{2}-\d{2}\s*\)\s*/g, ' ')
+    .replace(
+      /(수량\s+)(\d+(?:\.\d+)?)/g,
+      (_, label, quantity) => `${label}${Number(quantity).toLocaleString('ko-KR', { maximumFractionDigits: 3 })}`,
+    )
+    .replace(/(\d+(?:\.\d+)?)\s*개/g, (_, quantity) => `${Math.round(Number(quantity)).toLocaleString('ko-KR')}개`)
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 function mapOption(option) {
   const candidate = option?.candidate;
   const mappedSimulation = mapSimulation(option?.simulation);
@@ -131,7 +145,7 @@ function mapOption(option) {
     optionId: candidate.candidateId,
     optionKey: candidate.candidateId,
     rank: option.rank,
-    optionName: displayText(option.optionName),
+    optionName: normalizeOptionName(displayText(option.optionName)),
     recommendationReason: displayText(option.recommendationReason),
     advantage: displayText(option.advantage),
     caution: displayText(option.caution),

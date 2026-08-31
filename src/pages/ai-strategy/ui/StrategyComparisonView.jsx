@@ -75,6 +75,11 @@ function StrategyOptionSummaryCard({ option, strategyCaseId, listPath }) {
           {option.rank === 1 ? <Badge variant="warning">AI 추천</Badge> : null}
         </div>
         <h3 className="mt-4 text-lg font-bold leading-7 text-[color:var(--text-heading)]">{option.optionName}</h3>
+        {option.startDate && option.endDate ? (
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-[color:var(--text-muted)]">
+            <Icon icon={Calendar} size={14} /> 전략 기간 {formatDate(option.startDate)} ~ {formatDate(option.endDate)}
+          </p>
+        ) : null}
         <p className="mt-3 text-sm leading-6 text-[color:var(--text-body)]">{option.recommendationReason}</p>
       </div>
 

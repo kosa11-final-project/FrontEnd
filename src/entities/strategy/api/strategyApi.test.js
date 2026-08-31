@@ -150,9 +150,23 @@ describe('AI strategy API', () => {
         query: '  만두  ',
         from: '',
         to: '2026-08-24',
+        channelType: 'GREETING',
+        warehouseCode: 'GYEONGIN_1',
+        strategyFrom: '2026-08-20',
+        strategyTo: '2026-08-31',
         sort: 'createdAt,desc',
       }),
-    ).toEqual({ page: 0, size: 10, query: '만두', to: '2026-08-24', sort: 'createdAt,desc' });
+    ).toEqual({
+      page: 0,
+      size: 10,
+      query: '만두',
+      to: '2026-08-24',
+      channelType: 'GREETING',
+      warehouseCode: 'GYEONGIN_1',
+      strategyFrom: '2026-08-20',
+      strategyTo: '2026-08-31',
+      sort: 'createdAt,desc',
+    });
   });
 
   it('fetches and maps the backend strategy case list', async () => {
@@ -170,6 +184,7 @@ describe('AI strategy API', () => {
               skuCode: 'SKU002562',
               skuName: '치즈쭈욱 떡볶이',
               imageUrl: null,
+              categoryPathLabel: '간식/디저트 > 분식 > 떡볶이',
               category: { categoryId: 301, categoryName: '간편식', categoryLevel: 3 },
             },
             requester: { userId: 17, userName: '이주영' },
@@ -195,6 +210,7 @@ describe('AI strategy API', () => {
           id: 3787,
           strategyNumber: '#3787',
           caseStatus: 'GENERATED',
+          category: expect.objectContaining({ pathLabel: '간식/디저트 > 분식 > 떡볶이' }),
           requester: { userId: 17, userName: '이주영' },
         }),
       ],

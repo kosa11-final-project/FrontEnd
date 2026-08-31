@@ -239,6 +239,21 @@ describe('AI strategy detail mapper', () => {
     expect(result.options[0].constraints).toBeNull();
   });
 
+  it('normalizes quantities and removes date ranges from generated option names', () => {
+    const response = detailResponse();
+    response.data.result.options[0].optionName = '15% 가격 할인 장기 판매 전략 (31.0개 규모) (2026-08-31 ~ 2026-11-28)';
+
+    const result = mapAiStrategyDetailResponse(response);
+
+    expect(result.options[0].optionName).toBe('15% 가격 할인 장기 판매 전략 (31개 규모)');
+
+    response.data.result.options[0].optionName = '재배치 전략 (목동점 → 킨텍스점, 수량 2.0)';
+
+    const deployedResult = mapAiStrategyDetailResponse(response);
+
+    expect(deployedResult.options[0].optionName).toBe('재배치 전략 (목동점 → 킨텍스점, 수량 2)');
+  });
+
   it('applies the server-calculated conditions and simulation without changing the original option', () => {
     const option = mapAiStrategyDetailResponse(detailResponse()).options[0];
     const adjusted = applyAdjustedSimulationResult(option, {

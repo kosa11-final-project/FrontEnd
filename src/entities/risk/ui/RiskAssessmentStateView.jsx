@@ -24,7 +24,7 @@ export function RiskAssessmentStateView({ status, onRetry }) {
           ? '서버가 현재 재고·안전재고·수요예측·LOT 데이터를 기준으로 판정 중입니다.'
           : isError
             ? '위험 판정 API를 다시 시도해 주세요. 기존 재고와 LOT 정보는 유지됩니다.'
-            : '필수 데이터가 적재되면 위험 등급을 판정할 수 있습니다.'
+            : '재고 동기화 후 판정됩니다.'
       }
       actionLabel={isError && onRetry ? '다시 시도' : undefined}
       onAction={onRetry}

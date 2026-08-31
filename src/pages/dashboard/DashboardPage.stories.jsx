@@ -4,7 +4,6 @@ import { mockDashboardResponse } from '@/entities/inventory/testing/dashboardFix
 import { StateView } from '@/shared/ui';
 import { StorybookProductFrame } from '@/storybook/StorybookProductFrame.jsx';
 import { DashboardPageContent } from './DashboardPage.jsx';
-import { DashboardSkeleton } from './ui/DashboardSkeleton.jsx';
 
 // Storybook 전용 API 응답 예시입니다. 운영 엔티티 barrel에는 정적 재고값을 노출하지 않습니다.
 const dashboardFixture = mapDashboardResponse(mockDashboardResponse);
@@ -18,7 +17,7 @@ const meta = {
     docs: {
       description: {
         component:
-          '인증 라우팅과 분리해 대시보드의 재고 위치별 현황, 선택 판매처의 긴급 SKU, 전국 위험 판매처 순위를 검토합니다.',
+          '인증 라우팅과 분리해 대시보드의 핵심 지표, 물류센터 hover 상세, 위험 판매처와 긴급 SKU 순위를 검토합니다.',
       },
     },
   },
@@ -50,7 +49,11 @@ export const Loading = {
   render: () => (
     <StorybookProductFrame path="/dashboard" minHeight="760px">
       <div className="page-shell">
-        <DashboardSkeleton />
+        <StateView
+          state="loading"
+          title="대시보드 데이터를 불러오고 있습니다."
+          description="최근 재고 동기화 결과를 확인하는 중입니다."
+        />
       </div>
     </StorybookProductFrame>
   ),
