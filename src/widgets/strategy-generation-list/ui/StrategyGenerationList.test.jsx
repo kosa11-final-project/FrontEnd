@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { TooltipProvider } from '@/shared/ui';
+import { Toaster, TooltipProvider } from '@/shared/ui';
 
 const strategyApiMock = vi.hoisted(() => ({
   getAiStrategyCase: vi.fn(),
@@ -35,6 +35,7 @@ function renderList(path = '/ai-strategy') {
       <TooltipProvider>
         <MemoryRouter initialEntries={[path]}>
           <StrategyGenerationList />
+          <Toaster />
         </MemoryRouter>
       </TooltipProvider>
     </QueryClientProvider>,
@@ -69,6 +70,85 @@ describe('StrategyGenerationList retry result selection', () => {
         { code: 'BUSAN_DC', name: '부산센터' },
       ],
     });
+  });
+
+  function strategyDetail({ caseStatus = 'GENERATION_FAILED', failureCode = 'AI_STRATEGY_GENERATION_ERROR' } = {}) {
+    return {
+      strategyCaseId: 101,
+      caseCode: '#101',
+      caseName: '실패 화면 테스트 전략',
+      caseStatus,
+      generationStage: 'FORECASTING',
+      recommendationOutcome: caseStatus === 'GENERATED' ? 'OPTIONS_GENERATED' : null,
+      sku: {
+        skuId: 7,
+        skuCode: 'SKU-7',
+        skuName: '테스트 상품',
+        imageUrl: null,
+      },
+      requestedAt: '2026-08-27T14:30:00+09:00',
+      completedAt: caseStatus === 'GENERATING' ? null : '2026-08-27T14:31:00+09:00',
+      resultExpiresAt: null,
+      failure:
+        caseStatus === 'GENERATION_FAILED'
+          ? {
+              code: failureCode,
+              summary: '사용자에게 공개 가능한 실패 메시지입니다.',
+              failedAt: '2026-08-27T14:31:00+09:00',
+            }
+          : null,
+      requestConditions: null,
+      options: [],
+    };
+  }
+
+  it('shows IT guidance, Case ID, optional failure code, copy action, and retry only for a failed case', async () => {
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    strategyApiMock.getAiStrategyCase.mockResolvedValue(strategyDetail());
+
+    renderList('/ai-strategy?drawer=101');
+
+    await screen.findByText('IT 담당자에게 보고 완료되었습니다.');
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('IT 담당자에게 보고 완료되었습니다.');
+    expect(dialog).toHaveTextContent('Case ID');
+    expect(dialog).toHaveTextContent('101');
+    expect(dialog).toHaveTextContent('AI_STRATEGY_GENERATION_ERROR');
+    expect(dialog).toHaveTextContent('사용자에게 공개 가능한 실패 메시지입니다.');
+    expect(screen.getByRole('button', { name: '전략 생성 재시도' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Case ID 복사' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('101'));
+    expect(await screen.findByText('Case ID를 복사했습니다.')).toBeInTheDocument();
+  });
+
+  it('keeps the failed-case UI intact when failureCode is absent', async () => {
+    strategyApiMock.getAiStrategyCase.mockResolvedValue(strategyDetail({ failureCode: null }));
+
+    renderList('/ai-strategy?drawer=101');
+
+    await screen.findByText('사용자에게 공개 가능한 실패 메시지입니다.');
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('Case ID');
+    expect(dialog).toHaveTextContent('사용자에게 공개 가능한 실패 메시지입니다.');
+    expect(dialog).not.toHaveTextContent('실패 코드');
+    expect(screen.getByRole('button', { name: '전략 생성 재시도' })).toBeInTheDocument();
+  });
+
+  it.each(['GENERATING', 'GENERATED'])('does not show IT failure guidance for %s', async (caseStatus) => {
+    strategyApiMock.getAiStrategyCase.mockResolvedValue(strategyDetail({ caseStatus }));
+
+    renderList('/ai-strategy?drawer=101');
+
+    if (caseStatus === 'GENERATING') {
+      await screen.findByText('현재 진행 상태만 제공하며 예상 완료 시간은 표시하지 않습니다.');
+    } else {
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    }
+    expect(screen.queryByText('IT 담당자에게 보고 완료되었습니다.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Case ID 복사' })).not.toBeInTheDocument();
   });
 
   it('loads a drawer Case by ID when it is outside the current list page', async () => {

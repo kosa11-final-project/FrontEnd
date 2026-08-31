@@ -7,6 +7,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Copy,
   InfoCircle,
   Package,
   Refresh,
@@ -24,7 +25,19 @@ import {
 import { inventoryFilterOptionsQueryOptions } from '@/entities/inventory';
 import { StrategyGenerationRetry } from '@/features/strategy-generation-retry';
 import { formatDate, formatDateTime } from '@/shared/lib/format';
-import { Alert, Badge, Button, DataTable, Drawer, Icon, IconButton, Input, Select, StateView } from '@/shared/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  DataTable,
+  Drawer,
+  Icon,
+  IconButton,
+  Input,
+  Select,
+  StateView,
+  toast,
+} from '@/shared/ui';
 
 const PAGE_SIZE = 10;
 const EMPTY_STRATEGIES = Object.freeze([]);
@@ -116,6 +129,20 @@ function DrawerDetails({ strategy, onRetrySucceeded, onNavigateInventory }) {
   const isFailed = strategy.caseStatus === 'GENERATION_FAILED';
   const stageLabel = strategyGenerationStageMeta[strategy.generationStage]?.label ?? '수요예측';
 
+  async function copyCaseId() {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard API is unavailable.');
+      await navigator.clipboard.writeText(String(strategy.id));
+      toast({ title: 'Case ID를 복사했습니다.' });
+    } catch {
+      toast({
+        title: 'Case ID를 복사하지 못했습니다.',
+        description: '잠시 후 다시 시도해 주세요.',
+        variant: 'destructive',
+      });
+    }
+  }
+
   return (
     <div className="grid gap-6">
       <StrategyProductCell product={strategy.product} />
@@ -154,6 +181,24 @@ function DrawerDetails({ strategy, onRetrySucceeded, onNavigateInventory }) {
           <Alert variant="danger" title="전략 생성에 실패했습니다.">
             {strategy.failure?.summary ?? '실패 사유를 확인하지 못했습니다. 담당자에게 문의해 주세요.'}
           </Alert>
+          <div className="grid gap-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface-subtle)] p-4 text-[length:var(--font-size-body-sm)]">
+            <p className="m-0 font-bold text-[color:var(--text-heading)]">IT 담당자에게 보고 완료되었습니다.</p>
+            <dl className="grid grid-cols-[88px_1fr] items-center gap-x-4 gap-y-2">
+              <dt className="text-[color:var(--text-muted)]">Case ID</dt>
+              <dd className="m-0 flex min-w-0 items-center gap-2">
+                <span className="font-mono font-bold text-[color:var(--text-heading)]">{strategy.id}</span>
+                <IconButton label="Case ID 복사" size="sm" onClick={copyCaseId}>
+                  <Icon icon={Copy} size={15} aria-hidden="true" />
+                </IconButton>
+              </dd>
+              {strategy.failure?.code ? (
+                <>
+                  <dt className="text-[color:var(--text-muted)]">실패 코드</dt>
+                  <dd className="m-0 break-all font-mono text-[color:var(--text-body)]">{strategy.failure.code}</dd>
+                </>
+              ) : null}
+            </dl>
+          </div>
           <StrategyGenerationRetry
             strategyCaseId={strategy.id}
             caseStatus={strategy.caseStatus}
