@@ -21,6 +21,7 @@ import {
   buildStrategyChartData,
   getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
+  getStrategyEndDateMaximum,
   getSimulationComparisonRows,
   isAiStrategySelectionConflict,
   resolveStrategyActionType,
@@ -233,7 +234,7 @@ function DateRangeFields({ actionOrder, values, minimumDate, maximumDate, onChan
   );
 }
 
-function ActionConditionSection({ option, action, values, maxQuantity, maxDiscountPercent, onChange }) {
+function ActionConditionSection({ option, action, values, maxQuantity, maxDiscountPercent, maximumEndDate, onChange }) {
   const meta = resolveStrategyActionType(action.actionType);
   const locationPresentation = resolveStrategyLocationPresentation({
     ...action,
@@ -324,7 +325,7 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
         actionOrder={action.actionOrder}
         values={values}
         minimumDate={option.adjustmentConstraints?.minimumStartDate}
-        maximumDate={option.adjustmentConstraints?.latestSelectableEndDate}
+        maximumDate={maximumEndDate}
         onChange={onChange}
       />
 
@@ -382,6 +383,7 @@ function ConditionPanel({
   const recommendationUnchanged = areAdjustmentValuesEqual(values, defaults);
   const unappliedChanges = !areAdjustmentValuesEqual(values, appliedValues ?? defaults);
   const validationError = getStrategyAdjustmentValidationError(option, values);
+  const maximumEndDate = getStrategyEndDateMaximum(option);
   return (
     <Card padding="none" className="min-w-0 overflow-clip" data-testid="strategy-condition-panel">
       <div className="border-b border-[var(--border)] p-5">
@@ -400,7 +402,7 @@ function ConditionPanel({
         {option.adjustmentConstraints?.requiresPeriodAdjustment ? (
           <Alert variant="warning" title="전략 기간을 조정해 주세요.">
             선택한 LOT의 소비기한을 기준으로 종료일은 {formatDate(option.adjustmentConstraints.latestSelectableEndDate)}
-            까지만 선택할 수 있습니다.
+            이전인 {formatDate(maximumEndDate)}까지 선택할 수 있습니다.
           </Alert>
         ) : null}
 
@@ -419,6 +421,7 @@ function ConditionPanel({
               values={values.actions[action.actionOrder]}
               maxQuantity={maxQuantity}
               maxDiscountPercent={maxDiscountPercent}
+              maximumEndDate={maximumEndDate}
               onChange={onChange}
             />
           ))}
@@ -457,10 +460,12 @@ function StrategyChart({ strategyCase, options, activeOption, chartRange }) {
   const periodDays = chartData.length;
 
   return (
-    <Card padding="lg" className="min-w-0">
+    <section className="min-w-0" aria-labelledby="strategy-simulation-chart-title">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[color:var(--text-heading)]">시뮬레이션 차트</h2>
+          <h2 id="strategy-simulation-chart-title" className="text-lg font-bold text-[color:var(--text-heading)]">
+            시뮬레이션 차트
+          </h2>
           <p className="mt-1 text-xs text-[color:var(--text-muted)]">
             {activeOption.optionName} · {formatNumber(periodDays)}일 예측 평가 결과
           </p>
@@ -558,7 +563,7 @@ function StrategyChart({ strategyCase, options, activeOption, chartRange }) {
           )}
         </ResponsiveContainer>
       </div>
-    </Card>
+    </section>
   );
 }
 
@@ -567,9 +572,11 @@ function SimulationResultTable({ strategyCase, option }) {
     visibleSimulationResultKeys.has(row.key),
   );
   return (
-    <Card padding="lg">
+    <section data-testid="strategy-simulation-result" aria-labelledby="strategy-simulation-result-title">
       <div className="mb-4">
-        <h2 className="text-lg font-bold text-[color:var(--text-heading)]">현재 전략 예상 결과</h2>
+        <h2 id="strategy-simulation-result-title" className="text-lg font-bold text-[color:var(--text-heading)]">
+          현재 전략 예상 결과
+        </h2>
         <p className="mt-1 text-xs text-[color:var(--text-muted)]">{option.optionName}</p>
       </div>
       <Table surface="bordered" density="default">
@@ -628,7 +635,7 @@ function SimulationResultTable({ strategyCase, option }) {
           </tbody>
         </TableElement>
       </Table>
-    </Card>
+    </section>
   );
 }
 
@@ -967,33 +974,39 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
         }
       >
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 overflow-hidden">
-          <Card padding="md" className="grid gap-4">
-            <div className="min-w-0">
-              <span className="text-xs font-bold text-[color:var(--primary)]">AI 추천 이유</span>
-              <p className="mt-1 break-words text-sm leading-6 text-[color:var(--text-body)]">
-                {activeOption.recommendationReason}
-              </p>
-            </div>
-            <div className="grid gap-3 border-t border-[var(--border)] pt-3 text-xs leading-5 md:grid-cols-2">
-              <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
-                <strong className="mr-1 text-[color:var(--good)]">장점</strong>
-                <span className="text-[color:var(--text-body)]">{activeOption.advantage}</span>
-              </p>
-              <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
-                <strong className="mr-1 text-[color:var(--warning)]">주의</strong>
-                <span className="text-[color:var(--text-muted)]">{activeOption.caution}</span>
-              </p>
+          <Card padding="none" className="min-w-0 overflow-hidden" data-testid="strategy-simulation-overview">
+            <div className="grid min-w-0 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <div className="min-w-0 p-5 xl:border-r xl:border-[var(--border)]">
+                <SimulationResultTable strategyCase={strategyCase} option={displayedActiveOption} />
+                <div className="mt-5 grid gap-4 border-t border-[var(--border)] pt-4">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-[color:var(--primary)]">AI 추천 이유</span>
+                    <p className="mt-1 break-words text-sm leading-6 text-[color:var(--text-body)]">
+                      {activeOption.recommendationReason}
+                    </p>
+                  </div>
+                  <div className="grid gap-3 text-xs leading-5 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                    <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
+                      <strong className="mr-1 text-[color:var(--good)]">장점</strong>
+                      <span className="text-[color:var(--text-body)]">{activeOption.advantage}</span>
+                    </p>
+                    <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
+                      <strong className="mr-1 text-[color:var(--warning)]">주의</strong>
+                      <span className="text-[color:var(--text-muted)]">{activeOption.caution}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="min-w-0 border-t border-[var(--border)] p-5 xl:border-t-0">
+                <StrategyChart
+                  strategyCase={strategyCase}
+                  options={displayedOptions}
+                  activeOption={displayedActiveOption}
+                  chartRange={displayedChartRange}
+                />
+              </div>
             </div>
           </Card>
-          <div className="w-full min-w-0 max-w-full rounded-[var(--radius-panel)]">
-            <StrategyChart
-              strategyCase={strategyCase}
-              options={displayedOptions}
-              activeOption={displayedActiveOption}
-              chartRange={displayedChartRange}
-            />
-          </div>
-          <SimulationResultTable strategyCase={strategyCase} option={displayedActiveOption} />
           <ActionTimeline option={displayedActiveOption} />
         </div>
       </DetailLayout>
