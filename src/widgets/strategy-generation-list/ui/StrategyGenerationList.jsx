@@ -488,7 +488,7 @@ function StrategyFilterBar({
   );
 }
 
-export function StrategyGenerationList() {
+export function StrategyGenerationList({ localStrategies = EMPTY_STRATEGIES }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const actionButtonRefs = useRef(new Map());
@@ -535,17 +535,45 @@ export function StrategyGenerationList() {
     [channel, from, query, requestedPage, status, to, warehouse],
   );
   const listQuery = useQuery(aiStrategyListQueryOptions(apiParams));
-  const strategies = listQuery.data?.content ?? EMPTY_STRATEGIES;
-  const totalElements = listQuery.data?.totalElements ?? 0;
+  const serverStrategies = listQuery.data?.content ?? EMPTY_STRATEGIES;
+  const eligibleLocalStrategies = useMemo(() => {
+    if (requestedPage !== 1 || channel || warehouse) return EMPTY_STRATEGIES;
+
+    const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
+    const serverIds = new Set(serverStrategies.map((strategy) => strategy.id));
+    return localStrategies.filter((strategy) => {
+      if (serverIds.has(strategy.id)) return false;
+      const matchesQuery =
+        !normalizedQuery ||
+        [strategy.strategyNumber, strategy.strategyName, strategy.product?.skuCode, strategy.product?.name]
+          .filter(Boolean)
+          .join(' ')
+          .toLocaleLowerCase('ko-KR')
+          .includes(normalizedQuery);
+      const createdDate = strategy.createdAt?.slice(0, 10) ?? '';
+      return matchesQuery && (!from || createdDate >= from) && (!to || createdDate <= to);
+    });
+  }, [channel, from, localStrategies, query, requestedPage, serverStrategies, to, warehouse]);
+  const matchingLocalStrategies = useMemo(
+    () => eligibleLocalStrategies.filter((strategy) => status === 'ALL' || strategy.caseStatus === status),
+    [eligibleLocalStrategies, status],
+  );
+  const strategies = useMemo(
+    () => [...matchingLocalStrategies, ...serverStrategies],
+    [matchingLocalStrategies, serverStrategies],
+  );
+  const totalElements = (listQuery.data?.totalElements ?? 0) + matchingLocalStrategies.length;
   const totalPages = Math.max(listQuery.data?.totalPages ?? 0, 1);
   const counts = useMemo(
     () => ({
-      ALL: listQuery.data?.statusCounts?.all ?? 0,
-      GENERATED: listQuery.data?.statusCounts?.generated ?? 0,
+      ALL: (listQuery.data?.statusCounts?.all ?? 0) + eligibleLocalStrategies.length,
+      GENERATED:
+        (listQuery.data?.statusCounts?.generated ?? 0) +
+        eligibleLocalStrategies.filter((strategy) => strategy.caseStatus === 'GENERATED').length,
       GENERATING: listQuery.data?.statusCounts?.generating ?? 0,
       GENERATION_FAILED: listQuery.data?.statusCounts?.generationFailed ?? 0,
     }),
-    [listQuery.data?.statusCounts],
+    [eligibleLocalStrategies, listQuery.data?.statusCounts],
   );
 
   const hasActiveFilter = Boolean(query || channel || warehouse || from || to || status !== 'ALL');
@@ -791,9 +819,9 @@ export function StrategyGenerationList() {
         onReset={resetFilters}
       />
 
-      {listQuery.isPending ? (
+      {listQuery.isPending && strategies.length === 0 ? (
         <StateView state="loading" title="AI 전략 생성 목록을 불러오고 있습니다." />
-      ) : listQuery.isError ? (
+      ) : listQuery.isError && strategies.length === 0 ? (
         <Alert variant="danger" title="AI 전략 생성 목록을 불러오지 못했습니다.">
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
             <span>서버 연결 상태를 확인한 뒤 다시 시도해 주세요.</span>

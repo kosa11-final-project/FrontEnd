@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { aiStrategyDetailQueryOptions } from '@/entities/strategy';
 import { Button, StateView } from '@/shared/ui';
+import { getLocalStrategyDetailMock } from './model/localStrategyDetailMocks.js';
 import { StrategyComparisonView } from './ui/StrategyComparisonView.jsx';
 import { StrategyNoRecommendationView } from './ui/StrategyNoRecommendationView.jsx';
 
@@ -10,6 +11,7 @@ export default function AiStrategyDetailPage() {
   const location = useLocation();
   const listPath = location.state?.from ?? '/ai-strategy';
   const detailQuery = useQuery(aiStrategyDetailQueryOptions(strategyCaseId));
+  const strategyCase = detailQuery.data ?? getLocalStrategyDetailMock(strategyCaseId);
 
   if (detailQuery.isPending) {
     return (
@@ -19,7 +21,7 @@ export default function AiStrategyDetailPage() {
     );
   }
 
-  if (detailQuery.isError) {
+  if (detailQuery.isError && !strategyCase) {
     const expired = detailQuery.error?.status === 410;
     const notFound = detailQuery.error?.status === 404;
     const forbidden = detailQuery.error?.status === 403;
@@ -44,8 +46,6 @@ export default function AiStrategyDetailPage() {
       </main>
     );
   }
-
-  const strategyCase = detailQuery.data;
 
   if (strategyCase.noRecommendation) {
     return <StrategyNoRecommendationView strategyCase={strategyCase} listPath={listPath} />;

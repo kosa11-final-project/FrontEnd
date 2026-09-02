@@ -5,6 +5,7 @@ import {
   buildStrategySelectionPayload,
   getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
+  getStrategyEndDateMaximum,
   getSimulationComparisonRows,
   resolveStrategyActionType,
   resolveStrategyLocationPresentation,
@@ -241,7 +242,7 @@ describe('strategy detail model', () => {
       adjustmentConstraints: {
         minimumStartDate: '2026-08-20',
         latestSelectableEndDate: '2026-08-25',
-        maximumPeriodDays: 5,
+        maximumPeriodDays: 4,
       },
       actions: [
         {
@@ -254,26 +255,27 @@ describe('strategy detail model', () => {
       ],
     };
     const validAdjustment = {
-      actions: { 1: { quantity: 8, startDate: '2026-08-21', endDate: '2026-08-25' } },
+      actions: { 1: { quantity: 8, startDate: '2026-08-21', endDate: '2026-08-24' } },
     };
 
+    expect(getStrategyEndDateMaximum(option)).toBe('2026-08-24');
     expect(getStrategyAdjustmentValidationError(option, validAdjustment)).toBeNull();
     expect(buildStrategyAdjustmentPayload(option, validAdjustment)).toEqual({
       actionQuantity: 8,
       discountRate: null,
       startDate: '2026-08-21',
-      endDate: '2026-08-25',
+      endDate: '2026-08-24',
     });
     expect(
       getStrategyAdjustmentValidationError(option, {
         actions: { 1: { quantity: 8, startDate: '2026-08-20', endDate: '2026-08-25' } },
       }),
-    ).toBe('전략 기간은 최대 5일까지 선택할 수 있습니다.');
+    ).toBe('전략 종료일은 2026-08-25 이전이어야 합니다.');
     expect(
       getStrategyAdjustmentValidationError(option, {
-        actions: { 1: { quantity: 8, startDate: '2026-08-20', endDate: '2026-08-26' } },
+        actions: { 1: { quantity: 8, startDate: '2026-08-20', endDate: '2026-08-24' } },
       }),
-    ).toBe('전략 종료일은 2026-08-25 이전이어야 합니다.');
+    ).toBe('전략 기간은 최대 4일까지 선택할 수 있습니다.');
   });
 
   it('AI 추천값은 optionId만, 조정값은 네 가지 적용 조건을 모두 선택 payload에 포함한다', () => {

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { aiStrategyDetailQueryOptions, resolveStrategyOption } from '@/entities/strategy';
 import { Button, StateView } from '@/shared/ui';
+import { getLocalStrategyDetailMock } from './model/localStrategyDetailMocks.js';
 import { StrategyNoRecommendationView } from './ui/StrategyNoRecommendationView.jsx';
 import { StrategySimulationView } from './ui/StrategySimulationView.jsx';
 
@@ -11,7 +12,7 @@ export default function AiStrategySimulationPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const detailQuery = useQuery(aiStrategyDetailQueryOptions(strategyCaseId));
-  const strategyCase = detailQuery.data;
+  const strategyCase = detailQuery.data ?? getLocalStrategyDetailMock(strategyCaseId);
   const activeOption = resolveStrategyOption(strategyCase?.options, searchParams.get('option'));
   const listPath = location.state?.from ?? '/ai-strategy';
 
@@ -30,7 +31,7 @@ export default function AiStrategySimulationPage() {
     );
   }
 
-  if (detailQuery.isError) {
+  if (detailQuery.isError && !strategyCase) {
     const expired = detailQuery.error?.status === 410;
     const notFound = detailQuery.error?.status === 404;
     const forbidden = detailQuery.error?.status === 403;

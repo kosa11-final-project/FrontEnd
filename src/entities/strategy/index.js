@@ -25,6 +25,7 @@ export {
   buildStrategyChartData,
   getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
+  getStrategyEndDateMaximum,
   getSimulationComparisonRows,
   resolveStrategyActionType,
   resolveStrategyLocationPresentation,

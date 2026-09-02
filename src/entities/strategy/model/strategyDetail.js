@@ -145,6 +145,17 @@ function inclusiveDateCount(startDate, endDate) {
   return Math.floor((end - start) / 86_400_000) + 1;
 }
 
+export function getStrategyEndDateMaximum(option) {
+  const exclusiveEndDate = option?.adjustmentConstraints?.latestSelectableEndDate;
+  if (!exclusiveEndDate) return null;
+
+  const [year, month, day] = exclusiveEndDate.split('-').map(Number);
+  if (!year || !month || !day) return null;
+
+  const previousDate = new Date(Date.UTC(year, month - 1, day - 1));
+  return previousDate.toISOString().slice(0, 10);
+}
+
 export function getStrategyAdjustmentValidationError(option, adjustment) {
   const defaults = getStrategyAdjustmentDefaults(option);
   const actions = option?.actions ?? [];
@@ -165,7 +176,7 @@ export function getStrategyAdjustmentValidationError(option, adjustment) {
   if (constraints?.minimumStartDate && periodValues.startDate < constraints.minimumStartDate) {
     return `전략 시작일은 ${constraints.minimumStartDate} 이후여야 합니다.`;
   }
-  if (constraints?.latestSelectableEndDate && periodValues.endDate > constraints.latestSelectableEndDate) {
+  if (constraints?.latestSelectableEndDate && periodValues.endDate >= constraints.latestSelectableEndDate) {
     return `전략 종료일은 ${constraints.latestSelectableEndDate} 이전이어야 합니다.`;
   }
 

@@ -26,7 +26,7 @@ vi.mock('@/entities/inventory/api/inventoryApi.js', async (importOriginal) => ({
 
 import { StrategyGenerationList } from './StrategyGenerationList.jsx';
 
-function renderList(path = '/ai-strategy') {
+function renderList(path = '/ai-strategy', props = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -34,7 +34,7 @@ function renderList(path = '/ai-strategy') {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <MemoryRouter initialEntries={[path]}>
-          <StrategyGenerationList />
+          <StrategyGenerationList {...props} />
           <Toaster />
         </MemoryRouter>
       </TooltipProvider>
@@ -70,6 +70,42 @@ describe('StrategyGenerationList retry result selection', () => {
         { code: 'BUSAN_DC', name: '부산센터' },
       ],
     });
+  });
+
+  it('shows a matching local-only strategy when the server list is empty', async () => {
+    strategyApiMock.getAiStrategyCases.mockResolvedValue({
+      content: [],
+      statusCounts: { all: 0, generating: 0, generated: 0, generationFailed: 0 },
+      page: 0,
+      size: 10,
+      totalElements: 0,
+      totalPages: 0,
+      first: true,
+      last: true,
+    });
+
+    renderList('/ai-strategy?q=970000000588', {
+      localStrategies: [
+        {
+          id: 970000000588,
+          strategyNumber: '#970000000588',
+          strategyName: '초코하임 AI 전략',
+          caseStatus: 'GENERATED',
+          generationStage: 'COMPARISON_READY',
+          recommendationOutcome: 'OPTIONS_GENERATED',
+          category: { id: 401, name: '과자·간식', level: 3, pathLabel: '과자·간식' },
+          product: { skuId: 1, skuCode: 'CHOCO-HAIM', name: '초코하임', imageUrl: null },
+          createdAt: '2026-09-02T10:00:00+09:00',
+          completedAt: '2026-09-02T10:01:42+09:00',
+          resultExpiresAt: '2026-09-05T10:01:42+09:00',
+          failure: null,
+        },
+      ],
+    });
+
+    expect(await screen.findByText('#970000000588')).toBeInTheDocument();
+    expect(screen.getByText('초코하임 AI 전략')).toBeInTheDocument();
+    expect(screen.getByText('1', { selector: 'footer strong' })).toBeInTheDocument();
   });
 
   function strategyDetail({ caseStatus = 'GENERATION_FAILED', failureCode = 'AI_STRATEGY_GENERATION_ERROR' } = {}) {
