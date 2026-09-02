@@ -7,7 +7,7 @@ import { UrgentSkuList } from '@/widgets/urgent-skus/ui/UrgentSkuList.jsx';
 
 export function DashboardOperationsPanel({ accordionResetKey = 0, selectedSalesPoint, urgentSkus, riskSalesPoints }) {
   const showUrgentSection = Boolean(selectedSalesPoint);
-  const accordionDefaultValue = showUrgentSection ? ['urgent', 'risk'] : ['risk'];
+  const accordionDefaultValue = accordionResetKey > 0 ? [] : showUrgentSection ? ['urgent', 'risk'] : ['risk'];
   const urgentDescription = selectedSalesPoint
     ? `${selectedSalesPoint.name} 기준 · 위험등급·예상 폐기수량 기준 우선 조치`
     : '판매처를 선택하면 해당 판매처의 긴급 처리 대상을 표시합니다.';
