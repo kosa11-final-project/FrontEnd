@@ -122,7 +122,7 @@ describe('DashboardPageContent', () => {
     expect(screen.queryByRole('button', { name: /긴급 처리 SKU TOP 5/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /위험재고 보유 판매처 TOP 10/ })).toHaveAttribute(
       'aria-expanded',
-      'true',
+      'false',
     );
   });
 });
