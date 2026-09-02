@@ -87,7 +87,7 @@ describe('DashboardOperationsPanel', () => {
     expect(screen.queryByText('판매처를 선택해 주세요.')).not.toBeInTheDocument();
   });
 
-  it('starts with both sections closed after a location tab change', () => {
+  it('keeps both sections open after a location tab change', () => {
     render(
       <MemoryRouter>
         <DashboardOperationsPanel
@@ -99,10 +99,10 @@ describe('DashboardOperationsPanel', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: /긴급 처리 SKU TOP 5/ })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /긴급 처리 SKU TOP 5/ })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('button', { name: /위험재고 보유 판매처 TOP 10/ })).toHaveAttribute(
       'aria-expanded',
-      'false',
+      'true',
     );
   });
 });
