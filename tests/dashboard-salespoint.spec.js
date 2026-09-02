@@ -106,7 +106,10 @@ test('판매처를 선택하면 통합 운영 카드의 긴급 SKU만 해당 판
   await expect(page.getByText('전체 재고 구역 개요')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '전체 보기' })).toHaveCount(0);
   await expect(page.getByText('판교 긴급 SKU')).toBeVisible();
-  await page.getByRole('button', { name: /위험재고 보유 판매처 TOP 10/ }).click();
+  await expect(page.getByRole('button', { name: /위험재고 보유 판매처 TOP 10/ })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
   await expect(page.getByRole('link', { name: '판교점 재고 보기' })).toBeVisible();
 
   await page.getByRole('button', { name: /수지점/ }).click();
