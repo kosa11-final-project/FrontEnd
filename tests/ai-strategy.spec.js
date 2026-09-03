@@ -38,12 +38,6 @@ const listCases = strategyGenerationFixtures.map((fixture) => ({
 }));
 
 const maintainCurrentStateFixture = strategyDetailFixtures.find(({ strategyCaseId }) => strategyCaseId === 33);
-
-function nextDate(date) {
-  const value = new Date(`${date}T00:00:00Z`);
-  value.setUTCDate(value.getUTCDate() + 1);
-  return value.toISOString().slice(0, 10);
-}
 listCases.unshift({
   strategyCaseId: maintainCurrentStateFixture.strategyCaseId,
   caseName: maintainCurrentStateFixture.caseName,
@@ -186,7 +180,7 @@ function toBackendDetail(strategyCase) {
         caution: option.caution,
         adjustmentConstraints: option.adjustmentConstraints ?? {
           minimumStartDate: option.actions[0]?.startDate,
-          latestSelectableEndDate: nextDate(option.actions[0]?.endDate),
+          latestSelectableEndDate: option.actions[0]?.endDate,
           maximumPeriodDays: 90,
           requiresPeriodAdjustment: false,
         },
@@ -404,7 +398,7 @@ async function mockAiStrategyDetail(page) {
           },
           adjustmentConstraints: {
             minimumStartDate: conditions.startDate,
-            latestSelectableEndDate: nextDate(conditions.endDate),
+            latestSelectableEndDate: conditions.endDate,
             maximumPeriodDays: 90,
             requiresPeriodAdjustment: false,
           },
@@ -955,15 +949,6 @@ test.describe('AI 전략 생성 목록', () => {
     await expect(page.getByLabel('액션 1 종료일')).toHaveAttribute('max', '2026-08-27');
 
     const resultTable = page.getByRole('table', { name: '현재 전략 예상 결과와 기준 시나리오 비교' });
-    const overview = page.getByTestId('strategy-simulation-overview');
-    const resultSection = page.getByTestId('strategy-simulation-result');
-    const chartSection = page.getByTestId('strategy-simulation-chart');
-    await expect(overview.getByRole('heading', { name: '현재 전략 예상 결과' })).toBeVisible();
-    await expect(overview.getByRole('heading', { name: '시뮬레이션 차트' })).toBeVisible();
-    await expect(overview.getByText('AI 추천 이유')).toBeVisible();
-    const [resultBox, chartBox] = await Promise.all([resultSection.boundingBox(), chartSection.boundingBox()]);
-    expect(resultBox.y).toBeLessThan(chartBox.y);
-    expect(resultBox.y + resultBox.height).toBeLessThanOrEqual(page.viewportSize().height);
     await expect(resultTable.getByRole('row').filter({ hasText: '예상 폐기수량' })).toBeVisible();
     await expect(resultTable.getByRole('row').filter({ hasText: '예상 재고 소진기간' })).toHaveCount(0);
     await expect(resultTable.getByRole('row').filter({ hasText: '전략 종료 후 잔여재고' })).toHaveCount(0);

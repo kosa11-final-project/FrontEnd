@@ -37,7 +37,7 @@ function addDays(value, days) {
 }
 
 export function getStrategyRequestMaximumDate(today) {
-  return addDays(today, 90);
+  return addDays(today, 29);
 }
 
 export function createStrategyRequestDraft(item = {}) {
@@ -107,7 +107,7 @@ export function validateStrategyRequestDraft(draft, today) {
   if (startDate && startDate < today) {
     errors.preferredStartDate = '시작일은 오늘보다 빠를 수 없습니다.';
   } else if (startDate && startDate > maximumDate) {
-    errors.preferredStartDate = '시작일은 오늘부터 90일 이내여야 합니다.';
+    errors.preferredStartDate = '시작일은 오늘을 포함해 30일 이내여야 합니다.';
   }
 
   if (startDate && endDate && endDate < startDate) {
@@ -115,7 +115,7 @@ export function validateStrategyRequestDraft(draft, today) {
   } else if (!startDate && endDate && endDate < today) {
     errors.preferredEndDate = '종료일은 오늘보다 빠를 수 없습니다.';
   } else if (endDate && endDate > maximumDate) {
-    errors.preferredEndDate = '종료일은 오늘부터 90일 이내여야 합니다.';
+    errors.preferredEndDate = '종료일은 오늘을 포함해 30일 이내여야 합니다.';
   }
 
   return errors;

@@ -21,7 +21,6 @@ import {
   buildStrategyChartData,
   getStrategyAdjustmentValidationError,
   getStrategyAdjustmentDefaults,
-  getStrategyEndDateMaximum,
   getSimulationComparisonRows,
   isAiStrategySelectionConflict,
   resolveStrategyActionType,
@@ -234,7 +233,7 @@ function DateRangeFields({ actionOrder, values, minimumDate, maximumDate, onChan
   );
 }
 
-function ActionConditionSection({ option, action, values, maxQuantity, maxDiscountPercent, maximumEndDate, onChange }) {
+function ActionConditionSection({ option, action, values, maxQuantity, maxDiscountPercent, onChange }) {
   const meta = resolveStrategyActionType(action.actionType);
   const locationPresentation = resolveStrategyLocationPresentation({
     ...action,
@@ -325,7 +324,7 @@ function ActionConditionSection({ option, action, values, maxQuantity, maxDiscou
         actionOrder={action.actionOrder}
         values={values}
         minimumDate={option.adjustmentConstraints?.minimumStartDate}
-        maximumDate={maximumEndDate}
+        maximumDate={option.adjustmentConstraints?.latestSelectableEndDate}
         onChange={onChange}
       />
 
@@ -383,7 +382,6 @@ function ConditionPanel({
   const recommendationUnchanged = areAdjustmentValuesEqual(values, defaults);
   const unappliedChanges = !areAdjustmentValuesEqual(values, appliedValues ?? defaults);
   const validationError = getStrategyAdjustmentValidationError(option, values);
-  const maximumEndDate = getStrategyEndDateMaximum(option);
   return (
     <Card padding="none" className="min-w-0 overflow-clip" data-testid="strategy-condition-panel">
       <div className="border-b border-[var(--border)] p-5">
@@ -402,7 +400,7 @@ function ConditionPanel({
         {option.adjustmentConstraints?.requiresPeriodAdjustment ? (
           <Alert variant="warning" title="전략 기간을 조정해 주세요.">
             선택한 LOT의 소비기한을 기준으로 종료일은 {formatDate(option.adjustmentConstraints.latestSelectableEndDate)}
-            이전인 {formatDate(maximumEndDate)}까지 선택할 수 있습니다.
+            까지만 선택할 수 있습니다.
           </Alert>
         ) : null}
 
@@ -421,7 +419,6 @@ function ConditionPanel({
               values={values.actions[action.actionOrder]}
               maxQuantity={maxQuantity}
               maxDiscountPercent={maxDiscountPercent}
-              maximumEndDate={maximumEndDate}
               onChange={onChange}
             />
           ))}
@@ -460,12 +457,10 @@ function StrategyChart({ strategyCase, options, activeOption, chartRange }) {
   const periodDays = chartData.length;
 
   return (
-    <section className="min-w-0" aria-labelledby="strategy-simulation-chart-title">
+    <Card padding="lg" className="min-w-0">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="strategy-simulation-chart-title" className="text-lg font-bold text-[color:var(--text-heading)]">
-            시뮬레이션 차트
-          </h2>
+          <h2 className="text-lg font-bold text-[color:var(--text-heading)]">시뮬레이션 차트</h2>
           <p className="mt-1 text-xs text-[color:var(--text-muted)]">
             {activeOption.optionName} · {formatNumber(periodDays)}일 예측 평가 결과
           </p>
@@ -563,25 +558,32 @@ function StrategyChart({ strategyCase, options, activeOption, chartRange }) {
           )}
         </ResponsiveContainer>
       </div>
-    </section>
+    </Card>
   );
 }
 
-function SimulationResultTable({ strategyCase, option }) {
-  const rows = getSimulationComparisonRows(strategyCase, option).filter((row) =>
+export function SimulationResultTable({
+  strategyCase,
+  recommendedOption,
+  adjustedOption,
+  adjustmentApplied = false,
+  recalculating = false,
+}) {
+  const recommendedRows = getSimulationComparisonRows(strategyCase, recommendedOption).filter((row) =>
     visibleSimulationResultKeys.has(row.key),
   );
+  const adjustedRowsByKey = new Map(
+    getSimulationComparisonRows(strategyCase, adjustedOption).map((row) => [row.key, row]),
+  );
   return (
-    <section data-testid="strategy-simulation-result" aria-labelledby="strategy-simulation-result-title">
+    <Card padding="lg">
       <div className="mb-4">
-        <h2 id="strategy-simulation-result-title" className="text-lg font-bold text-[color:var(--text-heading)]">
-          현재 전략 예상 결과
-        </h2>
-        <p className="mt-1 text-xs text-[color:var(--text-muted)]">{option.optionName}</p>
+        <h2 className="text-lg font-bold text-[color:var(--text-heading)]">현재 전략 예상 결과</h2>
+        <p className="mt-1 text-xs text-[color:var(--text-muted)]">{recommendedOption.optionName}</p>
       </div>
       <Table surface="bordered" density="default">
-        <TableElement className="min-w-[640px]">
-          <caption className="sr-only">현재 전략 예상 결과와 기준 시나리오 비교</caption>
+        <TableElement className="min-w-[800px]">
+          <caption className="sr-only">AI 추천값과 사용자 조정값의 예상 결과 및 기준 시나리오 비교</caption>
           <thead className="bg-[var(--surface-subtle)] text-left text-xs text-[color:var(--text-muted)]">
             <tr>
               <th scope="col" className="px-4 py-3">
@@ -591,35 +593,51 @@ function SimulationResultTable({ strategyCase, option }) {
                 AI 추천값
               </th>
               <th scope="col" className="px-4 py-3 text-right">
+                사용자 조정값
+              </th>
+              <th scope="col" className="px-4 py-3 text-right">
                 기준 시나리오 대비
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)] text-sm">
-            {rows.map((row) => {
+            {recommendedRows.map((recommendedRow) => {
+              const adjustedRow = adjustedRowsByKey.get(recommendedRow.key) ?? recommendedRow;
               const favorable =
-                row.kind === 'economicEffect'
-                  ? row.amount > 0
-                  : row.key === 'expectedRemainingQty' ||
-                      row.key === 'expectedSellThroughDays' ||
-                      row.key === 'expectedDisposalQty'
-                    ? row.change < 0
-                    : row.key === 'movementCost'
+                adjustedRow.kind === 'economicEffect'
+                  ? adjustedRow.amount > 0
+                  : adjustedRow.key === 'expectedRemainingQty' ||
+                      adjustedRow.key === 'expectedSellThroughDays' ||
+                      adjustedRow.key === 'expectedDisposalQty'
+                    ? adjustedRow.change < 0
+                    : adjustedRow.key === 'movementCost'
                       ? false
-                      : row.change > 0;
+                      : adjustedRow.change > 0;
               return (
-                <tr key={row.key}>
+                <tr key={recommendedRow.key}>
                   <th scope="row" className="px-4 py-3 text-left font-medium text-[color:var(--text-body)]">
-                    {row.label}
+                    {recommendedRow.label}
                   </th>
                   <td className="px-4 py-3 text-right">
                     <strong className="tabular-nums text-[color:var(--text-heading)]">
-                      {formatMetricValue(row.kind, row.value)}
+                      {formatMetricValue(recommendedRow.kind, recommendedRow.value)}
                     </strong>
                     <span className="mt-0.5 block text-xs text-[color:var(--text-muted)]">
-                      {row.kind === 'economicEffect'
+                      {recommendedRow.kind === 'economicEffect'
                         ? '무전략 공헌이익 대비'
-                        : `기준 ${formatMetricValue(row.kind, row.baselineValue)}`}
+                        : `기준 ${formatMetricValue(recommendedRow.kind, recommendedRow.baselineValue)}`}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <strong
+                      className={`tabular-nums ${
+                        adjustmentApplied ? 'text-[color:var(--primary)]' : 'text-[color:var(--text-heading)]'
+                      }`}
+                    >
+                      {formatMetricValue(adjustedRow.kind, adjustedRow.value)}
+                    </strong>
+                    <span className="mt-0.5 block text-xs text-[color:var(--text-muted)]">
+                      {recalculating ? '재계산 중' : adjustmentApplied ? '조정 시뮬레이션 반영' : 'AI 추천과 동일'}
                     </span>
                   </td>
                   <td
@@ -627,7 +645,9 @@ function SimulationResultTable({ strategyCase, option }) {
                       favorable ? 'text-[color:var(--good)]' : 'text-[color:var(--text-body)]'
                     }`}
                   >
-                    {row.kind === 'economicEffect' ? formatCurrency(row.amount) : formatChange(row.kind, row.change)}
+                    {adjustedRow.kind === 'economicEffect'
+                      ? formatCurrency(adjustedRow.amount)
+                      : formatChange(adjustedRow.kind, adjustedRow.change)}
                   </td>
                 </tr>
               );
@@ -635,7 +655,7 @@ function SimulationResultTable({ strategyCase, option }) {
           </tbody>
         </TableElement>
       </Table>
-    </section>
+    </Card>
   );
 }
 
@@ -926,16 +946,82 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     }
   }
 
-  function handleReadjustAfterConflict() {
+  function handleReadjustAfterConflict(conflict) {
     setSelectionConflict(null);
     selectionValidationMutation.reset();
+
+    if (conflict?.hasStructuredChanges) {
+      const conflictingOption = options.find((option) => option.optionId === conflict.optionId) ?? activeOption;
+      const optionKey = conflictingOption.optionKey;
+      const suggestions = conflict.suggestedAdjustments;
+      const suggestedQuantity = Object.hasOwn(suggestions, 'actionQuantity')
+        ? Number(suggestions.actionQuantity)
+        : null;
+
+      adjustmentRevisionByOptionRef.current[optionKey] = (adjustmentRevisionByOptionRef.current[optionKey] ?? 0) + 1;
+      setAdjustmentErrorsByOption((current) => ({ ...current, [optionKey]: null }));
+      setAdjustmentStateByOption((current) => {
+        const defaults = adjustmentDefaultsByOption[optionKey];
+        const optionState = current[optionKey] ?? defaults;
+        const nextActions = Object.fromEntries(
+          Object.entries(optionState.values.actions).map(([actionOrder, values]) => [
+            actionOrder,
+            {
+              ...values,
+              ...(suggestedQuantity !== null ? { quantity: suggestedQuantity } : {}),
+              ...(suggestions.startDate ? { startDate: suggestions.startDate } : {}),
+              ...(suggestions.endDate ? { endDate: suggestions.endDate } : {}),
+            },
+          ]),
+        );
+
+        return {
+          ...current,
+          [optionKey]: {
+            ...optionState,
+            values: { ...optionState.values, actions: nextActions },
+            applied: false,
+          },
+        };
+      });
+      setSimulatedOptionsByKey((current) => {
+        const option = current[optionKey] ?? conflictingOption;
+        const constraints = option.adjustmentConstraints ?? {};
+        const minimumStartDate = suggestions.startDate
+          ? [constraints.minimumStartDate, suggestions.startDate].filter(Boolean).sort().at(-1)
+          : constraints.minimumStartDate;
+        const latestSelectableEndDate = suggestions.endDate
+          ? [constraints.latestSelectableEndDate, suggestions.endDate].filter(Boolean).sort()[0]
+          : constraints.latestSelectableEndDate;
+
+        return {
+          ...current,
+          [optionKey]: {
+            ...option,
+            ...(suggestedQuantity !== null
+              ? {
+                  maxExecutableQty: Math.min(Number(option.maxExecutableQty) || suggestedQuantity, suggestedQuantity),
+                }
+              : {}),
+            adjustmentConstraints: {
+              ...constraints,
+              minimumStartDate,
+              latestSelectableEndDate,
+              requiresPeriodAdjustment: Boolean(suggestions.startDate || suggestions.endDate),
+            },
+          },
+        };
+      });
+      if (optionKey !== activeOption.optionKey) onActiveOptionChange(optionKey);
+    }
+
     requestAnimationFrame(() => {
       document.querySelector('[data-testid="strategy-condition-panel"]')?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
     });
-    void handleApplyAdjustment();
+    if (!conflict?.hasStructuredChanges) void handleApplyAdjustment();
   }
 
   return (
@@ -974,39 +1060,39 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
         }
       >
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 overflow-hidden">
-          <Card padding="none" className="min-w-0 overflow-hidden" data-testid="strategy-simulation-overview">
-            <div className="grid min-w-0 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-              <div className="min-w-0 p-5 xl:border-r xl:border-[var(--border)]">
-                <SimulationResultTable strategyCase={strategyCase} option={displayedActiveOption} />
-                <div className="mt-5 grid gap-4 border-t border-[var(--border)] pt-4">
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-[color:var(--primary)]">AI 추천 이유</span>
-                    <p className="mt-1 break-words text-sm leading-6 text-[color:var(--text-body)]">
-                      {activeOption.recommendationReason}
-                    </p>
-                  </div>
-                  <div className="grid gap-3 text-xs leading-5 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                    <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
-                      <strong className="mr-1 text-[color:var(--good)]">장점</strong>
-                      <span className="text-[color:var(--text-body)]">{activeOption.advantage}</span>
-                    </p>
-                    <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
-                      <strong className="mr-1 text-[color:var(--warning)]">주의</strong>
-                      <span className="text-[color:var(--text-muted)]">{activeOption.caution}</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="min-w-0 border-t border-[var(--border)] p-5 xl:border-t-0">
-                <StrategyChart
-                  strategyCase={strategyCase}
-                  options={displayedOptions}
-                  activeOption={displayedActiveOption}
-                  chartRange={displayedChartRange}
-                />
-              </div>
+          <Card padding="md" className="grid gap-4">
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-[color:var(--primary)]">AI 추천 이유</span>
+              <p className="mt-1 break-words text-sm leading-6 text-[color:var(--text-body)]">
+                {activeOption.recommendationReason}
+              </p>
+            </div>
+            <div className="grid gap-3 border-t border-[var(--border)] pt-3 text-xs leading-5 md:grid-cols-2">
+              <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
+                <strong className="mr-1 text-[color:var(--good)]">장점</strong>
+                <span className="text-[color:var(--text-body)]">{activeOption.advantage}</span>
+              </p>
+              <p className="min-w-0 break-words rounded-xl bg-[var(--surface-subtle)] px-3 py-2.5">
+                <strong className="mr-1 text-[color:var(--warning)]">주의</strong>
+                <span className="text-[color:var(--text-muted)]">{activeOption.caution}</span>
+              </p>
             </div>
           </Card>
+          <div className="w-full min-w-0 max-w-full rounded-[var(--radius-panel)]">
+            <StrategyChart
+              strategyCase={strategyCase}
+              options={displayedOptions}
+              activeOption={displayedActiveOption}
+              chartRange={displayedChartRange}
+            />
+          </div>
+          <SimulationResultTable
+            strategyCase={strategyCase}
+            recommendedOption={activeOption}
+            adjustedOption={displayedActiveOption}
+            adjustmentApplied={Boolean(simulatedOptionsByKey[activeOption.optionKey])}
+            recalculating={hasUnappliedChanges || (activeMutation && simulationMutation.isPending)}
+          />
           <ActionTimeline option={displayedActiveOption} />
         </div>
       </DetailLayout>
