@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { aiStrategyDetailQueryOptions, resolveStrategyOption } from '@/entities/strategy';
 import { Button, StateView } from '@/shared/ui';
@@ -14,6 +14,10 @@ export default function AiStrategySimulationPage() {
   const strategyCase = detailQuery.data;
   const activeOption = resolveStrategyOption(strategyCase?.options, searchParams.get('option'));
   const listPath = location.state?.from ?? '/ai-strategy';
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [strategyCaseId]);
 
   useEffect(() => {
     if (!activeOption || searchParams.get('option') === activeOption.optionKey) return;

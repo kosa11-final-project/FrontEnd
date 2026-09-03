@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLayoutEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { aiStrategyDetailQueryOptions } from '@/entities/strategy';
 import { Button, StateView } from '@/shared/ui';
@@ -10,6 +11,10 @@ export default function AiStrategyDetailPage() {
   const location = useLocation();
   const listPath = location.state?.from ?? '/ai-strategy';
   const detailQuery = useQuery(aiStrategyDetailQueryOptions(strategyCaseId));
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [strategyCaseId]);
 
   if (detailQuery.isPending) {
     return (
