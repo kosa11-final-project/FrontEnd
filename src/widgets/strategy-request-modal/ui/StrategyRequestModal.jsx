@@ -800,7 +800,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                   <div>
                     <h2 className="text-lg font-bold text-[color:var(--text-heading)]">희망 전략 기간</h2>
                     <p className="mt-1 text-xs text-[color:var(--text-muted)]">
-                      미입력 시 오늘로부터 최대 90일 전체 기간이 대상 후보로 선정됩니다.
+                      미입력 시 오늘을 포함한 30일 전체 기간이 대상 후보로 선정됩니다.
                     </p>
                   </div>
                 </div>
@@ -849,7 +849,7 @@ function StrategyRequestModalContent({ selectedItems, onClose, onCreated, create
                     className="mt-0.5 shrink-0 text-[color:var(--info)]"
                     aria-hidden="true"
                   />
-                  오늘로부터 최대 90일 뒤까지만 선택 가능합니다.
+                  시작일과 종료일은 오늘을 포함한 30일 범위 안에서만 선택할 수 있습니다.
                 </div>
               </Card>
             </div>

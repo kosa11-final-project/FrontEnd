@@ -85,7 +85,7 @@ describe('AI 전략 생성 요청 모델', () => {
   });
 
   it('명세의 날짜 경계와 전략명 길이를 검증한다', () => {
-    expect(getStrategyRequestMaximumDate('2026-08-23')).toBe('2026-11-21');
+    expect(getStrategyRequestMaximumDate('2026-08-23')).toBe('2026-09-21');
 
     expect(
       validateStrategyRequestDraft(
@@ -112,8 +112,8 @@ describe('AI 전략 생성 요청 모델', () => {
           sourceSalesPointCode: 'STORE-1',
           sourceSalesPointId: 10,
           strategyTypes: ['REALLOCATION'],
-          preferredStartDate: '2026-08-23',
-          preferredEndDate: '2026-11-20',
+          preferredStartDate: '2026-09-07',
+          preferredEndDate: '2026-09-21',
         },
         '2026-08-23',
       ),
@@ -127,7 +127,7 @@ describe('AI 전략 생성 요청 모델', () => {
           sourceSalesPointId: 10,
           strategyTypes: ['REALLOCATION'],
           preferredStartDate: '2026-08-23',
-          preferredEndDate: '2026-11-22',
+          preferredEndDate: '2026-09-22',
         },
         '2026-08-23',
       ),
