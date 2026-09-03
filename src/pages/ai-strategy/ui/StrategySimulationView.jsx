@@ -919,16 +919,82 @@ export function StrategySimulationView({ strategyCase, activeOption, listPath, o
     }
   }
 
-  function handleReadjustAfterConflict() {
+  function handleReadjustAfterConflict(conflict) {
     setSelectionConflict(null);
     selectionValidationMutation.reset();
+
+    if (conflict?.hasStructuredChanges) {
+      const conflictingOption = options.find((option) => option.optionId === conflict.optionId) ?? activeOption;
+      const optionKey = conflictingOption.optionKey;
+      const suggestions = conflict.suggestedAdjustments;
+      const suggestedQuantity = Object.hasOwn(suggestions, 'actionQuantity')
+        ? Number(suggestions.actionQuantity)
+        : null;
+
+      adjustmentRevisionByOptionRef.current[optionKey] = (adjustmentRevisionByOptionRef.current[optionKey] ?? 0) + 1;
+      setAdjustmentErrorsByOption((current) => ({ ...current, [optionKey]: null }));
+      setAdjustmentStateByOption((current) => {
+        const defaults = adjustmentDefaultsByOption[optionKey];
+        const optionState = current[optionKey] ?? defaults;
+        const nextActions = Object.fromEntries(
+          Object.entries(optionState.values.actions).map(([actionOrder, values]) => [
+            actionOrder,
+            {
+              ...values,
+              ...(suggestedQuantity !== null ? { quantity: suggestedQuantity } : {}),
+              ...(suggestions.startDate ? { startDate: suggestions.startDate } : {}),
+              ...(suggestions.endDate ? { endDate: suggestions.endDate } : {}),
+            },
+          ]),
+        );
+
+        return {
+          ...current,
+          [optionKey]: {
+            ...optionState,
+            values: { ...optionState.values, actions: nextActions },
+            applied: false,
+          },
+        };
+      });
+      setSimulatedOptionsByKey((current) => {
+        const option = current[optionKey] ?? conflictingOption;
+        const constraints = option.adjustmentConstraints ?? {};
+        const minimumStartDate = suggestions.startDate
+          ? [constraints.minimumStartDate, suggestions.startDate].filter(Boolean).sort().at(-1)
+          : constraints.minimumStartDate;
+        const latestSelectableEndDate = suggestions.endDate
+          ? [constraints.latestSelectableEndDate, suggestions.endDate].filter(Boolean).sort()[0]
+          : constraints.latestSelectableEndDate;
+
+        return {
+          ...current,
+          [optionKey]: {
+            ...option,
+            ...(suggestedQuantity !== null
+              ? {
+                  maxExecutableQty: Math.min(Number(option.maxExecutableQty) || suggestedQuantity, suggestedQuantity),
+                }
+              : {}),
+            adjustmentConstraints: {
+              ...constraints,
+              minimumStartDate,
+              latestSelectableEndDate,
+              requiresPeriodAdjustment: Boolean(suggestions.startDate || suggestions.endDate),
+            },
+          },
+        };
+      });
+      if (optionKey !== activeOption.optionKey) onActiveOptionChange(optionKey);
+    }
+
     requestAnimationFrame(() => {
       document.querySelector('[data-testid="strategy-condition-panel"]')?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
     });
-    void handleApplyAdjustment();
+    if (!conflict?.hasStructuredChanges) void handleApplyAdjustment();
   }
 
   return (
